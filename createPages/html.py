@@ -197,7 +197,9 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
         fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
-    return openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
+    from navigation import mapHtmlLinks
+    top = openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
+    return mapHtmlLinks(top, versionAbbreviation or 'OET', level, state, versionBar=True)
 # end of html.makeTop
 
 

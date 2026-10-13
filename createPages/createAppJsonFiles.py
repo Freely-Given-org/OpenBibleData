@@ -42,6 +42,7 @@ import bos_books_codes_py
 
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
+from navigation import wordReferenceMetadata
 from settings import State, state, CNTR_BOOK_ID_MAP
 from createSectionPages import findSectionNumber
 from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, \
@@ -589,8 +590,9 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #             keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
     # Now remove unnecessary empty fields (to keep the filesizes down) and then output the JSON
+    jsonDict.update(wordReferenceMetadata(ref, state))
     for key in jsonDict.copy(): # Iterate through a copy because we'll change the original dict on the fly
-        if not jsonDict[key]: del jsonDict[key]
+        if not jsonDict[key] and key != 'navigation_references': del jsonDict[key]
     filepath = outputFolderPath.joinpath( word_output_filename )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as json_output_file:
@@ -962,8 +964,9 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 #                 keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
         # Now remove unnecessary empty fields (to keep the filesizes down) and then output the JSON
+        jsonDict.update(wordReferenceMetadata(ref, state))
         for key in jsonDict.copy(): # Iterate through a copy because we'll change the original dict on the fly
-            if not jsonDict[key]: del jsonDict[key]
+            if not jsonDict[key] and key != 'navigation_references': del jsonDict[key]
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as json_output_file:

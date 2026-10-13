@@ -587,6 +587,7 @@ fn convert_usfm_character_formatting_py(
     livenWordLinks=false,
     colouriseWordClasses=true,
     addNoLinkYetSpans=true,
+    navigationVersion=None,
 ))]
 #[allow(non_snake_case)]
 fn convert_verse_entry_list_to_html_py<'py>(
@@ -602,6 +603,7 @@ fn convert_verse_entry_list_to_html_py<'py>(
     livenWordLinks: bool,
     colouriseWordClasses: bool,
     addNoLinkYetSpans: bool,
+    navigationVersion: Option<&str>,
 ) -> PyResult<String> {
     let context_list = contextList.unwrap_or_default();
     let verse_entries = verseEntryList.unwrap_or_default();
@@ -819,7 +821,20 @@ fn convert_verse_entry_list_to_html_py<'py>(
     );
 
     match result {
-        Ok(html) => Ok(html),
+        Ok(html) => {
+            if let Some(site_state) = state {
+                if site_state.hasattr("BibleVersifications")? {
+                    let kwargs = pyo3::types::PyDict::new(py);
+                    kwargs.set_item("segmentType", segmentType)?;
+                    kwargs.set_item("reference", &refTuple)?;
+                    kwargs.set_item("navigationVersion", navigationVersion)?;
+                    return py.import("navigation")?.call_method(
+                        "mapHtmlLinks", (html, versionAbbreviation, level, site_state), Some(&kwargs)
+                    )?.extract();
+                }
+            }
+            Ok(html)
+        },
         Err(e) => Err(PyValueError::new_err(format!("convertVerseEntryListToHtml failed: {e}"))),
     }
 }
@@ -1595,62 +1610,14 @@ fn find_ol_quote_in_lv_py<'py>(
         "OET-LV_OT_word_table.tsv"
     };
 
-    let context_data = match state
-        .getattr("preloadedBibles")?
-        .get_item("OET-LV")?
-        .call_method1("getContextVerseData", ((BBB, C, V),))
-        .and_then(|data| data.get_item(0)) // TypeError if None is returned
-    {
-        Ok(data) => data,
-        Err(error)
-            if error
-                .get_type(py)
-                .name()
-                .is_ok_and(|name| name == "KeyError" || name == "TypeError") =>
-        {
-            let books_to_load = state.getattr("booksToLoad")?.get_item("OET-LV")?;
-            let has_book = books_to_load.call_method1("__contains__", (BBB,))?.is_truthy()?;
-            log_message(
-                py,
-                if has_book { "error" } else { "warning" },
-                &format!("findOLQuoteInLV: OET-LV has no text for {reference}"),
-            );
-            return Ok(String::new());
-        }
-        Err(error) => return Err(error),
-    };
-    // Collect the texts we might find a starting word number in
-    let mut lv_texts: Vec<String> = Vec::with_capacity(8);
-    for entry in context_data.try_iter()? {
-        lv_texts.push(entry_original_text(&entry?)?);
-    }
-
-    let word_table = state
-        .getattr("OETRefData")?
-        .get_item("word_tables")?
+    // BOS maps/retrieves complete portions; OBD selects their native word rows.
+    let (lv_texts, word_numbers): (Vec<String>, Vec<i64>) = py.import("oetWords")?
+        .call_method1("translationNoteQuoteData", (BBB, C, V, state))?.extract()?;
+    let word_table = state.getattr("OETRefData")?.get_item("word_tables")?
         .get_item(word_file_name)?;
-    let table_len: usize = word_table.len()?;
-    // Python only looks up word_table_indexes when a starting word number was
-    // found; KeyError propagates to the caller in that case.
-    let indexes_root = state
-        .getattr("OETRefData")?
-        .get_item("word_table_indexes")?
-        .get_item(word_file_name)?;
-    let get_indexes = |ref_: &str| -> Result<(i64, i64), String> {
-        let pair = indexes_root
-            .get_item(ref_)
-            .map_err(|error: PyErr| format!("KeyError: {ref_} ({error})"))?;
-        let first: i64 = pair
-            .get_item(0)
-            .map_err(|e: PyErr| e.to_string())?
-            .extract()
-            .map_err(|e: PyErr| e.to_string())?;
-        let last: i64 = pair
-            .get_item(1)
-            .map_err(|e: PyErr| e.to_string())?
-            .extract()
-            .map_err(|e: PyErr| e.to_string())?;
-        Ok((first, last))
+    let table_len = word_table.len()?;
+    let get_indexes = |_reference: &str| -> Result<Vec<i64>, String> {
+        Ok(word_numbers.clone())
     };
 
     let get_row = |number: i64| -> Result<String, String> {

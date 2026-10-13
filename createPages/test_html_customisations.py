@@ -7,7 +7,8 @@
 #
 # do_OET_RV_*, do_OET_LV_*, do_LSV_* and do_T4T_* now delegate to byte-identical
 # Rust ports (createPages/Rust/src/html_customisations.rs); the expected outputs
-# below were captured from the Python originals so they pin the byte-identity.
+# below were captured from the Python originals, with LSV updated for the
+# deliberate 2026-09-19 change to place source newlines before <br>.
 
 import unittest
 
@@ -161,13 +162,13 @@ class TestOETLVHTMLcustomisations(unittest.TestCase):
 
 
 class TestLSVHTMLcustomisations(unittest.TestCase):
-    """LSV parallel lines ' || ' become <br>."""
+    """LSV parallel lines become HTML breaks preceded by source newlines."""
 
     def test_spaced_double_pipes(self):
-        self.assertEqual(do_LSV_HTMLcustomisations('test', 'a || b'), 'a<br>b')
+        self.assertEqual(do_LSV_HTMLcustomisations('test', 'a || b'), 'a\n<br>b')
 
     def test_tight_double_pipes(self):
-        self.assertEqual(do_LSV_HTMLcustomisations('test', 'x||y'), 'x<br>y')
+        self.assertEqual(do_LSV_HTMLcustomisations('test', 'x||y'), 'x\n<br>y')
 
 
 class TestT4THTMLcustomisations(unittest.TestCase):

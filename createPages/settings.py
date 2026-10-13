@@ -37,6 +37,7 @@ CHANGELOG:
     2026-09-04 Added a separate program version number string in State (to make it easier to increment)
     2026-09-24 Added RV-only and LV-only warnings
     2026-10-01 Added GHT
+    2026-10-12 Declare source and navigation versifications for parallel pages.
 """
 from pathlib import Path
 
@@ -44,10 +45,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-12' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.1.0'
+PROGRAM_VERSION = '1.2.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -65,7 +66,7 @@ class State:
     OET_VERSION_NUMBER_STRING = 'v0.48.87' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
-    TEST_OT_BOOK_LIST = ['PSA']
+    TEST_OT_BOOK_LIST = ['PSA','MAL'] # So we can test versification issues
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
@@ -204,6 +205,41 @@ class State:
         ]    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
 #           (often because we temporarily remove the BibleLocation below)
     allPossibleBibleVersions = BibleVersions[:] # Keep a copy with the full list
+
+    # Page URLs and navigation use English numbering. These declarations describe
+    # the stored source addresses, not the language or textual ancestry of a work.
+    # BOS historical names (e.g. Luther) are count-only until a mapping is supplied;
+    # the parallel pages report unavailable alignments instead of guessing.
+    navigationVersification = 'eng'
+    BibleVersifications = dict.fromkeys((
+        'OET','OET-RV', 'AHB','SLBL','GHT','ULT','UST','NET','BSB','MSB','BLB',
+        'AICNT','OEB','ISV','CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST',
+        'WEBBE','WMBB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV',
+        'TLB','NAB','BBE','Moff','Wymth','ASV','YLT','Drby','RV','SLT','Wbstr',
+        'KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT',
+        'UHB','UGNT', # unfoldingWord stores English numbers, with original numbers in \\va
+        'NETS', # All selected-verse TSVs are keyed to English page references.
+        'TOSN','TTN','SOTN','UTN',
+    ), 'eng')
+    BibleVersifications.update({
+        'OET-LV': 'org', 'SR-GNT': 'org', 'SBL-GNT': 'org',
+        'RP-GNT': 'org', 'TC-GNT': 'org', 'JPS': 'org',
+        'BrLXX': 'lxx', 'BrTr': 'lxx',
+        'ClVg': 'vul', 'DRA': 'vul', 'Luth': 'Luther',
+        # This import has only GEN EXO LEV NUM DEU MAT MRK LUK JHN.
+        # Confirmed: MRK 9:1 begins the transfiguration (English MRK 9:2).
+        'Wycl': 'vul',
+    })
+    assert set(allPossibleBibleVersions) <= BibleVersifications.keys()
+
+    # BOS lxx calls the 23-chapter Ezra/Nehemiah composite EZN. The eBible
+    # Brenton sources store it under different book identities. These are
+    # storage adapters AFTER BOS mapping, not alternative versification rules.
+    # Entries: (first profile chapter, last profile chapter, stored book, offset).
+    BibleSourceBookLayouts = {
+        'BrLXX': {'EZN': ((1,23,'EZR',0),)},
+        'BrTr': {'EZN': ((1,10,'EZR',0), (11,23,'NEH',-10))},
+    }
 
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all

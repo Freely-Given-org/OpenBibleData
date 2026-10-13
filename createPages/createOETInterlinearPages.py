@@ -61,6 +61,11 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
+from versification import navigationVersification, _mapReference
+from oetWords import passageWordRows
+from navigation import referenceHref
+from oetPassages import _namespaceIds
+from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -205,18 +210,9 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                                     .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
     assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
 
-    numChapters = None
-    for versionAbbreviation in state.BibleVersions:
-        if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
-        if versionAbbreviation not in state.preloadedBibles: continue # Don't have this one
-        referenceBible = state.preloadedBibles[versionAbbreviation]
-        if BBB not in referenceBible: continue # don't want to force loading the book
-        try: numChapters = referenceBible.getNumChapters( BBB )
-        except AttributeError: continue
-        if numChapters: break
-    else:
-        logging.critical( f"createOETInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
-        return False # Need to check what FRT does
+    referenceBible = navigationVersification(state.navigationVersification)
+    try: numChapters = referenceBible.getNumChapters(BBB)
+    except KeyError: return False
     chapterLinks = []
     chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
@@ -233,12 +229,15 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             if numVerses is None: # something unusual
                 logging.error( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
-            for v in range( 1, numVerses+1 ):
+            # Include declared English title pages so native title links resolve.
+            titleMapping = _mapReference(state.navigationVersification, state.navigationVersification, (BBB,C,'0',None))
+            firstVerse = 1 if any(d.code == 'UNDECLARED_TITLE' for d in titleMapping.diagnostics) else 0
+            for v in range(firstVerse, numVerses+1):
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to interlinear verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
                                 for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
 
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
+                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>firstVerse \
                         else f'<a title="Go to last verse of previous chapter" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''
                 rightVLink = f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses else ''
@@ -361,34 +360,46 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     rvBible = state.preloadedBibles['OET-RV']
     wordTable = state.OETRefData['word_tables'][wordFileName]
 
+    nativeWordNumbers = ()
     try:
-        lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,V) )
-        lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, lvVerseEntryList, basicOnly=True, state=state, livenWordLinks=True ) )
-        lvTextHtml = lvTextHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
-        lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{C}.htm#V{V}">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
-    except (KeyError, TypeError):
-        if BBB in lvBible and BBB in rvBible:
-            warningText = f'No OET-LV {ourTidyBBBwithNotes} {c}:{v} verse available'
-            lvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
-        else:
-            warningText = f'No OET-LV {ourTidyBBBwithNotes} book available'
-            lvHtml = f'''<p class="ilNote"><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
-        logging.warning( warningText )
+        lvPassage = lvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),))
+        nativeWordNumbers = passageWordRows(lvPassage, state)
+        lvVerseEntryList = [entry for portion in lvPassage.portions for entry in portion.entries]
+        lvParts = []
+        for partNumber, (nativeRef, entries, context) in enumerate(lvPassage.portions):
+            text = do_OET_LV_HTMLcustomisations(f'Interlinear={nativeRef}',
+                convertVerseEntryListToHtml(level, 'OET-LV', nativeRef, 'interlinearVerse', context, entries,
+                    basicOnly=True, state=state, livenWordLinks=True))
+            label = f'<small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small> ' if nativeRef != (BBB,C,V) else ''
+            lvParts.append(label + _namespaceIds(text, f'LV{partNumber}_'))
+        lvTextHtml = ' '.join(lvParts)
+        nativeLink = referenceHref(level, lvPassage.portions[0].reference, 'OET-LV')
+        lvHtml = f'<div class="LV"><p class="LV"><span class="wrkName"><a title="View Literal Version passage" href="{nativeLink}">OET-LV</a></span> {lvTextHtml}</p></div><!--LV-->'
+    except (KeyError, TypeError, VersificationMappingError) as error:
+        warningText = (f'OET-LV alignment unavailable ({error.result.status.value})'
+                       if isinstance(error, VersificationMappingError) else 'Mapped OET-LV passage is not available')
+        lvHtml = f'<p class="ilNote"><span class="wrkName">OET-LV</span> <span class="noVerse">{warningText}</span></p>'
+        logging.warning('%s %s %s:%s: %s', warningText, BBB,C,V,error)
         lvVerseEntryList = []
+        nativeWordNumbers = ()
     try:
-        rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,V) )
+        rvPassage = rvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), combineAdjacent=True)
+        rvVerseEntryList = [entry for portion in rvPassage.portions for entry in portion.entries]
         # NOTE: The old code used lvBible for the liven (a quirk), so no TEST_MODE OET-RV
         # noLinkYet highlighting/preprocessing ever ran here -- we replicate that with addNoLinkYetSpans=False.
-        rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, rvVerseEntryList, basicOnly=True, state=state, livenWordLinks=True, addNoLinkYetSpans=False ) )
+        rvTextHtml = ' '.join(do_OET_RV_HTMLcustomisations(f'Interlinear={portion.reference}',
+            convertVerseEntryListToHtml(level, 'OET-RV', portion.reference, 'interlinearVerse',
+                portion.context, portion.entries, basicOnly=True, state=state,
+                livenWordLinks=True, addNoLinkYetSpans=False)) for portion in rvPassage.portions)
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, VersificationMappingError):
         if BBB in rvBible:
             warningText = f'No OET-RV {ourTidyBBBwithNotes} {c}:{v} verse available'
             rvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
-            rvHtml = f'''< class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            rvHtml = f'''<p class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.warning( warningText )
         rvVerseEntryList = []
     # Handle (SIL and uW) translation notes and (Tyndale) study notes
@@ -399,9 +410,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'interlinearVerse', state )
     if tsnHtml: tsnHtml = f'<div class="TSN">TSN <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'
 
-    # We need to find where this BCV is in the wordtable
-    # Rather than go thru the entire table, find any wordnumber in the verse, then work back from there
-    wordNumberStr = None # in case there's no words
+    # Text and word rows have both been selected in native coordinates.
     lvEnglishWordList = []
     for lvVerseEntry in lvVerseEntryList:
         cleanLVText, fullLVText = lvVerseEntry.getCleanText(), lvVerseEntry.getOriginalText()
@@ -412,14 +421,6 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         #   then split into words (Rust port of the per-entry clean/split chain)
         lvEnglishWordList += splitOETLVInterlinearWords( cleanLVText )
         # print( f"Found {BBB} {c}:{v} {lvVerseEntry=}" )
-        ixMarker = fullLVText.index( '¦' )
-        if not wordNumberStr: # We only need to find one word number (preferably the first one) here
-            wordNumberStr = ''
-            for increment in range( 1, 7 ): # (maximum of six word-number digits)
-                if fullLVText[ixMarker+increment].isdigit():
-                    wordNumberStr = f'{wordNumberStr}{fullLVText[ixMarker+increment]}' # Append the next digit
-                else: break
-        # break
     rvEnglishWordList = []
     for rvVerseEntry in rvVerseEntryList:
         fullRVText = rvVerseEntry.getOriginalText()
@@ -463,42 +464,24 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         else:
             rvEnglishWordDict[number].append( word )
 
-    if NT: # See if we have variants
-        # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
-        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
-        haveVariants = False
-        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-            if wordTable[wordNumber].split('\t')[7] != 'X': # SR/probability
-                haveVariants = True
-                break # no need to look further
+    haveVariants = NT and any(wordTable[n].split('\t')[7] != 'X' for n in nativeWordNumbers)
 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
     # Removed <li lang="en_PERCENT">{row[7]+'%' if row[7]=='X' else 'V'}</li>
     ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
-    if wordNumberStr: # Now we have a word number from the correct verse
+    if nativeWordNumbers:
         # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
         # Display the interlinear blocks (per-word rows are built in Rust for speed)
-        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         wordRows, wordNumbers, wordpageFilenames = [], [], []
-        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-            # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
-            #     break
+        for wordNumber in nativeWordNumbers:
             rowStr = wordTable[wordNumber]
-            # if not rowStr.startswith( f'{BBB}_{c}:{v}' ): # gone into the next verse
-            #     break
             wordRows.append( rowStr.split( '\t' ) )
             wordNumbers.append( wordNumber )
             wordpageFilenames.append( getGreekWordpageFilename(wordNumber, state ) if NT else f'{wordNumber}.htm' )
         # The Rust port also emits the title row, tags (Person=/Location=),
         #   gloss selection, Strongs links, and word-number links
         ivHtml = f'{ivHtml}{buildInterlinearWordRows( level, NT, wordRows, wordNumbers, wordpageFilenames, lvEnglishWordDict, rvEnglishWordDict )}'
-        # Reproduce an original-code side effect: the reverse-interlinear block below
-        #   reuses `gloss` from the LAST forward OT row (the old forward loop set it)
-        if not NT:
-            lastRow = wordRows[-1]
-            gloss = lastRow[11] if lastRow[11] else lastRow[10] if lastRow[10] else lastRow[9] if lastRow[9] else lastRow[8]
-
     # Now append the OET-RV
 #  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
     ivHtml = f'''{ivHtml}
@@ -558,7 +541,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             # Display the reverse interlinear blocks
             rowStr = wordTable[wordNumber]
             if NT:
-                assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+                assert wordNumber in nativeWordNumbers
                 row = rowStr.split( '\t' )
                 assert len(row) == 12
                 #  0    1          2        3           4              5              6          7            8           9     10          11
@@ -587,7 +570,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
   <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state )}#Top">{wordNumber}</a></li>
 </ol><!--word--></li>''' )
             else: # OT
-                assert rowStr.startswith( f'{BBB}_{c}:{v}' )
+                assert wordNumber in nativeWordNumbers
                 row = rowStr.split( '\t' )
                 assert len(row) == 19, f"({len(row)}) {row=}"
                 #  0    1        2                3             4        5           6     7                8                9                          10         11                   12                   13                14          15           16    17       18
@@ -607,10 +590,10 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     <li lang="en_TRANS"><b>{word}</b></li>
     <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
     <li lang="en_STRONGS">{','.join(strongsList)}</li>
-    <li lang="he">{row[1]}</li>
+    <li lang="he">{row[6]}</li>
     <li lang="he_LEMMA">{row[2]}</li>
     <li lang="en_MORPH">{row[16]}-{row[5]}</li>
-    <li lang="en_GLOSS">{gloss}</li>
+    <li lang="en_GLOSS">{row[11] or row[10] or row[9] or row[8]}</li>
     <li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
     <li lang="en_TAGS">{tagsHtml}</li>
     <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
@@ -619,12 +602,21 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     rivHtml = f'{rivHtml}{NEWLINE.join( reverseList )}'
 
 
+    cntrLinks = []
+    if NT:
+        for wordNumber in nativeWordNumbers:
+            sourceRef = wordTable[wordNumber].split('\t', 1)[0]
+            sourceBBB, sourceCV = sourceRef.split('_', 1)
+            sourceC, sourceV = sourceCV.split('w', 1)[0].split(':')
+            link = f'<a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[sourceBBB]}{sourceC.zfill(3)}{sourceV.zfill(3)}">CNTR</a>'
+            if link not in cntrLinks: cntrLinks.append(link)
+
     ivHtml = f'''{ivHtml}{rivHtml}
 </ol><!--verse--></div><!--interlinear-->
-{lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
-{rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
+{_namespaceIds(lvHtml, 'reverse_')}
+{_namespaceIds(rvHtml, 'reverse_')}
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p><!--note-->
-<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if bos_books_codes_py.is_new_testament_nr( BBB )
+<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the {" / ".join(cntrLinks) or "CNTR"}.</p>' if bos_books_codes_py.is_new_testament_nr( BBB )
                                        else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
 
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)

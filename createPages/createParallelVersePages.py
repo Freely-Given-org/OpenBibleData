@@ -84,6 +84,7 @@ CHANGELOG:
     2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
                 (instead of once per worker).
+    2026-10-12 Use BOS versification mappings for all parallel sources, with English navigation.
 """
 from pathlib import Path
 import os
@@ -103,6 +104,10 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
+from oetWords import matchedHebrewWordRows
+from versification import (navigationVersification, parallelVerseReferences,
+                            getVersePortions, versePortionHtml, MissingMappedBookError)
+from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
@@ -117,10 +122,10 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-12' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.11'
+PROGRAM_VERSION = '1.0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -181,7 +186,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
-        if bos_books_codes_py.is_chapter_verse_book( BBB ):
+        if bos_books_codes_py.is_chapter_verse_book( BBB ) and navigationVersification(state.navigationVersification).getNumChapters(BBB):
             ourTidyBBB = getOETTidyBBB( BBB )
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
@@ -195,7 +200,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     mpBookParameters = [] # (level, folder, BBB, BBBNextLinks, parallelVersions) tuples for the forked workers
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
-            if bos_books_codes_py.is_chapter_verse_book( BBB ):
+            if bos_books_codes_py.is_chapter_verse_book( BBB ) and navigationVersification(state.navigationVersification).getNumChapters(BBB):
                 if BibleOrgSysGlobals.maxProcesses > 1 \
                 and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these parallel verse pages
                     mpBookParameters.append( (level, folder, BBB, BBBNextLinks, parallelVersions) )
@@ -282,7 +287,6 @@ def _createParallelVersePagesForBook_MP( parameters ) -> tuple[bool,str,list,set
 # end of createParallelVersePages._createParallelVersePagesForBook_MP
 
 
-class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
 
 ENTIRE_FOOTNOTE_REGEX = re.compile( '\\\\f .+?\\\\f\\*' )
@@ -321,17 +325,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
     assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
 
-    numChapters = None
-    for versionAbbreviation in parallelVersions: # Our adjusted order
-        if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
-        try: referenceBible = state.preloadedBibles[versionAbbreviation]
-        except KeyError: continue # We don't have that version
-        if BBB not in referenceBible: continue # don't want to force loading the book
-        numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
-        if numChapters: break
-    else:
-        logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
-        return False # Need to check what FRT does
+    # Page addresses must not depend on version order, loaded subsets, or a
+    # source's native numbering (e.g. original Malachi has only three chapters).
+    referenceSystem = navigationVersification(state.navigationVersification)
+    try:
+        numChapters = referenceSystem.getNumChapters(BBB)
+        if numChapters is None:
+            raise KeyError(BBB)
+    except KeyError:
+        logging.warning(f'No {state.navigationVersification} navigation defined for {BBB}; skipping parallel book')
+        return True
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
 
     vLinksList = []
@@ -340,9 +343,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     hideTransliterationsButton = ' <button type="button" id="__ID__TransliterationsButton" title="Hide transliterations, etc." onclick="hide_show_transliterations()">ⱦ</button>'
     if numChapters >= 1:
         lastNumVerses = 0
-        for c in range( -1, numChapters+1 ):
+        for c in [-1, *range(1, numChapters+1)]:
             C = str( c )
-            adjC = 'Intro' if c==-1 else f'C{C}'
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
 
@@ -355,12 +357,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
                     else f' <a title="Next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
                     else ''
-            numVerses = referenceBible.getNumVerses( BBB, c )
+            numVerses = 0 if c == -1 else referenceSystem.getNumVerses(BBB, C)
             if numVerses is None: # something unusual
                 logging.error( f"createParallelVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
-            oetRvPsaHasD = False
-            verseEntriesForChapterMap = {} # (versionAbbreviation, C) -> {V: (entries, context)} bulk-fetched per chapter
+            verseEntriesForChapterMap = {} # (Bible identity, native book, native chapter) -> entries
             for v in range( 0, numVerses+1 ):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
@@ -369,6 +370,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
                 doneHideablesDiv = False
                 greekWords = {}; greekVersionKeysHtmlSet = set()
+                textHtmlBSB = textHtmlWEB = footnotesHtmlSaved = ''
 
                 # The following all have a __ID__ string than needs to be replaced
                 if v > 3:
@@ -413,761 +415,716 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     # thisBible.loadBookIfNecessary( BBB )
-                    textHtml = None
-                    footnotesHtml = translatedFootnotesHtml = ''
-                    if versionAbbreviation in state.selectedVersesOnlyVersions: # then thisBible is NOT a Bible object, but a dict
-                        try:
-                            prefix = ''
-                            verseText = thisBible[(BBB,C,V)]
-                            if verseText.startswith( '(' ) and verseText[1].isdigit(): # then it's probably a verse range, e.g., (21-23), esp. in MSG
-                                prefix, verseText = verseText.split( ' ', 1 )
-                                assert prefix[-1] == ')'
-                                prefix = f'<b><sup>{prefix}</sup></b>'
-                            if verseText.startswith( '\\s1 ' ):
-                                verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
-                            verseText = ENTIRE_FOOTNOTE_REGEX.sub( '<sup>†</sup>', verseText ) # Just leave a mark where the footnotes were
-                            vHtml = f'{prefix}{verseText}' \
-                                .replace( '\\p ', '\n<br>¶&nbsp;' ) \
-                                .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
-                                .replace( '\\q2 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
-                                .replace( '\\q3 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
-                                .replace( '\\m ', '\n<br>' ) \
-                                .replace( '\\b', '\n<br> ' ) \
-                                .replace( '\\pc ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;' ) \
-                                .replace( '\\li1 ', '\n<br>•&nbsp;' ) \
-                                .replace( '\\li2 ', '\n<br>&nbsp;◦&nbsp;' ) \
-                                .replace( '\\li3 ', '\n<br>&nbsp;&nbsp;•&nbsp;' ) \
-                                .replace( '\\d ', '◊ ' ) \
-                                .replace( '\\s1 ', '\n<br>' ) \
-                                .replace( '\\s2 ', '\n<br>' ) \
-                                .replace( '\\s3 ', '\n<br>' ) \
-                                .replace( '\n\n', '\n' )
-                            # if versionAbbreviation=='CSB' and BBB=='RUT' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {verseText=}" )
-                            vHtml = vHtml.strip() \
-                                .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
-                                .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
-                                .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
-                                .replace( '\\nd LORD\\nd*', '\\nd L<span class="ndORD">ORD</span>\\nd*' ) \
-                                .replace( '\\nd LORDE\\nd*', '\\nd L<span class="ndORD">ORDE</span>\\nd*' ) \
-                                    .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
-                                .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
-                                .replace( '\\qs ', '<span class="qs">' ).replace( '\\qs*', '</span>' )
-                                # .replace( '\n', '\n<br>' )
-                            for possiblePrefix in ('\n','<br>','\n'): # only leave these if they're in the middle of the verse
-                                vHtml = vHtml.removeprefix( possiblePrefix )
-                            # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {vHtml=}" ); assert False, "We want to stop here"
-                            assert '\\' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
-                            assert '*' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
-                            assert '<br><br>' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
-                            if versionAbbreviation == 'SLBL': # We provide a direct link to their website
-                                vHtml = f'{vHtml} <a title="Go to the SLBL translation" href="https://psalms.scriptura.org/w/Psalm_Overview_{C}#Close-but-Clear_Translation">‡</a>'
-                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {state.BibleNames[versionAbbreviation]} copyright info" href="{'../'*BBBLevel}AllDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>'''
-                        except KeyError:
-                            vHtml = None # We display nothing at all for these versions that only have a few selected verses
-                    else: # should be a Bible object
-                        try:
-                            if BBB not in thisBible:
-                                # print( f"{versionAbbreviation} doesn't have {BBB} available{' in TEST_MODE' if state.TEST_MODE_FLAG else ''}")
-                                raise MissingBookError # Requested book is not in this Bible
-                            # NOTE: For the book intro, we fetch the whole lot in one go (not line by line)
-                            if versionAbbreviation == 'OET-LV' and oetRvPsaHasD and c >= 1: # TODO: Fix with proper versification TEMP TEMP TEMP XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                                # For these Psalms, the OET-LV calls the \\d field, verse 1, so everything is one verse out
-                                verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
-                            else: # the normal, common case
-                                if c == -1: # book intro — fetch once per chapter below
-                                    verseEntryList, contextList = thisBible.getContextVerseData( (BBB,'-1') )
-                                else:
-                                    cacheKey = (versionAbbreviation, C)
-                                    if cacheKey not in verseEntriesForChapterMap:
-                                        verseEntriesForChapterMap[cacheKey] = thisBible.books[BBB]._CVIndex.getChapterVerseEntriesWithContext( C )
-                                    verseEntryList, contextList = verseEntriesForChapterMap[cacheKey][V]  # raises KeyError if the verse is missing, same as getContextVerseData
-                                # if 'OET' in versionAbbreviation and BBB=='JER' and c==1 and V!='0':
-                                #     print( f"{versionAbbreviation} {parRef=} {contextList=} verseEntryList:")
-                                #     for eee,entry in enumerate( verseEntryList ):
-                                #         print( f"  {eee}: {entry.getMarker()}\n{entry.getOriginalText()=}\n{entry.getFullText()=}\n{entry.getAdjustedText()=}\n{entry.getCleanText()=}")
-                                # if versionAbbreviation=='BSB':
-                                #     print( f"BSB {parRef}") #  {verseEntryList=}
-                                #     for entry in verseEntryList:
-                                #         print( f"  {entry.getMarker()} '{entry.getOriginalText()}'")
-                                #         # if entry.getExtras():
-                                #         #     print( f"    {entry.getExtras()}")
-                                # elif versionAbbreviation=='MSB':
-                                #     print( f"MSB {parRef}") #  {verseEntryList=}
-                                #     for entry in verseEntryList:
-                                #         print( f"  {entry.getMarker()} '{entry.getOriginalText()}'")
-                                #         # if entry.getExtras():
-                                #         #     print( f"    {entry.getExtras()}")
-                                # elif versionAbbreviation=='T4T':
-                                #     if parRef == 'EZR_2:2': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
-                                #     if parRef == 'EZR_2:3': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
-                                # if parRef in ancientRefsToPrint: print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
-                            # # RUST IMPLEMENTATION TEST
-                            # if 0 and parRef in ('GEN_1:0','GEN_1:1', 'LEV_25:34', 'HAG_-1:0','HAG_1:1','HAG_2:2', 'MRK_3:21'):
-                            #     with open( f'{versionAbbreviation}_{parRef}_parallel.txt', 'rt', encoding='utf-8') as test_file:
-                            #         fileChunks = test_file.read().split( '\n\n' )
-                            #     for ff, fileChunk in enumerate( fileChunks[:4] ):
-                            #         if ff==0:
-                            #             expectedStr = f"{versionAbbreviation=} {parRef=}"
-                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
-                            #         elif ff==1:
-                            #             expectedStr = f"{len(contextList)=}"
-                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
-                            #         elif ff==2:
-                            #             expectedStr = f"{versionAbbreviation} {BBB} {contextList=}"
-                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
-                            #         elif ff==3:
-                            #             expectedStr = f"{len(verseEntryList)=}"
-                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
-                            #     for n,(verseEntry) in enumerate( verseEntryList ):
-                            #         expectedStr = f"{n} {verseEntry=}"
-                            #         assert expectedStr == fileChunks[n+4], f"CV index mismatch for {versionAbbreviation=} {parRef=}\n{expectedStr=}\n{fileChunks[n+4]=}"
-                            if 'GNT' in versionAbbreviation:
-                                plainGreekText = getPlainText( verseEntryList )
-                                if versionAbbreviation == 'SBL-GNT':
-                                    plainGreekText = plainGreekText.replace('1','').replace('2','') # 1 Cor 12:10
-                                greekWords[versionAbbreviation] = plainGreekText
-                                greekWords[f'{versionAbbreviation}_NoPunct'] = removeGreekPunctuation(  greekWords[versionAbbreviation] )
-                                try:
-                                    greekWords[f'{versionAbbreviation}_NoAccents'] = removeGreekAccents( greekWords[f'{versionAbbreviation}_NoPunct'] )
-                                except Exception as exc:
-                                    # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
-                                    raise exc
-                                # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}\n{greekWords[f'{versionAbbreviation}_NoAccents']=}" )
-                            if 'OET' in versionAbbreviation: # A few special handling features
-                                assert isinstance( thisBible, ESFMBible.ESFMBible )
-                                if versionAbbreviation == 'OET-LV' and c>= 1 and v >= 1:
-                                    rememberPossibleUnmatchedProperNames( parRef, verseEntryList, state )
-                                elif versionAbbreviation == 'OET-RV' and BBB=='PSA' and C not in ('98',):
-                                    # Psa 98 does have a d, but it's in with v1 and the other verses don't change
-                                    for entry in verseEntryList:
-                                        if entry.getMarker() == 'd':
-                                            oetRvPsaHasD = True
-                                            break
-                                    # We want to save
-                            textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state, livenWordLinks=('OET' in versionAbbreviation) or thisBible.abbreviation in ('BSB','MSB') )
-                            if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
-                                footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
-                            else: # no cross-references were asked for here for other versions
-                                        # An exception is https://Freely-Given.org/OBD/KJB-1611/byC/ESG_Intro.htm#Top
-                                assert textHtml.count('<hr ')<(3 if versionAbbreviation=='KJB-1611' else 2), f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
-                                textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
-                                if footnoteFreeTextHtml.endswith( ' </span>' ): # e.g., in BrLXX
-                                    footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>'
-                                # assert ' </span>' not in footnoteFreeTextHtml, f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
-                            if textHtml.endswith( ' </span>' ): # e.g., in BrLXX
-                                textHtml = f'{textHtml[:-8]}</span>'
-                            # assert ' </span>' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
-                            if 'OET' in versionAbbreviation:
-                                textHtml = textHtml.replace( '~~SCHWA~~', 'ə' ) # Restore protected field in title popups
-                            if versionAbbreviation not in ('TCNT','TC-GNT'): # They use this character in footnotes
-                                assert '¦' not in textHtml, f"{parRef} {versionAbbreviation} {textHtml=}"
-                            assert not textHtml.endswith( '\n' )
-                            if textHtml == '◙':
-                                NEVER_GETS_HERE
-                                raise UntranslatedVerseError
+                    try:
+                        mappedReferences = parallelVerseReferences(versionAbbreviation, thisBible, (BBB,C,V), state)
+                        versePortions = getVersePortions(thisBible, mappedReferences, verseEntriesForChapterMap)
+                    except VersificationMappingError as error:
+                        result = error.result
+                        logging.warning(f'{versionAbbreviation} {parRef}: {error}')
+                        warningText = f'Verse alignment unavailable ({result.status.value}).'
+                        parallelHtml += f'\n<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
+                        continue
+                    except KeyError as error:
+                        if versionAbbreviation in state.selectedVersesOnlyVersions or c == -1 or v == 0:
+                            continue
+                        nativeReferences = ', '.join(f'{bk} {ch}:{vs}{sf or ""}' for bk,ch,vs,sf in mappedReferences)
+                        missingWhat = 'book' if isinstance(error, MissingMappedBookError) else 'verse'
+                        warningText = f'No {versionAbbreviation} {nativeReferences} {missingWhat} available'
+                        logging.warning(warningText)
+                        parallelHtml += f'\n<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
+                        continue
+                    for portionNumber, (nativeReference, verseEntryList, contextList) in enumerate(versePortions):
+                        sourceBBB, sourceC, sourceV = nativeReference
+                        sourceChapter, sourceVerse = int(sourceC), getSmallLeadingInt(sourceV)
+                        sourceRef = f'{sourceBBB}_{sourceC}:{sourceV}'
+                        sourceAdjC = 'Intro' if sourceChapter == -1 else f'C{sourceC}'
+                        textHtml = None
+                        footnotesHtml = translatedFootnotesHtml = ''
+                        if versionAbbreviation in state.selectedVersesOnlyVersions: # then thisBible is NOT a Bible object, but a dict
+                            try:
+                                prefix = ''
+                                verseText = verseEntryList
+                                if verseText.startswith( '(' ) and verseText[1].isdigit(): # then it's probably a verse range, e.g., (21-23), esp. in MSG
+                                    prefix, verseText = verseText.split( ' ', 1 )
+                                    assert prefix[-1] == ')'
+                                    prefix = f'<b><sup>{prefix}</sup></b>'
+                                if verseText.startswith( '\\s1 ' ):
+                                    verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
+                                verseText = ENTIRE_FOOTNOTE_REGEX.sub( '<sup>†</sup>', verseText ) # Just leave a mark where the footnotes were
+                                vHtml = f'{prefix}{verseText}' \
+                                    .replace( '\\p ', '\n<br>¶&nbsp;' ) \
+                                    .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
+                                    .replace( '\\q2 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
+                                    .replace( '\\q3 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
+                                    .replace( '\\m ', '\n<br>' ) \
+                                    .replace( '\\b', '\n<br> ' ) \
+                                    .replace( '\\pc ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;' ) \
+                                    .replace( '\\li1 ', '\n<br>•&nbsp;' ) \
+                                    .replace( '\\li2 ', '\n<br>&nbsp;◦&nbsp;' ) \
+                                    .replace( '\\li3 ', '\n<br>&nbsp;&nbsp;•&nbsp;' ) \
+                                    .replace( '\\d ', '◊ ' ) \
+                                    .replace( '\\s1 ', '\n<br>' ) \
+                                    .replace( '\\s2 ', '\n<br>' ) \
+                                    .replace( '\\s3 ', '\n<br>' ) \
+                                    .replace( '\n\n', '\n' )
+                                # if versionAbbreviation=='CSB' and BBB=='RUT' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {verseText=}" )
+                                vHtml = vHtml.strip() \
+                                    .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
+                                    .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
+                                    .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
+                                    .replace( '\\nd LORD\\nd*', '\\nd L<span class="ndORD">ORD</span>\\nd*' ) \
+                                    .replace( '\\nd LORDE\\nd*', '\\nd L<span class="ndORD">ORDE</span>\\nd*' ) \
+                                        .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
+                                    .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
+                                    .replace( '\\qs ', '<span class="qs">' ).replace( '\\qs*', '</span>' )
+                                    # .replace( '\n', '\n<br>' )
+                                for possiblePrefix in ('\n','<br>','\n'): # only leave these if they're in the middle of the verse
+                                    vHtml = vHtml.removeprefix( possiblePrefix )
+                                # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {vHtml=}" ); assert False, "We want to stop here"
+                                assert '\\' not in vHtml, f"{versionAbbreviation} {sourceRef} {vHtml=}"
+                                assert '*' not in vHtml, f"{versionAbbreviation} {sourceRef} {vHtml=}"
+                                assert '<br><br>' not in vHtml, f"{versionAbbreviation} {sourceRef} {vHtml=}"
+                                if versionAbbreviation == 'SLBL': # We provide a direct link to their website
+                                    vHtml = f'{vHtml} <a title="Go to the SLBL translation" href="https://psalms.scriptura.org/w/Psalm_Overview_{sourceC}#Close-but-Clear_Translation">‡</a>'
+                                vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {state.BibleNames[versionAbbreviation]} copyright info" href="{'../'*BBBLevel}AllDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>'''
+                            except KeyError:
+                                vHtml = None # We display nothing at all for these versions that only have a few selected verses
+                        else: # should be a Bible object
+                            try:
+                                # Entries were fetched as a complete mapped group before rendering.
+                                if 'GNT' in versionAbbreviation and len(versePortions) == 1:
+                                    plainGreekText = getPlainText( verseEntryList )
+                                    if versionAbbreviation == 'SBL-GNT':
+                                        plainGreekText = plainGreekText.replace('1','').replace('2','') # 1 Cor 12:10
+                                    greekWords[versionAbbreviation] = plainGreekText
+                                    greekWords[f'{versionAbbreviation}_NoPunct'] = removeGreekPunctuation(  greekWords[versionAbbreviation] )
+                                    try:
+                                        greekWords[f'{versionAbbreviation}_NoAccents'] = removeGreekAccents( greekWords[f'{versionAbbreviation}_NoPunct'] )
+                                    except Exception as exc:
+                                        # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
+                                        raise exc
+                                    # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}\n{greekWords[f'{versionAbbreviation}_NoAccents']=}" )
+                                if 'OET' in versionAbbreviation: # A few special handling features
+                                    assert isinstance( thisBible, ESFMBible.ESFMBible )
+                                    if versionAbbreviation == 'OET-LV' and sourceChapter>= 1 and sourceVerse >= 1:
+                                        rememberPossibleUnmatchedProperNames( sourceRef, verseEntryList, state )
+                                textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (sourceBBB,sourceC,sourceV), 'parallelVerse', contextList, verseEntryList, basicOnly=(sourceChapter!=-1), state=state, livenWordLinks=('OET' in versionAbbreviation) or thisBible.abbreviation in ('BSB','MSB') )
+                                if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
+                                    footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
+                                else: # no cross-references were asked for here for other versions
+                                            # An exception is https://Freely-Given.org/OBD/KJB-1611/byC/ESG_Intro.htm#Top
+                                    assert textHtml.count('<hr ')<(3 if versionAbbreviation=='KJB-1611' else 2), f"{versionAbbreviation} {sourceBBB} {sourceC}:{sourceV} ({textHtml.count('<hr ')}) {textHtml=}"
+                                    textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
+                                    if footnoteFreeTextHtml.endswith( ' </span>' ): # e.g., in BrLXX
+                                        footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>'
+                                    # assert ' </span>' not in footnoteFreeTextHtml, f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                if textHtml.endswith( ' </span>' ): # e.g., in BrLXX
+                                    textHtml = f'{textHtml[:-8]}</span>'
+                                # assert ' </span>' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
+                                if 'OET' in versionAbbreviation:
+                                    textHtml = textHtml.replace( '~~SCHWA~~', 'ə' ) # Restore protected field in title popups
+                                if versionAbbreviation not in ('TCNT','TC-GNT'): # They use this character in footnotes
+                                    assert '¦' not in textHtml, f"{sourceRef} {versionAbbreviation} {textHtml=}"
+                                assert not textHtml.endswith( '\n' )
+                                if textHtml == '◙':
+                                    NEVER_GETS_HERE
+                                    raise UntranslatedVerseError
 
-                            if versionAbbreviation == 'KJB-1611':
-                                textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
-                            elif 'OET' not in versionAbbreviation:
-                                # Hardwire added words in non-OET versions to italics
-                                textHtml = convert_adds_to_italics( textHtml, f'OET parallel verse {parRef}' )
+                                if versionAbbreviation == 'KJB-1611':
+                                    textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
+                                elif 'OET' not in versionAbbreviation:
+                                    # Hardwire added words in non-OET versions to italics
+                                    textHtml = convert_adds_to_italics( textHtml, f'OET parallel verse {sourceRef}' )
 
-                            if versionAbbreviation == 'OET-RV':
-                                # if BBB=='MRK' and C=='7' and V=='16': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
-                                textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS_FLAG and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                if versionAbbreviation == 'OET-RV':
+                                    # if BBB=='MRK' and C=='7' and V=='16': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
+                                    textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={sourceRef}', textHtml )
+                                    if state.DO_SPELL_CHECKS_FLAG and sourceRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
 
-                            elif versionAbbreviation == 'OET-LV':
-                                # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
-                                # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations( f"ParallelVerseTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={parRef}", footnotesHtml)
-                                if state.DO_SPELL_CHECKS_FLAG and parRef not in ('MAT_11:21','LUK_10:13','ACT_7:2','ACT_7:4'): # TODO Check these out
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                                assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
-                                # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
-                            elif versionAbbreviation == 'GHT':
-                                textHtml = do_GHT_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                            elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
-                                textHtmlBSB = textHtml
-                                footnotesHtmlSaved = footnotesHtml # Save it for later comparison
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'MSB' and textHtml: # assuming BSB comes BEFORE MSB
-                                if textHtml.replace( 'MSB', '' ) == textHtmlBSB.replace( 'BSB', '' ):
-                                    # print( f"Skipping parallel for MSB {parRef} because same as BSB" )
-                                    textHtml = "(Same as <small>BSB</small> above)" # Do we also need to adjust footnotesHtml ???
-                                # if parRef == 'NUM_25:8': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); assert False, "We want to stop here"
-                                else: # MSB is different -- try to highlight the first difference (that's not inside a footnote caller)
-                                    anchorIx = textHtml.find( '<a title=' )
-                                    fnCallerIx = textHtml.find( '<span class="fnCaller">' )
-                                    insideSpan = 0
-                                    for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, textHtmlBSB ) ):
-                                        if fnCallerIx!=-1 and zz1 >= fnCallerIx:
-                                            break # Too hard -- don't bother marking anything more here in this verse
-                                        if anchorIx!=-1 and zz1 >= anchorIx: # TODO: Because we now add word links, this will likely effectively make the MSB/BSB comparison useless???
-                                            break # Too hard -- don't bother marking anything more here in this verse
-                                        if msbChar == '<': # Could be inside </span> or something like a footnote caller
-                                            insideSpan += 1
-                                            # break # Too hard -- don't bother marking anything here in this verse
-                                        elif msbChar == '>': # Could be inside </span> or something like a footnote caller
-                                            insideSpan -= 1
-                                        if msbChar != bsbChar:
-                                            # print( f"{parRef} {zz1=} {msbChar=} {bsbChar=}\n   {textHtml=}\n{textHtmlBSB=}")
-                                            if not insideSpan:
-                                                for zz2 in range( zz1+1, len(textHtml) ):
-                                                    nextChar = textHtml[zz2]
-                                                    # print( f"{zz2=} {nextChar=}" )
-                                                    if nextChar in ' <':
-                                                        break
-                                                textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
-                                                break
+                                elif versionAbbreviation == 'OET-LV':
+                                    # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
+                                    # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
+                                    textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations( f"ParallelVerseTxt={sourceRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={sourceRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={sourceRef}", footnotesHtml)
+                                    if state.DO_SPELL_CHECKS_FLAG and sourceRef not in ('MAT_11:21','LUK_10:13','ACT_7:2','ACT_7:4'): # TODO Check these out
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                    assert checkHtml( f"OET-LV parallel AAA for {sourceRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {sourceRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {sourceRef}", footnotesHtml, segmentOnly=True )
+                                    # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
+                                    # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
+                                elif versionAbbreviation == 'GHT':
+                                    textHtml = do_GHT_HTMLcustomisations( f'ParallelVerseTxt={sourceRef}', textHtml )
+                                elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
+                                    textHtmlBSB = textHtml
+                                    footnotesHtmlSaved = footnotesHtml # Save it for later comparison
                                     if state.DO_SPELL_CHECKS_FLAG:
-                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'WEBBE': # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
-                                textHtmlWEB, footnotesHtmlSaved = textHtml, footnotesHtml # Save it
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'WMBB': # assuming WEB/WEBBE comes BEFORE WMB/WMBB
-                                if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ):
-                                    # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
-                                    textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
-                                elif state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                                # else:
-                                #     print( f"Using parallel for WMB {parRef} because different from WEB:" )
-                                #     print( f"  {textHtmlWEB=}" )
-                                #     print( f"     {textHtml=}" )
-                            elif versionAbbreviation == 'LSV':
-                                textHtml = do_LSV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'T4T':
-                                textHtml = do_T4T_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'LEB':
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                                textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
-                            elif footnoteFreeTextHtml and versionAbbreviation in state.ENGLISH_VERSIONS_WITH_MODERNISED_TEXT:
-                                # See if we need to add a modernised version of this text underneath the main/original text ???
-                                # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
-                                # rawTextHtml = footnoteFreeTextHtml
-                                # if rawTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ):
-                                #     assert rawTextHtml.endswith( '</span>' )
-                                #     rawTextHtml = rawTextHtml[30+len(versionAbbreviation):-7]
-                                # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
-                                # if V=='4': assert False, "We want to stop here"
-                                if versionAbbreviation == 'Wycl': # not sure why it has grave accents in it ???
-                                    footnoteFreeTextHtml = footnoteFreeTextHtml.replace( '`', '' )
-                                modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml
-                                                                                .replace('<span class="nd">L<span style="font-size:.75em;">ORDE</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'S')
-                                                                                .replace('<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'s'),
-                                                                        allowOptions=True ) # Can return words like 'hateth/hates'
-                                if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
-                                    modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                            .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
-                                                            .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
-                                modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
-                                if state.DO_SPELL_CHECKS_FLAG:
-                                    modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
-
-                                # end of removeVersePunctuationForComparison function
-                                # (see the Rust port below the module docstring/changelog comment)
-
-                                # if versionAbbreviation == 'BSB':
-                                #     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
-                                #     # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
-                                #     cleanedModernisedBSBTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
-                                #                                             .replace( '⇔ ', '' )
-                                #                                             .replace( '<br> ', '') # (with en-space) after Psalm titles
-                                #                                             #.replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
-                                #                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' )
-                                #                                             .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
-                                #                                             .strip() ) # Not sure why there's so many superfluous spaces in this text ???
-                                #     depunctuatedCleanedModernisedBSBTextHtml = removeVersePunctuationForComparison( cleanedModernisedBSBTextHtml )
-                                if versionAbbreviation == 'KJB-1769':
-                                    # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
-                                    # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
-                                    cleanedModernisedKJB1769TextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
-                                                                            .replace( '⇔ ', '' )
-                                                                            .replace( '<br> ', '') # (with en-space) after Psalm titles
-                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
-                                                                            .replace( '<span class="wj">', '' ).replace( '</span>', '' )
-                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
-                                                                            .strip() ) # Not sure why there's so many superfluous spaces in this text ???
-                                    depunctuatedCleanedModernisedKJB1769TextHtml = removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml )
-                                    if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(depunctuatedCleanedModernisedKJB1769TextHtml)}) {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
-                                # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
-                                # NOTE: cleanedModernisedTextHtml and depunctuatedCleanedModernisedTextHtml are only used for comparisons -- they're not displayed on the page anywhere
-                                cleanedModernisedTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
-                                                                        .replace( 'ij', 'iy' )
-                                                                        .replace( '<span class="wj">', '' )
-                                                                        # .replace( '<span style="fontsize75em">', '' ) # Where does this come from???
-                                                                        .replace( '</span>', '' )
-                                                                        .replace( 'Yuniper', 'Juniper' )
-                                                                        .replace( 'Yesus/Yeshua', 'Yesus' ) )
-                                depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
-                                if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
-                                # if versionAbbreviation == 'MSB' \
-                                # and cleanedModernisedTextHtml == cleanedModernisedBSBTextHtml:
-                                #     modernisedTextHtml = f"<small>{'Same as BSB above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                if versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
-                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
-                                elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and cleanedModernisedTextHtml.lower() == cleanedModernisedKJB1769TextHtml.lower():
-                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
-                                elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and depunctuatedCleanedModernisedTextHtml == depunctuatedCleanedModernisedKJB1769TextHtml:
-                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
-                                elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and depunctuatedCleanedModernisedTextHtml.lower() == depunctuatedCleanedModernisedKJB1769TextHtml.lower():
-                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
-                                elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and depunctuatedCleanedModernisedTextHtml.lower().replace( '<span class="add">', '' ) \
-                                == depunctuatedCleanedModernisedKJB1769TextHtml.lower().replace( '<span class="add">', '' ):
-                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
-                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
-                                else: # the modernised text itself will be displayed
-                                    if debugKJBCompareBit and versionAbbreviation!='KJB-1769': print( f"\n{parRef} {versionAbbreviation} DIFFERENT" )
-                                    if versionAbbreviation == 'KJB-1611':
-                                        # if debugThisBit:
-                                        #     print( f"  {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
-                                        #     print( f"  {depunctuatedCleanedModernisedTextHtml=}" )
-                                        modernisedTextHtml = modernisedTextHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
-                                    else: # Hardwire added words to italics
-                                        modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {parRef}' )
-                                    modernisedTextHtml = modernisedTextHtml.replace( '_verseTextChunk"', '_mod"' )
-                                    # if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
-                                    #     assert C=='-1' and V=='0'
-                                    #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
-                                    # else: # no div
-                                if versionAbbreviation=='KJB-1611' and not modernisedTextHtml.startswith('<small>') and not parRef.endswith( ':0' ): # Don't include chapter intros
-                                    if debugKJBCompareBit:
-                                        print( f"    {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
-                                        print( f"  KJB-1611 {depunctuatedCleanedModernisedTextHtml=}" )
-                                        print( f"                              {modernisedTextHtml=}")
-                                    # When the texts differ,
-                                    #   try to highlight the first KJB-1611 word that differs from the KJB-1769
-                                    #       (so we can see where a 1769 edit was made)
-                                    differentWordHighlighted = False
-                                    if debugKJBCompareBit:
-                                        print( f"aaa 1769 {depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
-                                        print( f"bbb 1611 {depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
-                                        print( f"Ccc 1611 {modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' )}" )
-                                    doneHighlight = False
-                                    changeIndex = (modernisedTextHtml.index('>')+1) if modernisedTextHtml[0]=='<' else 0 # So we only replace words after an initial span marker
-                                    for wordNum, (word1611, word1769, wordModTxt) in enumerate( zip( depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
-                                                                           depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
-                                                                           modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' ).replace( '( ', '' ).split() ) ):
-                                        if debugKJBCompareBit \
-                                        and not word1611==word1769==wordModTxt: print( f"  {parRef} LOOP {wordNum=} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}{f'/{modernisedTextHtml.count(wordModTxt)}' if modernisedTextHtml.count(wordModTxt)!=1 else ''} {changeIndex=} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'")
-                                        if word1769 != word1611:
-                                            if debugKJBCompareBit: print( f"  {parRef} {word1611=} IS DIFFERENT FROM {word1769=}" )
-                                            wordModTxtAdj = removeVersePunctuationForComparison( wordModTxt )
-                                            if debugKJBCompareBit:
-                                                if wordModTxtAdj != wordModTxt: print( f"        {wordModTxtAdj=} ({modernisedTextHtml.count(wordModTxtAdj)})" )
-                                                if ( 'spannd' not in wordModTxt
-                                                and '-' not in wordModTxt
-                                                and (not parRef.startswith('PSA_') or not parRef.endswith(':1')) # first verses of some Psalms have a problem with //d fields
-                                                and parRef not in ('KI1_10:15',) ):
-                                                    assert wordModTxtAdj in modernisedTextHtml, f"{wordModTxt=} should have been in {modernisedTextHtml=}"
-                                            if ( wordModTxtAdj.lower() == word1611
-                                            # and (modernisedTextHtml.count(wordModTxt)==1
-                                            #      or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
-                                            and 'class=' not in wordModTxt
-                                            and wordModTxtAdj.lower() not in ('adoniyah',) # Why???
-                                            ):
-                                                if debugKJBCompareBit: print( f"  {parRef} {modernisedTextHtml=}" )
-                                                assert wordModTxt != 'span' or parRef in ('EXO_28:16','EXO_39:9'), f"  {parRef} {wordModTxt=} {modernisedTextHtml=}"
-                                                # wordMTadj = removeVersePunctuationForComparison( wordMT )
-                                                # Save the correct replacement until after the loop, or we can accidentally replace some of those words
-                                                # TODO: Replacing all the words (or parts of words) isn't really very satisfactory
-                                                if debugKJBCompareBit:
-                                                    tempChangeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
-                                                    print( f"    PPP Now changeIndex = {tempChangeIndex} = max({changeIndex},{modernisedTextHtml.find( wordModTxt, changeIndex )}) so '{modernisedTextHtml[tempChangeIndex:tempChangeIndex+20]}...'" )
-                                                changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
-                                                # We get problems with 'a' or 'an' which occur inside 'span' and other words
-                                                if modernisedTextHtml[changeIndex:].startswith( f'{wordModTxt} '):
-                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
-                                                    changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
-                                                    doneHighlight = True
-                                                elif (modernisedTextHtml.count(wordModTxt)==1 and wordModTxt!='<br>') \
-                                                or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
-                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
-                                                            if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
-                                                                                                        else f'<spanSPAN2>{wordModTxt}</span>')}" )
-                                                    changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
-                                                    doneHighlight = True
-                                                assert '<sp<sp' not in modernisedTextHtml, f"hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement @ '{modernisedTextHtml[changeIndex-19:changeIndex+20]}...' from {modernisedTextHtml=}"
-                                                if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 18 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
-                                                differentWordHighlighted = True
-                                                if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
-                                                # break
-                                        if not doneHighlight:
-                                            # NOTE: The following mostly accounts for spans like '<span class="add_KJB-1611">...</span>'
-                                            changeIndex += len(wordModTxt) + 1 # for the space that it was split on
-                                            if modernisedTextHtml[changeIndex:].startswith( '<span class="add_KJB-1611">' ):
-                                                changeIndex += len( '<span class="add_KJB-1611">' )
-                                            elif modernisedTextHtml[changeIndex:].startswith( '/span> ' ):
-                                                changeIndex += len( '</span>' )
-                                    modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', ' title="Word (or format) changed in KJB-1769" class="hilite"' ) \
-                                                                           .replace( 'SPAN2', ' title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' ) \
-                                                                           .replace( 'SSSSS', '<span' ).replace( 'EEEEEEE', '</span>' ) \
-                                                                           .replace( 'MMMMM', '<span title="Possible misspelt word" class="spelling">' )# Uncover hidden spans again
-                                    assert checkHtml( f"hilighted {versionAbbreviation} {parRef} after replacements: {modernisedTextHtml=}", modernisedTextHtml, segmentOnly=True )
-                                    if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
-                                        if debugKJBCompareBit: print( "CHECK THE ABOVE" )
-                                        # assert False, "We want to stop here"
-                                    # if parRef == 'PSA_68:6': assert False, "We want to stop here"
-                                if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
-                                    # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
-                                    textHtml = f'''{textHtml}\n<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
-                                # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
-                            elif versionAbbreviation in ('Luth','ClVg'):
-                                translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
-                                adjustedForeignTextHtml = None
-                                if C!='-1' and V!='0' and textHtml:
-                                    # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
-                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
-                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
-                                    # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
-                                    adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
-                                    if footnotesHtml:
-                                        translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation == 'MSB' and textHtml: # assuming BSB comes BEFORE MSB
+                                    if textHtml.replace( 'MSB', '' ) == textHtmlBSB.replace( 'BSB', '' ):
+                                        # print( f"Skipping parallel for MSB {parRef} because same as BSB" )
+                                        textHtml = "(Same as <small>BSB</small> above)" # Do we also need to adjust footnotesHtml ???
+                                    # if parRef == 'NUM_25:8': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); assert False, "We want to stop here"
+                                    else: # MSB is different -- try to highlight the first difference (that's not inside a footnote caller)
+                                        anchorIx = textHtml.find( '<a title=' )
+                                        fnCallerIx = textHtml.find( '<span class="fnCaller">' )
+                                        insideSpan = 0
+                                        for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, textHtmlBSB ) ):
+                                            if fnCallerIx!=-1 and zz1 >= fnCallerIx:
+                                                break # Too hard -- don't bother marking anything more here in this verse
+                                            if anchorIx!=-1 and zz1 >= anchorIx: # TODO: Because we now add word links, this will likely effectively make the MSB/BSB comparison useless???
+                                                break # Too hard -- don't bother marking anything more here in this verse
+                                            if msbChar == '<': # Could be inside </span> or something like a footnote caller
+                                                insideSpan += 1
+                                                # break # Too hard -- don't bother marking anything here in this verse
+                                            elif msbChar == '>': # Could be inside </span> or something like a footnote caller
+                                                insideSpan -= 1
+                                            if msbChar != bsbChar:
+                                                # print( f"{parRef} {zz1=} {msbChar=} {bsbChar=}\n   {textHtml=}\n{textHtmlBSB=}")
+                                                if not insideSpan:
+                                                    for zz2 in range( zz1+1, len(textHtml) ):
+                                                        nextChar = textHtml[zz2]
+                                                        # print( f"{zz2=} {nextChar=}" )
+                                                        if nextChar in ' <':
+                                                            break
+                                                    textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
+                                                    break
                                         if state.DO_SPELL_CHECKS_FLAG:
-                                            translatedFootnotesHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, translatedFootnotesHtml, footnotesHtml, state ) # Puts spans around mispellings
-                                if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
+                                            textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
                                     if state.DO_SPELL_CHECKS_FLAG:
-                                        adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
-                                    # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
-                                    # assert '</p>' not in textHtml
-                                    if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
-                                        assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'''\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
-                                                    if '<hr ' in textHtml else f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
-                                    else: # no <div>s so should be ok to add a span
-                                        assert '</div>' not in textHtml
-                                        textHtml = f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
-                            elif versionAbbreviation == 'SR-GNT':
-                                SRtranscription = grammaticalKeysHtmlList = None
-                                if C!='-1' and V!='0' and textHtml:
-                                    # print( f"{parRef} SR-GNT {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
-                                    # for verseEntry in verseEntryList: print( f"  {verseEntry=}")
-                                    # if '<' in textHtml or '>' in textHtml or '=' in textHtml or '"' in textHtml:
-                                    #     if '<br>' not in textHtml: # Some verses have a sentence break
-                                    #         print( f"\nunexpected fields in SR-GNT textHtml {parRef} {textHtml}" ); assert False, "We want to stop here"
-                                    # assert textHtml.startswith( '<span class="SR-GNT_verseTextChunk">' )
-                                    # assert textHtml.endswith( '</span>' )
-                                    # textHtml = textHtml[36:-7]
-                                    # if 'span' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
-                                    #     textHtml = textHtml.replace( '<span class="SR-GNT_verseTextChunk">', '' ).replace( '</span>', '' )
-                                    # assert 'span' not in textHtml
-                                    textHtml, grammaticalKeysHtmlList = brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state )
-                                    # textHtml = f'<span class="SR-GNT_verseTextChunk">{textHtml}</span>'
-                                    # assert checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
-                                    # assert footnoteFreeTextHtml.startswith( '<span class="SR-GNT_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
-                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
-                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[36:-7]
-                                    # assert 'class="SR-GNT_verseTextChunk"' not in footnoteFreeTextHtml
-                                    footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenSRGNT( BBB, C, V, footnoteFreeTextHtml, verseEntryList, state )
-                                    SRtranscription = transliterate_Greek( footnoteFreeTextHtml.replace( '<span class="SR-GNT_verseTextChunk">', '<span class="SR-GNT_trans">') ) # Colourisation and nomina sacra gets carried through
-                                    if 'Ah' in SRtranscription or ' ah' in SRtranscription or SRtranscription.startswith('ah') \
-                                    or 'Eh' in SRtranscription or ' eh' in SRtranscription or SRtranscription.startswith('eh') \
-                                    or 'Oh' in SRtranscription or ' oh' in SRtranscription or SRtranscription.startswith('oh') \
-                                    or 'Uh' in SRtranscription or ' uh' in SRtranscription or SRtranscription.startswith('uh'):
-                                        raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {SRtranscription=} from '{textHtml}'" )
-                                # Add an extra link to the CNTR collation page
-                                collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
-                                try:
-                                    # NOTE: We close the previous paragraph, but leave the key paragraph open
-                                    keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
-<br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong).</small>'''
-                                except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
-                                    keysHtml = ''
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation == 'WEBBE': # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
+                                    textHtmlWEB, footnotesHtmlSaved = textHtml, footnotesHtml # Save it
+                                    if state.DO_SPELL_CHECKS_FLAG:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation == 'WMBB': # assuming WEB/WEBBE comes BEFORE WMB/WMBB
+                                    if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ):
+                                        # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
+                                        textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
+                                    elif state.DO_SPELL_CHECKS_FLAG:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                    # else:
+                                    #     print( f"Using parallel for WMB {parRef} because different from WEB:" )
+                                    #     print( f"  {textHtmlWEB=}" )
+                                    #     print( f"     {textHtml=}" )
+                                elif versionAbbreviation == 'LSV':
+                                    textHtml = do_LSV_HTMLcustomisations( f'ParallelVerseTxt={sourceRef}', textHtml )
+                                    if state.DO_SPELL_CHECKS_FLAG:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation == 'T4T':
+                                    textHtml = do_T4T_HTMLcustomisations( f'ParallelVerseTxt={sourceRef}', textHtml )
+                                    if state.DO_SPELL_CHECKS_FLAG:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                elif versionAbbreviation == 'LEB':
+                                    if state.DO_SPELL_CHECKS_FLAG:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                    textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
+                                elif footnoteFreeTextHtml and versionAbbreviation in state.ENGLISH_VERSIONS_WITH_MODERNISED_TEXT:
+                                    # See if we need to add a modernised version of this text underneath the main/original text ???
+                                    # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
+                                    # rawTextHtml = footnoteFreeTextHtml
+                                    # if rawTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ):
+                                    #     assert rawTextHtml.endswith( '</span>' )
+                                    #     rawTextHtml = rawTextHtml[30+len(versionAbbreviation):-7]
+                                    # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
+                                    # if V=='4': assert False, "We want to stop here"
+                                    if versionAbbreviation == 'Wycl': # not sure why it has grave accents in it ???
+                                        footnoteFreeTextHtml = footnoteFreeTextHtml.replace( '`', '' )
+                                    modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml
+                                                                                    .replace('<span class="nd">L<span style="font-size:.75em;">ORDE</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'S')
+                                                                                    .replace('<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'s'),
+                                                                            allowOptions=True ) # Can return words like 'hateth/hates'
+                                    if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
+                                        modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
+                                                                .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
+                                                                .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                    modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
+                                    if state.DO_SPELL_CHECKS_FLAG:
+                                        modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
+
+                                    # end of removeVersePunctuationForComparison function
+                                    # (see the Rust port below the module docstring/changelog comment)
+
+                                    # if versionAbbreviation == 'BSB':
+                                    #     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                    #     # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
+                                    #     cleanedModernisedBSBTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                    #                                             .replace( '⇔ ', '' )
+                                    #                                             .replace( '<br> ', '') # (with en-space) after Psalm titles
+                                    #                                             #.replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
+                                    #                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' )
+                                    #                                             .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
+                                    #                                             .strip() ) # Not sure why there's so many superfluous spaces in this text ???
+                                    #     depunctuatedCleanedModernisedBSBTextHtml = removeVersePunctuationForComparison( cleanedModernisedBSBTextHtml )
+                                    if versionAbbreviation == 'KJB-1769':
+                                        # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                        # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
+                                        cleanedModernisedKJB1769TextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                                                                .replace( '⇔ ', '' )
+                                                                                .replace( '<br> ', '') # (with en-space) after Psalm titles
+                                                                                .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
+                                                                                .replace( '<span class="wj">', '' ).replace( '</span>', '' )
+                                                                                .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
+                                                                                .strip() ) # Not sure why there's so many superfluous spaces in this text ???
+                                        depunctuatedCleanedModernisedKJB1769TextHtml = removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml )
+                                        if sourceRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {sourceRef} ({len(depunctuatedCleanedModernisedKJB1769TextHtml)}) {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
+                                    # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
+                                    # NOTE: cleanedModernisedTextHtml and depunctuatedCleanedModernisedTextHtml are only used for comparisons -- they're not displayed on the page anywhere
+                                    cleanedModernisedTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                                                            .replace( 'ij', 'iy' )
+                                                                            .replace( '<span class="wj">', '' )
+                                                                            # .replace( '<span style="fontsize75em">', '' ) # Where does this come from???
+                                                                            .replace( '</span>', '' )
+                                                                            .replace( 'Yuniper', 'Juniper' )
+                                                                            .replace( 'Yesus/Yeshua', 'Yesus' ) )
+                                    depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
+                                    if versionAbbreviation=='KJB-1611' and sourceRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {sourceRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
+                                    # if versionAbbreviation == 'MSB' \
+                                    # and cleanedModernisedTextHtml == cleanedModernisedBSBTextHtml:
+                                    #     modernisedTextHtml = f"<small>{'Same as BSB above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                    if versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                    and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
+                                        modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                        if debugKJBCompareBit: print( f"{sourceRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                    and cleanedModernisedTextHtml.lower() == cleanedModernisedKJB1769TextHtml.lower():
+                                        modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                        if debugKJBCompareBit: print( f"{sourceRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                    and depunctuatedCleanedModernisedTextHtml == depunctuatedCleanedModernisedKJB1769TextHtml:
+                                        modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                        if debugKJBCompareBit: print( f"{sourceRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                    and depunctuatedCleanedModernisedTextHtml.lower() == depunctuatedCleanedModernisedKJB1769TextHtml.lower():
+                                        modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                        if debugKJBCompareBit: print( f"{sourceRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                    and depunctuatedCleanedModernisedTextHtml.lower().replace( '<span class="add">', '' ) \
+                                    == depunctuatedCleanedModernisedKJB1769TextHtml.lower().replace( '<span class="add">', '' ):
+                                        modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
+                                        if debugKJBCompareBit: print( f"{sourceRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    else: # the modernised text itself will be displayed
+                                        if debugKJBCompareBit and versionAbbreviation!='KJB-1769': print( f"\n{sourceRef} {versionAbbreviation} DIFFERENT" )
+                                        if versionAbbreviation == 'KJB-1611':
+                                            # if debugThisBit:
+                                            #     print( f"  {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
+                                            #     print( f"  {depunctuatedCleanedModernisedTextHtml=}" )
+                                            modernisedTextHtml = modernisedTextHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
+                                        else: # Hardwire added words to italics
+                                            modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {sourceRef}' )
+                                        modernisedTextHtml = modernisedTextHtml.replace( '_verseTextChunk"', '_mod"' )
+                                        # if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
+                                        #     assert C=='-1' and V=='0'
+                                        #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
+                                        # else: # no div
+                                    if versionAbbreviation=='KJB-1611' and not modernisedTextHtml.startswith('<small>') and not sourceRef.endswith( ':0' ): # Don't include chapter intros
+                                        if debugKJBCompareBit:
+                                            print( f"    {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
+                                            print( f"  KJB-1611 {depunctuatedCleanedModernisedTextHtml=}" )
+                                            print( f"                              {modernisedTextHtml=}")
+                                        # When the texts differ,
+                                        #   try to highlight the first KJB-1611 word that differs from the KJB-1769
+                                        #       (so we can see where a 1769 edit was made)
+                                        differentWordHighlighted = False
+                                        if debugKJBCompareBit:
+                                            print( f"aaa 1769 {depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
+                                            print( f"bbb 1611 {depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
+                                            print( f"Ccc 1611 {modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' )}" )
+                                        doneHighlight = False
+                                        changeIndex = (modernisedTextHtml.index('>')+1) if modernisedTextHtml[0]=='<' else 0 # So we only replace words after an initial span marker
+                                        for wordNum, (word1611, word1769, wordModTxt) in enumerate( zip( depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
+                                                                               depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
+                                                                               modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' ).replace( '( ', '' ).split() ) ):
+                                            if debugKJBCompareBit \
+                                            and not word1611==word1769==wordModTxt: print( f"  {sourceRef} LOOP {wordNum=} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}{f'/{modernisedTextHtml.count(wordModTxt)}' if modernisedTextHtml.count(wordModTxt)!=1 else ''} {changeIndex=} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'")
+                                            if word1769 != word1611:
+                                                if debugKJBCompareBit: print( f"  {sourceRef} {word1611=} IS DIFFERENT FROM {word1769=}" )
+                                                wordModTxtAdj = removeVersePunctuationForComparison( wordModTxt )
+                                                if debugKJBCompareBit:
+                                                    if wordModTxtAdj != wordModTxt: print( f"        {wordModTxtAdj=} ({modernisedTextHtml.count(wordModTxtAdj)})" )
+                                                    if ( 'spannd' not in wordModTxt
+                                                    and '-' not in wordModTxt
+                                                    and (not sourceRef.startswith('PSA_') or not sourceRef.endswith(':1')) # first verses of some Psalms have a problem with //d fields
+                                                    and sourceRef not in ('KI1_10:15',) ):
+                                                        assert wordModTxtAdj in modernisedTextHtml, f"{wordModTxt=} should have been in {modernisedTextHtml=}"
+                                                if ( wordModTxtAdj.lower() == word1611
+                                                # and (modernisedTextHtml.count(wordModTxt)==1
+                                                #      or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
+                                                and 'class=' not in wordModTxt
+                                                and wordModTxtAdj.lower() not in ('adoniyah',) # Why???
+                                                ):
+                                                    if debugKJBCompareBit: print( f"  {sourceRef} {modernisedTextHtml=}" )
+                                                    assert wordModTxt != 'span' or sourceRef in ('EXO_28:16','EXO_39:9'), f"  {sourceRef} {wordModTxt=} {modernisedTextHtml=}"
+                                                    # wordMTadj = removeVersePunctuationForComparison( wordMT )
+                                                    # Save the correct replacement until after the loop, or we can accidentally replace some of those words
+                                                    # TODO: Replacing all the words (or parts of words) isn't really very satisfactory
+                                                    if debugKJBCompareBit:
+                                                        tempChangeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
+                                                        print( f"    PPP Now changeIndex = {tempChangeIndex} = max({changeIndex},{modernisedTextHtml.find( wordModTxt, changeIndex )}) so '{modernisedTextHtml[tempChangeIndex:tempChangeIndex+20]}...'" )
+                                                    changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
+                                                    # We get problems with 'a' or 'an' which occur inside 'span' and other words
+                                                    if modernisedTextHtml[changeIndex:].startswith( f'{wordModTxt} '):
+                                                        modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
+                                                        changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
+                                                        doneHighlight = True
+                                                    elif (modernisedTextHtml.count(wordModTxt)==1 and wordModTxt!='<br>') \
+                                                    or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
+                                                        modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
+                                                                if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
+                                                                                                            else f'<spanSPAN2>{wordModTxt}</span>')}" )
+                                                        changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
+                                                        doneHighlight = True
+                                                    assert '<sp<sp' not in modernisedTextHtml, f"hilighted {sourceRef} modernisedTextHtml after {wordModTxt=} replacement @ '{modernisedTextHtml[changeIndex-19:changeIndex+20]}...' from {modernisedTextHtml=}"
+                                                    if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 18 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
+                                                    differentWordHighlighted = True
+                                                    if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
+                                                    # break
+                                            if not doneHighlight:
+                                                # NOTE: The following mostly accounts for spans like '<span class="add_KJB-1611">...</span>'
+                                                changeIndex += len(wordModTxt) + 1 # for the space that it was split on
+                                                if modernisedTextHtml[changeIndex:].startswith( '<span class="add_KJB-1611">' ):
+                                                    changeIndex += len( '<span class="add_KJB-1611">' )
+                                                elif modernisedTextHtml[changeIndex:].startswith( '/span> ' ):
+                                                    changeIndex += len( '</span>' )
+                                        modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', ' title="Word (or format) changed in KJB-1769" class="hilite"' ) \
+                                                                               .replace( 'SPAN2', ' title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' ) \
+                                                                               .replace( 'SSSSS', '<span' ).replace( 'EEEEEEE', '</span>' ) \
+                                                                               .replace( 'MMMMM', '<span title="Possible misspelt word" class="spelling">' )# Uncover hidden spans again
+                                        assert checkHtml( f"hilighted {versionAbbreviation} {sourceRef} after replacements: {modernisedTextHtml=}", modernisedTextHtml, segmentOnly=True )
+                                        if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
+                                            if debugKJBCompareBit: print( "CHECK THE ABOVE" )
+                                            # assert False, "We want to stop here"
+                                        # if parRef == 'PSA_68:6': assert False, "We want to stop here"
+                                    if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
+                                        # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
+                                        textHtml = f'''{textHtml}\n<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
+                                    # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                elif versionAbbreviation in ('Luth','ClVg'):
+                                    translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
+                                    adjustedForeignTextHtml = None
+                                    if sourceC!='-1' and sourceV!='0' and textHtml:
+                                        # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                        # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                        # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
+                                        # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
+                                        adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
+                                        if footnotesHtml:
+                                            translatedFootnotesHtml = removeDuplicateFNids( sourceRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
+                                            if state.DO_SPELL_CHECKS_FLAG:
+                                                translatedFootnotesHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, translatedFootnotesHtml, footnotesHtml, state ) # Puts spans around mispellings
+                                    if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
+                                        if state.DO_SPELL_CHECKS_FLAG:
+                                            adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
+                                        # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
+                                        # assert '</p>' not in textHtml
+                                        if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
+                                            assert '</div>' in textHtml
+                                            textHtml = textHtml.replace( '<hr', f'''\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
+                                                        if '<hr ' in textHtml else f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                        else: # no <div>s so should be ok to add a span
+                                            assert '</div>' not in textHtml
+                                            textHtml = f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                elif versionAbbreviation == 'SR-GNT':
+                                    SRtranscription = grammaticalKeysHtmlList = None
+                                    if sourceC!='-1' and sourceV!='0' and textHtml:
+                                        # print( f"{parRef} SR-GNT {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
+                                        # for verseEntry in verseEntryList: print( f"  {verseEntry=}")
+                                        # if '<' in textHtml or '>' in textHtml or '=' in textHtml or '"' in textHtml:
+                                        #     if '<br>' not in textHtml: # Some verses have a sentence break
+                                        #         print( f"\nunexpected fields in SR-GNT textHtml {parRef} {textHtml}" ); assert False, "We want to stop here"
+                                        # assert textHtml.startswith( '<span class="SR-GNT_verseTextChunk">' )
+                                        # assert textHtml.endswith( '</span>' )
+                                        # textHtml = textHtml[36:-7]
+                                        # if 'span' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
+                                        #     textHtml = textHtml.replace( '<span class="SR-GNT_verseTextChunk">', '' ).replace( '</span>', '' )
+                                        # assert 'span' not in textHtml
+                                        textHtml, grammaticalKeysHtmlList = brightenSRGNT( sourceBBB, sourceC, sourceV, textHtml, verseEntryList, state )
+                                        # textHtml = f'<span class="SR-GNT_verseTextChunk">{textHtml}</span>'
+                                        # assert checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
+                                        # assert footnoteFreeTextHtml.startswith( '<span class="SR-GNT_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                        # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                        # footnoteFreeTextHtml = footnoteFreeTextHtml[36:-7]
+                                        # assert 'class="SR-GNT_verseTextChunk"' not in footnoteFreeTextHtml
+                                        footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenSRGNT( sourceBBB, sourceC, sourceV, footnoteFreeTextHtml, verseEntryList, state )
+                                        SRtranscription = transliterate_Greek( footnoteFreeTextHtml.replace( '<span class="SR-GNT_verseTextChunk">', '<span class="SR-GNT_trans">') ) # Colourisation and nomina sacra gets carried through
+                                        if 'Ah' in SRtranscription or ' ah' in SRtranscription or SRtranscription.startswith('ah') \
+                                        or 'Eh' in SRtranscription or ' eh' in SRtranscription or SRtranscription.startswith('eh') \
+                                        or 'Oh' in SRtranscription or ' oh' in SRtranscription or SRtranscription.startswith('oh') \
+                                        or 'Uh' in SRtranscription or ' uh' in SRtranscription or SRtranscription.startswith('uh'):
+                                            raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {sourceRef} {SRtranscription=} from '{textHtml}'" )
+                                    # Add an extra link to the CNTR collation page
+                                    collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[sourceBBB]}{sourceC.zfill(3)}{sourceV.zfill(3)}'
+                                    try:
+                                        # NOTE: We close the previous paragraph, but leave the key paragraph open
+                                        keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+    <br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong).</small>'''
+                                    except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
+                                        keysHtml = ''
+                                    if textHtml:
+                                        textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
+                                    if SRtranscription:
+                                        textHtml = f'''{textHtml}
+    <br>   ({SRtranscription.replace('<br>','<br>   ')})'''
+                                    textHtml = f'{textHtml}{keysHtml}'
+
+                                elif versionAbbreviation in ('UGNT','SBL-GNT','RP-GNT','TC-GNT','BrLXX'):
+                                    grkTranscription = None
+                                    if sourceC!='-1' and sourceV!='0' and textHtml:
+                                        # print( f"{footnoteFreeTextHtml=}" )
+                                        # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                        # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                        # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
+                                        # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml, f"{footnoteFreeTextHtml=}"
+                                        grkTranscription = transliterate_Greek(footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">'))
+                                        if 'Ah' in grkTranscription or ' ah' in grkTranscription or grkTranscription.startswith('ah') \
+                                        or 'Eh' in grkTranscription or ' eh' in grkTranscription or grkTranscription.startswith('eh') \
+                                        or 'Oh' in grkTranscription or ' oh' in grkTranscription or grkTranscription.startswith('oh') \
+                                        or 'Uh' in grkTranscription or ' uh' in grkTranscription or grkTranscription.startswith('uh'):
+                                            raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {sourceRef} {grkTranscription=} from '{textHtml}'" )
+                                    if grkTranscription:
+                                        # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
+                                        # assert '</p>' not in textHtml, f"Parallel verse {versionAbbreviation} {parRef} {textHtml=} {transcription=}"
+                                        if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
+                                            assert '</div>' in textHtml
+                                            textHtml = textHtml.replace( '<hr', f'''<br> ''  ({grkTranscription.replace('<br>','<br>   ')})<hr''' ) \
+                                                        if '<hr ' in textHtml else f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
+                                        else: # no <div>s so should be ok to add a span
+                                            assert '</div>' not in textHtml
+                                            textHtml = f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
+                                elif versionAbbreviation == 'UHB':
+                                    if sourceBBB=='PSA' and 'class="d"' in textHtml:
+                                        # There's no special formatting in the original Hebrew, so we don't want it here either
+                                        # print( f"\nWas UHB PSA {C} d {textHtml=}" )
+                                        dIx = textHtml.index( '<span class="d">')
+                                        firstVaIx = textHtml.index( '<span class="va">', dIx+15 )
+                                        spanIx1 = textHtml.index( '</span>', firstVaIx+15 ) # Should be the closing "va" span
+                                        va1 = textHtml[firstVaIx+17:spanIx1]
+                                        # print( f"   {va1=}")
+                                        assert va1 == '1'
+                                        # while textHtml.find( '<span class="va">', lastVaIx+5 ) != -1: # There can be up to three va's
+                                        #     lastVaIx = textHtml.index( '<span class="va">', lastVaIx+5 )
+                                        # spanIxN = textHtml.index( '</span>', lastVaIx ) # Should be the last closing "va" span
+                                        # NOTE: The va end spans ARE NOT FOLLOWED BY NEWLINE, only the d span is
+                                        if '</span>\n' not in textHtml and textHtml.endswith( '</span>'): # No final newline with Rust code -- WHY???
+                                            spanEndDIx = len(textHtml) - 7
+                                        else:
+                                            spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
+                                        textHtml = f'{textHtml[:dIx]}{textHtml[dIx+16:spanEndDIx]}{textHtml[spanEndDIx+7:]}'
+                                        # print( f"Now {textHtml=}" )
+                                        # assert textHtml.count( 'class="va"' ) == textHtml.count( '</span>' ), f"{parRef} {textHtml=}" # Not true if there's a footnote caller
+                                        # if C=='51': assert False, "We want to stop here"
+                                    # print( f"{versionAbbreviation} {parRef} {textHtml=}")
+                                    # assert checkHtml( f'brightenedUHB0 {parRef}', textHtml, segmentOnly=True )
+                                    uhbTranscription = grammaticalKeysHtmlList = None
+                                    if sourceC!='-1' and sourceV!='0' and textHtml:
+                                        # print( f"{V=} {parRef} UHB {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
+                                        # NOTE: This code only works if there's no internal spans (due to internal paragraph breaks, etc.)
+                                        # assert textHtml.startswith( '<span class="UHB_verseTextChunk">' ), f""
+                                        # assert textHtml.endswith( '</span>' )
+                                        # textHtml = textHtml[33:-7]
+                                        # # if 'class="UHB_verseTextChunk"' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
+                                        # #     textHtml = textHtml.replace( '<span class="UHB_verseTextChunk">', '' ).replace( '</span>', '' )
+                                        # # print( f"  Now {textHtml=}" )
+                                        # assert 'class="UHB_verseTextChunk"' not in textHtml
+                                        textHtml, grammaticalKeysHtmlList = brightenUHB( sourceBBB, sourceC, sourceV, textHtml, verseEntryList, state )
+                                        # textHtml = f'<span class="UHB_verseTextChunk">{textHtml}</span>'
+                                        # assert checkHtml( f'brightenedUHB1 {parRef}', textHtml, segmentOnly=True )
+                                        # print( f"{parRef} {footnoteFreeTextHtml=}" )
+                                        # assert checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
+                                        # assert footnoteFreeTextHtml.startswith( '<span class="UHB_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                        # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                        # footnoteFreeTextHtml = footnoteFreeTextHtml[33:-7]
+                                        # assert 'class="UHB_verseTextChunk"' not in footnoteFreeTextHtml
+                                        footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenUHB( sourceBBB, sourceC, sourceV, footnoteFreeTextHtml, verseEntryList, state )
+                                        uhbTranscription = transliterate_Hebrew(footnoteFreeTextHtml.replace( '<span class="UHB_verseTextChunk">', '<span class="UHB_trans">')).replace( 'yəhvāh', 'yhwh' ).replace( 'ə', '<small>ə</small>' )
+                                        if uhbTranscription.endswith( '.ş' ):
+                                            uhbTranscription = uhbTranscription[:-1] # Drop the final discourse mark
+                                        assert checkHtml( f'uhbTranscription {sourceRef}', uhbTranscription, segmentOnly=True )
+                                        # if C=='2': assert False, "We want to stop here"
+                                    collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.bos_to_osis_book_code(sourceBBB)}&c={sourceC}&v={sourceV}'
+                                    try:
+                                        keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+    <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
+                                    except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
+                                        keysHtml = ''
+                                    textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
+                                    if uhbTranscription:
+                                        if sourceRef == 'JOS_16:0': assert False, "We want to stop here"
+                                        textHtml = f'''{textHtml}
+    <br>   ({uhbTranscription.replace('<br>','<br>   ')})'''
+                                    textHtml = f'{textHtml}{keysHtml}'
+                                    # assert checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
+
                                 if textHtml:
-                                    textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
-                                if SRtranscription:
-                                    textHtml = f'''{textHtml}
-<br>   ({SRtranscription.replace('<br>','<br>   ')})'''
-                                textHtml = f'{textHtml}{keysHtml}'
+                                    assert checkHtml( f'Parallel textHtml {versionAbbreviation} {sourceRef}', textHtml, segmentOnly=True )
+                                    # if parRef in ancientRefsToPrint: print( f"aaaa {versionAbbreviation} {parRef} Got {textHtml=}" )
+                                    assert not textHtml.endswith( '\n' ), f"{versionAbbreviation} {sourceRef} {textHtml[-30:]=}"
+                                    if sourceV != '0': # Introductions can have more bits (and so too for the modified/updated bits) than individual verses
+                                        if versionAbbreviation != 'OEB': # their Ezekiel is really messed up
+                                            assert textHtml.count( '_verseTextChunk"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {sourceRef} {textHtml=}"
+                                        assert textHtml.count( '_mod"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {sourceRef} {textHtml=}"
+                                    assert textHtml.count( '_trans"' ) < (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {sourceRef} {textHtml=}"
+                                    # NOTE: textHtml might have footnotes in a div -- in that case we need special handling because can't put a <div> in a <p> below
+                                    # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here3 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
+                                    if versionAbbreviation in ('UGNT','SBL-GNT','RP-GNT','TC-GNT') \
+                                    and versionAbbreviation in greekWords and 'SR-GNT' in greekWords and greekWords[versionAbbreviation]!=greekWords['SR-GNT']:
+                                        # Here we colour the workname to show critical GNT texts that differ in someway from the SR-GNT
+                                        # print( f"\n{versionAbbreviation}\n{versionAbbreviation}='{greekWords[versionAbbreviation]}'\nSR-GNT='{greekWords['SR-GNT']}'" )
+                                        if greekWords[f'{versionAbbreviation}_NoPunct'] == greekWords['SR-GNT_NoPunct']:
+                                            spanClassName = 'wrkNameDiffPunct'
+                                        elif greekWords[f'{versionAbbreviation}_NoAccents'] == greekWords['SR-GNT_NoAccents']:
+                                            spanClassName = 'wrkNameDiffAccents'
+                                        else:
+                                            spanClassName = 'wrkNameDiffText'
+                                            # Now try to mark the first place where the Greek text differs from the SR-GNT
+                                            srWords, versionWords = greekWords['SR-GNT_NoAccents'].split(), greekWords[f'{versionAbbreviation}_NoAccents'].split()
+                                            for jj, versionWord in enumerate( versionWords ):
+                                                try:
+                                                    if versionWord != srWords[jj]:
+                                                        fullVersionWord = greekWords[versionAbbreviation].split()[jj]
+                                                        # print( f"{versionAbbreviation} {parRef} {jj} {fullVersionWord=} {textHtml=}" )
+                                                        if textHtml.count( fullVersionWord ) == 1: # easy case -- no ambiguity
+                                                            textHtml = textHtml.replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )
+                                                        else: # oh, more work coz the desired word occurs multiple times
+                                                            # print( f"\n{versionAbbreviation} {parRef} {jj} {fullVersionWord=} HAVE MULTIPLE IN {textHtml=}" )
+                                                            textHtml = textHtml.lstrip()
+                                                            for possiblePrefix in ('¶\u202f','§\u202f','\u2002⇔\u202f','⇔\u202f'):
+                                                                textHtml = textHtml.removeprefix( possiblePrefix )
+                                                            startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
+                                                            assert textHtml.startswith( startStr ) \
+                                                                or (versionAbbreviation=='TC-GNT' and textHtml.startswith( f'\n{startStr}' )), \
+                                                                    f"{versionAbbreviation} {sourceRef} {startStr=} {textHtml=}" # \b \m causes a \n it seems TODO: Check this out
+                                                            if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
+                                                                textHtmlWordList = (textHtml.replace( '<span class="wj">', '' ) if versionAbbreviation=='TC-GNT' else textHtml)[len(startStr):].split( ' ' )
+                                                                if versionAbbreviation not in ('TC-GNT','RP-GNT') or sourceRef not in ('CO2_10:4','PE1_3:10'): # not sure what's with '-</span><br>\u2003\u2003\u2003' there
+                                                                    assert textHtmlWordList[jj] == fullVersionWord, f"{versionAbbreviation} {sourceRef} {fullVersionWord=} {jj=} {textHtmlWordList[jj]=} from {textHtmlWordList=}"
+                                                                indexOfDesiredWord = len(startStr) + sum(len(s) for s in textHtmlWordList[:jj]) + jj # For the spaces
+                                                                textHtml = f'{textHtml[:indexOfDesiredWord]}{textHtml[indexOfDesiredWord:].replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )}'
+                                                        break # Only highlight a maximum of one word
+                                                except IndexError: break #
+                                        greekVersionKeysHtmlSet.add( spanClassName )
+                                        versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                        if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
+                                            assert '</div>' in textHtml
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
+                                        else: # no <div>s so should be ok to put inside a paragraph
+                                            assert '</div>' not in textHtml
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                    elif versionAbbreviation=='OET-RV':
+                                        if obiHtml := getOpenBibleImages( BBBLevel, 'verse', sourceBBB, sourceC, sourceV, None, None, state.preloadedBibles['OET-RV'], state ):
+                                            textHtml = f'{obiHtml}\n{textHtml}'
+                                            state.versesWithImages[sourceBBB].append( (sourceC,sourceV) )
 
-                            elif versionAbbreviation in ('UGNT','SBL-GNT','RP-GNT','TC-GNT','BrLXX'):
-                                grkTranscription = None
-                                if C!='-1' and V!='0' and textHtml:
-                                    # print( f"{footnoteFreeTextHtml=}" )
-                                    # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
-                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
-                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
-                                    # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml, f"{footnoteFreeTextHtml=}"
-                                    grkTranscription = transliterate_Greek(footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">'))
-                                    if 'Ah' in grkTranscription or ' ah' in grkTranscription or grkTranscription.startswith('ah') \
-                                    or 'Eh' in grkTranscription or ' eh' in grkTranscription or grkTranscription.startswith('eh') \
-                                    or 'Oh' in grkTranscription or ' oh' in grkTranscription or grkTranscription.startswith('oh') \
-                                    or 'Uh' in grkTranscription or ' uh' in grkTranscription or grkTranscription.startswith('uh'):
-                                        raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {grkTranscription=} from '{textHtml}'" )
-                                if grkTranscription:
-                                    # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
-                                    # assert '</p>' not in textHtml, f"Parallel verse {versionAbbreviation} {parRef} {textHtml=} {transcription=}"
-                                    if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
-                                        assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'''<br> ''  ({grkTranscription.replace('<br>','<br>   ')})<hr''' ) \
-                                                    if '<hr ' in textHtml else f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
-                                    else: # no <div>s so should be ok to add a span
-                                        assert '</div>' not in textHtml
-                                        textHtml = f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
-                            elif versionAbbreviation == 'UHB':
-                                if BBB=='PSA' and 'class="d"' in textHtml:
-                                    # There's no special formatting in the original Hebrew, so we don't want it here either
-                                    # print( f"\nWas UHB PSA {C} d {textHtml=}" )
-                                    dIx = textHtml.index( '<span class="d">')
-                                    firstVaIx = textHtml.index( '<span class="va">', dIx+15 )
-                                    spanIx1 = textHtml.index( '</span>', firstVaIx+15 ) # Should be the closing "va" span
-                                    va1 = textHtml[firstVaIx+17:spanIx1]
-                                    # print( f"   {va1=}")
-                                    assert va1 == '1'
-                                    # while textHtml.find( '<span class="va">', lastVaIx+5 ) != -1: # There can be up to three va's
-                                    #     lastVaIx = textHtml.index( '<span class="va">', lastVaIx+5 )
-                                    # spanIxN = textHtml.index( '</span>', lastVaIx ) # Should be the last closing "va" span
-                                    # NOTE: The va end spans ARE NOT FOLLOWED BY NEWLINE, only the d span is
-                                    if '</span>\n' not in textHtml and textHtml.endswith( '</span>'): # No final newline with Rust code -- WHY???
-                                        spanEndDIx = len(textHtml) - 7
-                                    else:
-                                        spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
-                                    textHtml = f'{textHtml[:dIx]}{textHtml[dIx+16:spanEndDIx]}{textHtml[spanEndDIx+7:]}'
-                                    # print( f"Now {textHtml=}" )
-                                    # assert textHtml.count( 'class="va"' ) == textHtml.count( '</span>' ), f"{parRef} {textHtml=}" # Not true if there's a footnote caller
-                                    # if C=='51': assert False, "We want to stop here"
-                                # print( f"{versionAbbreviation} {parRef} {textHtml=}")
-                                # assert checkHtml( f'brightenedUHB0 {parRef}', textHtml, segmentOnly=True )
-                                uhbTranscription = grammaticalKeysHtmlList = None
-                                if C!='-1' and V!='0' and textHtml:
-                                    # print( f"{V=} {parRef} UHB {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
-                                    # NOTE: This code only works if there's no internal spans (due to internal paragraph breaks, etc.)
-                                    # assert textHtml.startswith( '<span class="UHB_verseTextChunk">' ), f""
-                                    # assert textHtml.endswith( '</span>' )
-                                    # textHtml = textHtml[33:-7]
-                                    # # if 'class="UHB_verseTextChunk"' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
-                                    # #     textHtml = textHtml.replace( '<span class="UHB_verseTextChunk">', '' ).replace( '</span>', '' )
-                                    # # print( f"  Now {textHtml=}" )
-                                    # assert 'class="UHB_verseTextChunk"' not in textHtml
-                                    textHtml, grammaticalKeysHtmlList = brightenUHB( BBB, C, V, textHtml, verseEntryList, state )
-                                    # textHtml = f'<span class="UHB_verseTextChunk">{textHtml}</span>'
-                                    # assert checkHtml( f'brightenedUHB1 {parRef}', textHtml, segmentOnly=True )
-                                    # print( f"{parRef} {footnoteFreeTextHtml=}" )
-                                    # assert checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
-                                    # assert footnoteFreeTextHtml.startswith( '<span class="UHB_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
-                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
-                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[33:-7]
-                                    # assert 'class="UHB_verseTextChunk"' not in footnoteFreeTextHtml
-                                    footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenUHB( BBB, C, V, footnoteFreeTextHtml, verseEntryList, state )
-                                    uhbTranscription = transliterate_Hebrew(footnoteFreeTextHtml.replace( '<span class="UHB_verseTextChunk">', '<span class="UHB_trans">')).replace( 'yəhvāh', 'yhwh' ).replace( 'ə', '<small>ə</small>' )
-                                    if uhbTranscription.endswith( '.ş' ):
-                                        uhbTranscription = uhbTranscription[:-1] # Drop the final discourse mark
-                                    assert checkHtml( f'uhbTranscription {parRef}', uhbTranscription, segmentOnly=True )
-                                    # if C=='2': assert False, "We want to stop here"
-                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.bos_to_osis_book_code(BBB)}&c={C}&v={V}'
-                                try:
-                                    keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
-<br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
-                                    keysHtml = ''
-                                textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
-                                if uhbTranscription:
-                                    if parRef == 'JOS_16:0': assert False, "We want to stop here"
-                                    textHtml = f'''{textHtml}
-<br>   ({uhbTranscription.replace('<br>','<br>   ')})'''
-                                textHtml = f'{textHtml}{keysHtml}'
-                                # assert checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
-
-                            if textHtml:
-                                assert checkHtml( f'Parallel textHtml {versionAbbreviation} {parRef}', textHtml, segmentOnly=True )
-                                # if parRef in ancientRefsToPrint: print( f"aaaa {versionAbbreviation} {parRef} Got {textHtml=}" )
-                                assert not textHtml.endswith( '\n' ), f"{versionAbbreviation} {parRef} {textHtml[-30:]=}"
-                                if V != '0': # Introductions can have more bits (and so too for the modified/updated bits) than individual verses
-                                    if versionAbbreviation != 'OEB': # their Ezekiel is really messed up
-                                        assert textHtml.count( '_verseTextChunk"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
-                                    assert textHtml.count( '_mod"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
-                                assert textHtml.count( '_trans"' ) < (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
-                                # NOTE: textHtml might have footnotes in a div -- in that case we need special handling because can't put a <div> in a <p> below
-                                # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here3 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                if versionAbbreviation in ('UGNT','SBL-GNT','RP-GNT','TC-GNT') \
-                                and 'SR-GNT' in greekWords and greekWords[versionAbbreviation]!=greekWords['SR-GNT']:
-                                    # Here we colour the workname to show critical GNT texts that differ in someway from the SR-GNT
-                                    # print( f"\n{versionAbbreviation}\n{versionAbbreviation}='{greekWords[versionAbbreviation]}'\nSR-GNT='{greekWords['SR-GNT']}'" )
-                                    if greekWords[f'{versionAbbreviation}_NoPunct'] == greekWords['SR-GNT_NoPunct']:
-                                        spanClassName = 'wrkNameDiffPunct'
-                                    elif greekWords[f'{versionAbbreviation}_NoAccents'] == greekWords['SR-GNT_NoAccents']:
-                                        spanClassName = 'wrkNameDiffAccents'
-                                    else:
-                                        spanClassName = 'wrkNameDiffText'
-                                        # Now try to mark the first place where the Greek text differs from the SR-GNT
-                                        srWords, versionWords = greekWords['SR-GNT_NoAccents'].split(), greekWords[f'{versionAbbreviation}_NoAccents'].split()
-                                        for jj, versionWord in enumerate( versionWords ):
-                                            try:
-                                                if versionWord != srWords[jj]:
-                                                    fullVersionWord = greekWords[versionAbbreviation].split()[jj]
-                                                    # print( f"{versionAbbreviation} {parRef} {jj} {fullVersionWord=} {textHtml=}" )
-                                                    if textHtml.count( fullVersionWord ) == 1: # easy case -- no ambiguity
-                                                        textHtml = textHtml.replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )
-                                                    else: # oh, more work coz the desired word occurs multiple times
-                                                        # print( f"\n{versionAbbreviation} {parRef} {jj} {fullVersionWord=} HAVE MULTIPLE IN {textHtml=}" )
-                                                        textHtml = textHtml.lstrip()
-                                                        for possiblePrefix in ('¶\u202f','§\u202f','\u2002⇔\u202f','⇔\u202f'):
-                                                            textHtml = textHtml.removeprefix( possiblePrefix )
-                                                        startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
-                                                        assert textHtml.startswith( startStr ) \
-                                                            or (versionAbbreviation=='TC-GNT' and textHtml.startswith( f'\n{startStr}' )), \
-                                                                f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}" # \b \m causes a \n it seems TODO: Check this out
-                                                        if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
-                                                            textHtmlWordList = (textHtml.replace( '<span class="wj">', '' ) if versionAbbreviation=='TC-GNT' else textHtml)[len(startStr):].split( ' ' )
-                                                            if versionAbbreviation not in ('TC-GNT','RP-GNT') or parRef not in ('CO2_10:4','PE1_3:10'): # not sure what's with '-</span><br>\u2003\u2003\u2003' there
-                                                                assert textHtmlWordList[jj] == fullVersionWord, f"{versionAbbreviation} {parRef} {fullVersionWord=} {jj=} {textHtmlWordList[jj]=} from {textHtmlWordList=}"
-                                                            indexOfDesiredWord = len(startStr) + sum(len(s) for s in textHtmlWordList[:jj]) + jj # For the spaces
-                                                            textHtml = f'{textHtml[:indexOfDesiredWord]}{textHtml[indexOfDesiredWord:].replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )}'
-                                                    break # Only highlight a maximum of one word
-                                            except IndexError: break #
-                                    greekVersionKeysHtmlSet.add( spanClassName )
-                                    versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
-                                    if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
-                                        assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
-                                    else: # no <div>s so should be ok to put inside a paragraph
-                                        assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                elif versionAbbreviation=='OET-RV':
-                                    if obiHtml := getOpenBibleImages( BBBLevel, 'verse', BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state ):
-                                        textHtml = f'{obiHtml}\n{textHtml}'
-                                        state.versesWithImages[BBB].append( (C,V) )
-
-                                    # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case). Also ensure both 'OET-RV' and 'OET' work as # ids on the URL
-                                    sectionNumber = findSectionNumber( 'OET-RV', BBB, C, V, state )
-                                    if BBB in BOOKLIST_66:
-                                        assert sectionNumber is not None, f"Bad OET-RV parallel verse section {BBB} {C} {V}"
-                                    elif sectionNumber is None:
-                                        (logging.critical if isOT or isNT else logging.warning)( f"Bad OET-RV parallel verse section {BBB} {C} {V}" )
-                                    if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
-                                        assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
-                                    else: # no <div>s so should be ok to put inside a paragraph
-                                        assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
-                                elif versionAbbreviation=='Wycl': # Just add a bit about it being translated from the Latin (not the Greek)
-                                    versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
-                                    assert '<div' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                else: # for all the others
-                                    versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
-                                    if textHtml.startswith( "(Same as " ):
-                                        assert versionAbbreviation in SECOND_PAIRED_VERSIONS
-                                        versionAbbreviation1 = FIRST_PAIRED_VERSIONS[SECOND_PAIRED_VERSIONS.index(versionAbbreviation)]
-                                        versionNameLink1 = f'''{'../'*BBBLevel}{versionAbbreviation1}/details.htm#Top''' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation1}/byC/{BBB}_{adjC}.htm#V{V}'''
-                                        if footnotesHtmlSaved:
-                                            if footnotesHtml == footnotesHtmlSaved.replace( versionAbbreviation1, versionAbbreviation ): # Both versions with footnotes are identical, so combine into one line
-                                                # footnotesHtml = '' # No need to repeat these either
-                                                # textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
+                                        # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case). Also ensure both 'OET-RV' and 'OET' work as # ids on the URL
+                                        sectionNumber = findSectionNumber( 'OET-RV', sourceBBB, sourceC, sourceV, state )
+                                        if sourceBBB in BOOKLIST_66:
+                                            assert sectionNumber is not None, f"Bad OET-RV parallel verse section {sourceBBB} {sourceC} {sourceV}"
+                                        elif sectionNumber is None:
+                                            (logging.critical if isOT or isNT else logging.warning)( f"Bad OET-RV parallel verse section {sourceBBB} {sourceC} {sourceV}" )
+                                        if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
+                                            assert '</div>' in textHtml
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{sourceC}V{sourceV}" class="wrkName"><a id="C{sourceC}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET</a> <small>(<a id="V{sourceV}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
+                                        else: # no <div>s so should be ok to put inside a paragraph
+                                            assert '</div>' not in textHtml
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{sourceC}V{sourceV}" class="wrkName"><a id="C{sourceC}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET</a> <small>(<a id="V{sourceV}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET-RV</a>)</small></span> {textHtml}</p>'''
+                                    elif versionAbbreviation=='Wycl': # Just add a bit about it being translated from the Latin (not the Greek)
+                                        versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                        assert '<div' not in textHtml, f"{versionAbbreviation} {sourceRef} {textHtml=}"
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                    else: # for all the others
+                                        versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                        if textHtml.startswith( "(Same as " ):
+                                            assert versionAbbreviation in SECOND_PAIRED_VERSIONS
+                                            versionAbbreviation1 = FIRST_PAIRED_VERSIONS[SECOND_PAIRED_VERSIONS.index(versionAbbreviation)]
+                                            versionNameLink1 = f'''{'../'*BBBLevel}{versionAbbreviation1}/details.htm#Top''' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation1}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                            if footnotesHtmlSaved:
+                                                if footnotesHtml == footnotesHtmlSaved.replace( versionAbbreviation1, versionAbbreviation ): # Both versions with footnotes are identical, so combine into one line
+                                                    # footnotesHtml = '' # No need to repeat these either
+                                                    # textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
+                                                    parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
+                                                                                    f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
+                                                    continue # Nothing else to add for (this identical verse for) this version
+                                                # "closeVerse" class writes WMBB/WMB text on top of WEBBE/WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
+                                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                            else: # Both versions (without footnotes) are identical, so combine into one line
+                                                # vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                                 parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
-                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
+                                                                                    f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
                                                 continue # Nothing else to add for (this identical verse for) this version
-                                            # "closeVerse" class writes WMBB/WMB text on top of WEBBE/WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
-                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                        else: # Both versions (without footnotes) are identical, so combine into one line
-                                            # vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                            parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
-                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
-                                            continue # Nothing else to add for (this identical verse for) this version
-                                    elif '<div ' in textHtml: # it might be a book intro XXXor footnotesXXX wrong it seems
-                                        assert '</div>' in textHtml
-                                        assert c == -1 # Book intro
-                                        # print( f"{parRef} {versionAbbreviation} {textHtml[textHtml.index('<div'):]}")
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
-                                    else: # no <div>s so should be ok to put inside a paragraph
-                                        assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="{'closeVerse' if versionAbbreviation in ('UST','MSB','BLB','WMBB','KJB-1611')
-                                                                                    else 'parallelVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                # Now append the footnotes (if any) for this version
-                                vHtml = f'{vHtml}{footnotesHtml}'
-                                if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with ClVg
-                                    vHtml = f'{vHtml}{translatedFootnotesHtml}'
+                                        elif '<div ' in textHtml: # it might be a book intro XXXor footnotesXXX wrong it seems
+                                            assert '</div>' in textHtml
+                                            assert sourceChapter == -1 # Book intro
+                                            # print( f"{parRef} {versionAbbreviation} {textHtml[textHtml.index('<div'):]}")
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
+                                        else: # no <div>s so should be ok to put inside a paragraph
+                                            assert '</div>' not in textHtml
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="{'closeVerse' if versionAbbreviation in ('UST','MSB','BLB','WMBB','KJB-1611')
+                                                                                        else 'parallelVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                    # Now append the footnotes (if any) for this version
+                                    vHtml = f'{vHtml}{footnotesHtml}'
+                                    if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with ClVg
+                                        vHtml = f'{vHtml}{translatedFootnotesHtml}'
 
-                            else: # no textHtml -- can include verses that are not in the OET-LV
-                                # if parRef in ancientRefsToPrint: print( f"zzzz {versionAbbreviation} {parRef} No textHtml" )
-                                if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
+                                else: # no textHtml -- can include verses that are not in the OET-LV
+                                    # if parRef in ancientRefsToPrint: print( f"zzzz {versionAbbreviation} {parRef} No textHtml" )
+                                    if sourceChapter==-1 or sourceVerse==0: # For these edge cases, we don't want the version abbreviation appearing
+                                        vHtml = ''
+                                    else:
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*BBBLevel}OET/missingVerses.htm">◘</a></p>'''
+
+                                if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
+                                    greekVersionKeysHtmlList = []
+                                    if 'wrkNameDiffPunct' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffPunct">yellow</span>:punctuation differs' )
+                                    if 'wrkNameDiffAccents' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffAccents">orange</span>:accents differ' )
+                                    if 'wrkNameDiffText' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffText">red</span>:words differ' )
+                                    if greekVersionKeysHtmlList:
+                                        vHtml = f'''{vHtml}<p class="key"><b>Key for above GNTs</b>: {', '.join(greekVersionKeysHtmlList)} (from our <a href="#SR-GNT"><b>SR-GNT</b></a> base).</p>'''
+
+                            except UntranslatedVerseError:
+                                NEVER_GETS_HERE # TODO: Why not???
+                                assert textHtml == '◙'
+                                assert versionAbbreviation == 'OET-RV'
+                                assert sourceBBB in thisBible
+                                # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
+                                # if BBB in thisBible:
+                                # print( f"No verse inB OET-RV {BBB} in {thisBible}"); assert False, "We want to stop here"
+                                warningText = f'No OET-RV {ourTidyBBBwithNotes} {sourceC}:{sourceV} verse available'
+                                sectionNumber = findSectionNumber( versionAbbreviation, sourceBBB, sourceC, sourceV, state )
+                                assert sectionNumber is not None, f"Bad OET-RV untranslated verse section {sourceBBB} {sourceC} {sourceV}"
+                                vHtml = f'''<p id="OET-RV" class="parallelVerse"><span id="C{sourceC}V{sourceV}" class="wrkName"><a id="C{sourceC}" title="{state.BibleNames['OET']}" href="{'../'*BBBLevel}OET/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET</a> <small>(<a id="V{sourceV}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET-RV</a>)</small></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+                                # else:
+                                #     warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
+                                #     vHtml = f'''<p id="OET-RV" class="parallelVerse"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+                                logging.warning( warningText )
+
+                            except KeyError:
+                                # if parRef in ancientRefsToPrint: print( f"kkkk {versionAbbreviation} {parRef} Got KeyError" )
+                                assert not textHtml, f"{versionAbbreviation} {sourceRef} {verseEntryList=} {textHtml=}"
+                                if sourceChapter==-1 or sourceVerse==0:
                                     vHtml = ''
+                                elif sourceBBB in thisBible:
+                                    # print( f"No {c}:{v} verse in {versionAbbreviation} {BBB} in {thisBible}"); assert False, "We want to stop here"
+                                    warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} {sourceC}:{sourceV} verse available'
+                                    versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+                                    logging.warning( warningText )
                                 else:
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*BBBLevel}OET/missingVerses.htm">◘</a></p>'''
+                                    warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} book available'
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+                                    logging.warning( warningText )
 
-                            if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
-                                greekVersionKeysHtmlList = []
-                                if 'wrkNameDiffPunct' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffPunct">yellow</span>:punctuation differs' )
-                                if 'wrkNameDiffAccents' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffAccents">orange</span>:accents differ' )
-                                if 'wrkNameDiffText' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffText">red</span>:words differ' )
-                                if greekVersionKeysHtmlList:
-                                    vHtml = f'''{vHtml}<p class="key"><b>Key for above GNTs</b>: {', '.join(greekVersionKeysHtmlList)} (from our <a href="#SR-GNT"><b>SR-GNT</b></a> base).</p>'''
-
-                        except MissingBookError:
-                            # if parRef in ancientRefsToPrint: print( f"mmmm {versionAbbreviation} {parRef} Got MissingBookError" )
-                            assert not textHtml, f"{versionAbbreviation} {parRef} {verseEntryList=} {textHtml=}"
-                            assert BBB not in thisBible
-                            warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} book available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} details" href="{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top">{versionAbbreviation}</a></span> <span class="noBook"><small>{warningText}</small></span></p>'''
-                            logging.warning( warningText )
-
-                        except UntranslatedVerseError:
-                            NEVER_GETS_HERE # TODO: Why not???
-                            assert textHtml == '◙'
-                            assert versionAbbreviation == 'OET-RV'
-                            assert BBB in thisBible
-                            # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
-                            # if BBB in thisBible:
-                            # print( f"No verse inB OET-RV {BBB} in {thisBible}"); assert False, "We want to stop here"
-                            warningText = f'No OET-RV {ourTidyBBBwithNotes} {C}:{V} verse available'
-                            sectionNumber = findSectionNumber( versionAbbreviation, BBB, C, V, state )
-                            assert sectionNumber is not None, f"Bad OET-RV untranslated verse section {BBB} {C} {V}"
-                            vHtml = f'''<p id="OET-RV" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="{state.BibleNames['OET']}" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
-                            # else:
-                            #     warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
-                            #     vHtml = f'''<p id="OET-RV" class="parallelVerse"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
-                            logging.warning( warningText )
-
-                        except KeyError:
-                            # if parRef in ancientRefsToPrint: print( f"kkkk {versionAbbreviation} {parRef} Got KeyError" )
-                            assert not textHtml, f"{versionAbbreviation} {parRef} {verseEntryList=} {textHtml=}"
-                            if c==-1 or v==0:
-                                vHtml = ''
-                            elif BBB in thisBible:
-                                # print( f"No {c}:{v} verse in {versionAbbreviation} {BBB} in {thisBible}"); assert False, "We want to stop here"
-                                warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} {C}:{V} verse available'
-                                versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
-                                logging.warning( warningText )
-                            else:
-                                warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} book available'
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
-                                logging.warning( warningText )
-
-                    if vHtml:
-                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
-                        assert checkHtml( f'Parallel vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
-                        assert not vHtml.endswith( '\n' )
-                        if versionAbbreviation in ('OET-RV','OET-LV'):
-                            # if BBB=='NUM': print( f"{vHtml=}" )
-                            assert '</p>' in vHtml[-45:], f"\n{vHtml[-45:]=}\n{vHtml=}" # e.g., 'lic.</p><!--class-->\n</div><!--bookIntro-->'
-                            vHtml = rreplace( vHtml, '</p>', f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if versionAbbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></p>''', 1 )
-                        assert not parallelHtml.endswith( '\n' )
-                        parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
-                        try: assert checkHtml( f'Parallel parallelHtml {versionAbbreviation} {parRef}', parallelHtml, segmentOnly=True )
-                        except AssertionError as ae: print( ae ) # Don't assert False, "We want to stop here" if the above check failed
+                        if vHtml:
+                            vHtml = versePortionHtml(vHtml, versionAbbreviation, (sourceBBB,sourceC,sourceV), (BBB,C,V), portionNumber)
+                            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
+                            assert checkHtml( f'Parallel vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
+                            assert not vHtml.endswith( '\n' )
+                            if versionAbbreviation in ('OET-RV','OET-LV'):
+                                # if BBB=='NUM': print( f"{vHtml=}" )
+                                assert '</p>' in vHtml[-45:], f"\n{vHtml[-45:]=}\n{vHtml=}" # e.g., 'lic.</p><!--class-->\n</div><!--bookIntro-->'
+                                vHtml = rreplace( vHtml, '</p>', f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if versionAbbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></p>''', 1 )
+                            assert not parallelHtml.endswith( '\n' )
+                            parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
+                            try: assert checkHtml( f'Parallel parallelHtml {versionAbbreviation} {parRef}', parallelHtml, segmentOnly=True )
+                            except AssertionError as ae: print( ae ) # Don't assert False, "We want to stop here" if the above check failed
                     if versionAbbreviation in state.versionComments \
                     and parRef in state.versionComments[versionAbbreviation]:
                         optionalTextSegment,comment = state.versionComments[versionAbbreviation][parRef]
@@ -1534,7 +1491,6 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
     # so we'll just ignore it
 
     adjustedBrightenUHBTextHtml, vaText, caText = brightenUHBTextHtml, None, None
-    vC, vV = C, V
     if '<span class="ca">' in adjustedBrightenUHBTextHtml: # First one is at Gen 31:54
         ixStartSpan = adjustedBrightenUHBTextHtml.index( '<span class="ca">' )
         ixEndSpan = adjustedBrightenUHBTextHtml.index( '</span>', ixStartSpan+17 )
@@ -1549,7 +1505,6 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         ixEndSpan = adjustedBrightenUHBTextHtml.index( '</span> ', ixStartSpan+17 )
         vaText = adjustedBrightenUHBTextHtml[ixStartSpan+17:ixEndSpan]
         adjustedBrightenUHBTextHtml = f'{adjustedBrightenUHBTextHtml[:ixStartSpan]}{adjustedBrightenUHBTextHtml[ixEndSpan+8:]}' # Remove this non-Hebrew bit before we divide it into words
-        vC, vV = vaText.split(':') if ':' in vaText else (C, vaText)
     assert 'class="va"' not in adjustedBrightenUHBTextHtml
     while '<span class="d">' in adjustedBrightenUHBTextHtml: # First one is at Psalm 3
         # print( f"d in brightenUHB {adjustedBrightenUHBTextHtml=} from {UHBRef} {brightenUHBTextHtml=}" )
@@ -1607,29 +1562,12 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         strippedHebWords.append( punctuatedHebWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…׃') ) # Last rstrip one is 'sof pasuq' and 'pe' & 'samekh' Hebrew characters
     # print( f"  brightenUHB strippedHebWords={str(strippedHebWords).replace(WJ,'')}" )
 
-    # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
-    # Match Hebrew words to word numbers -- we use the original numbering which is marked as variant in UHB
-    try: firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{vC}:{vV}']
-    except KeyError as e:
-        logging.error( f"brightenUHB() {UHBRef} nothing for {e}" )
+    try:
+        hebWordNumbers = matchedHebrewWordRows(BBB, C, V, strippedHebWords, state)
+    except (VersificationMappingError, KeyError, ValueError) as error:
+        logging.warning('Hebrew word alignment unavailable for %s: %s', UHBRef, error)
         return brightenUHBTextHtml, []
 
-    currentWordNumber = firstWordNumber
-    hebWordNumbers = []
-    for strippedHebWord in strippedHebWords:
-        # print( f"  {UHBRef} strippedHebWord='{strippedHebWord.replace(WJ,'')}' {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
-        ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
-        hebWordNumbers.append( currentWordNumber )
-        # TODO: probably d field in PSA is a problem
-        # NOTE: Next two lines temporarily disabled 5Jun24
-        # if BBB!='PSA' and not f'{BBB}_{C}' in ('NUM_26','SA1_20','KI1_22','CH1_12','JOB_41'): # Num 26:1/25:19 and SA1 20:42 is a very complicated versification issue (chapter break in middle of alternative verse)
-        #     assert currentWordNumber <= lastWordNumber, f"{currentWordNumber=} {firstWordNumber=} {lastWordNumber=}"
-        currentWordNumber += 1
-    if len(hebWordNumbers) != len(strippedHebWords):
-        logging.error( f"brighten UHB was unable to find word numbers for all words for {UHBRef} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
-
-    # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
-    #           now that we have the word numbers for the Hebrew words
     allExtras = None
     for verseEntry in verseEntryList:
         # print( f"    vE {verseEntry=}" )

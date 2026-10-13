@@ -368,7 +368,7 @@ class TestIORLinksInConvert(unittest.TestCase):
             basicOnly=False, state=self.state,
         )
         self.assertIn(
-            r'<span class="ior"><a title="Jump to chapter page with reference" href="MRK_C1.htm#C1V1">1:1-13</a></span>',
+            r'<span class="ior"><a title="Jump to chapter page with reference" data-vref="mapped" href="MRK_C1.htm#C1V1">1:1-13</a></span>',
             result,
         )
         self.assertNotIn('chapter_C1.htm', result)
@@ -382,7 +382,7 @@ class TestIORLinksInConvert(unittest.TestCase):
             basicOnly=False, state=self.state,
         )
         self.assertIn(
-            r'<span class="ior"><a title="Jump to section page with reference" href="MRK_S0.htm#Top">1:1-13</a></span>',
+            r'<span class="ior"><a title="Jump to section page with reference" data-vref="mapped" href="MRK_S0.htm#C1V1">1:1-13</a></span>',
             result,
         )
         # Must NOT be left as a raw (dead) span.
@@ -397,7 +397,7 @@ class TestIORLinksInConvert(unittest.TestCase):
             basicOnly=False, state=self.state,
         )
         self.assertIn(
-            r'<span class="ior"><a title="Jump to section page with reference" href="../../OET/bySec/MRK_S0.htm#Top">1:1-13</a></span>',
+            r'<span class="ior"><a title="Jump to section page with reference" data-vref="mapped" href="../../OET/bySec/MRK_S0.htm#C1V1">1:1-13</a></span>',
             result,
         )
         self.assertNotIn('<span class="ior">1:1-13</span>', result)
@@ -415,7 +415,7 @@ class TestIORLinksInConvert(unittest.TestCase):
             basicOnly=False, state=state,
         )
         self.assertIn(
-            r'<span class="ior"><a title="Jump to chapter page with reference" href="../../OET/byC/MRK_C1.htm#Top">1:1-13</a></span>',
+            r'<span class="ior"><a title="Jump to chapter page with reference" data-vref="mapped" href="../../OET/byC/MRK_C1.htm#C1V1">1:1-13</a></span>',
             result,
         )
 

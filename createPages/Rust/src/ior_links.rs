@@ -92,11 +92,11 @@ where
                 find_section_fn(version_abbreviation, our_bos_book_code, ref_c, ref_v)
             {
                 Ok(format!(
-                    r##"<a title="Jump to section page with reference" href="{level_prefix}OET/bySec/{our_bos_book_code}_S{section_num}.htm#Top">{guts}</a>"##
+                    r##"<a title="Jump to section page with reference" href="{level_prefix}OET/bySec/{our_bos_book_code}_S{section_num}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
                 ))
             } else {
                 Ok(format!(
-                    r##"<a title="Jump to chapter page with reference" href="{level_prefix}OET/byC/{our_bos_book_code}_C{ref_c}.htm#Top">{guts}</a>"##
+                    r##"<a title="Jump to chapter page with reference" href="{level_prefix}OET/byC/{our_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
                 ))
             }
         }
@@ -112,11 +112,14 @@ where
                 find_section_fn(version_abbreviation, our_bos_book_code, ref_c, ref_v)
             {
                 Ok(format!(
-                    r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_num}.htm#Top">{guts}</a>"##
+                    r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_num}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
                 ))
             } else {
-                // Fallback: return the guts unchanged (matching Python behaviour which logs a critical error)
-                Ok(guts.to_string())
+                // Preserve the native reference for the navigation mapping pass,
+                // even when this edition has no section headings (e.g. OET-LV).
+                Ok(format!(
+                    r##"<a title="Jump to chapter page with reference" href="../byC/{our_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
+                ))
             }
         }
         "relatedPassage" => {
@@ -300,7 +303,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MAT", "section", input, false, 0, finder).unwrap();
         assert_eq!(
             output,
-            r##"See <span class="ior"><a title="Jump to section page with reference" href="MAT_S42.htm#Top">5:13</a></span> for context."##
+            r##"See <span class="ior"><a title="Jump to section page with reference" href="MAT_S42.htm#C5V13">5:13</a></span> for context."##
         );
     }
 
@@ -309,10 +312,10 @@ mod tests {
         let input = r#"See <span class="ior">99:1</span> for context."#;
         let finder = |_v: &str, _b: &str, _c: &str, _v2: &str| -> Option<usize> { None };
         let output = liven_iors_core("OET-RV", "JHN", "section", input, false, 0, finder).unwrap();
-        // When section not found, guts are returned unchanged
+        // Without a section, retain the chapter/verse for navigation mapping
         assert_eq!(
             output,
-            r#"See <span class="ior">99:1</span> for context."#
+            r##"See <span class="ior"><a title="Jump to chapter page with reference" href="../byC/JHN_C99.htm#C99V1">99:1</a></span> for context."##
         );
     }
 
@@ -338,7 +341,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MRK", "parallelVerse", input, false, 2, finder).unwrap();
         assert_eq!(
             output,
-            r##"See <span class="ior"><a title="Jump to section page with reference" href="../../OET/bySec/MRK_S0.htm#Top">1:1-13</a></span> for context."##
+            r##"See <span class="ior"><a title="Jump to section page with reference" href="../../OET/bySec/MRK_S0.htm#C1V1">1:1-13</a></span> for context."##
         );
     }
 
@@ -351,7 +354,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MRK", "parallelVerse", input, false, 2, finder).unwrap();
         assert_eq!(
             output,
-            r##"See <span class="ior"><a title="Jump to chapter page with reference" href="../../OET/byC/MRK_C5.htm#Top">5:13</a></span> for context."##
+            r##"See <span class="ior"><a title="Jump to chapter page with reference" href="../../OET/byC/MRK_C5.htm#C5V13">5:13</a></span> for context."##
         );
     }
 }

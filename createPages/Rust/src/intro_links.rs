@@ -129,7 +129,9 @@ where
             "section" | "relatedPassage" => {
                 let n = find_section_number(version_abbreviation, our_bos_book_code, ref_c, ref_v);
                 if let Some(section_idx) = n {
-                    Ok(format!(r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_idx}.htm#Top">{guts}</a>"##))
+                    Ok(format!(r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_idx}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
+                } else if segment_type == "section" {
+                    Ok(format!(r##"<a title="Jump to chapter page with reference" href="../byC/{our_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
                 } else {
                     Ok(guts.to_string())
                 }
@@ -150,7 +152,9 @@ where
             "section" | "relatedPassage" => {
                 let n = find_section_number(version_abbreviation, ref_bos_book_code, ref_c, ref_v);
                 if let Some(section_idx) = n {
-                    Ok(format!(r##"<a title="Go to to section page with reference" href="{ref_bos_book_code}_S{section_idx}.htm#Top">{guts}</a>"##))
+                    Ok(format!(r##"<a title="Go to to section page with reference" href="{ref_bos_book_code}_S{section_idx}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
+                } else if segment_type == "section" {
+                    Ok(format!(r##"<a title="Jump to chapter page with reference" href="../byC/{ref_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
                 } else {
                     Ok(guts.to_string())
                 }
@@ -465,7 +469,7 @@ mod tests {
         let output = liven_introduction_links_core("OET-RV", "MRK", "section", input, dummy_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"(<a title="Go to to section page with reference" href="ACT_S5.htm#Top">Acts 12:25</a>, <a title="Go to to section page with reference" href="ACT_S6.htm#Top">13:13</a>)"##
+            r##"(<a title="Go to to section page with reference" href="ACT_S5.htm#C12V25">Acts 12:25</a>, <a title="Go to to section page with reference" href="ACT_S6.htm#C13V13">13:13</a>)"##
         );
     }
 

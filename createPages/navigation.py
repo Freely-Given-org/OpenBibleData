@@ -1,0 +1,161 @@
+"""OBD URLs and rendered links across Bible versifications.
+
+BOS decides correspondence. This module chooses site destinations and retains
+native labels, source word filenames, and edition-specific storage identities.
+"""
+import re
+
+from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus
+from versification import _mapReference, _storedReferences
+
+
+def _versionProfile(version, state):
+    declared = state.BibleVersifications.get(version)
+    bible = getattr(state, 'preloadedBibles', {}).get(version)
+    return declared or (bible.getVersificationSystemName() if bible and not isinstance(bible, dict) else None)
+
+
+def mappedReferences(reference, sourceVersion, targetVersion, state):
+    BBB, C, V = map(str, reference[:3])
+    match = re.fullmatch(r'(\d+)([a-z]*)', V)
+    if not match or int(C) < 1:
+        return ()
+    verse, suffix = match.groups()
+    # Reverse the explicit import layout before handing a reference to BOS.
+    for book, layouts in getattr(state, 'BibleSourceBookLayouts', {}).get(sourceVersion, {}).items():
+        for first, last, storedBook, offset in layouts:
+            if BBB == storedBook and first <= int(C)-offset <= last:
+                BBB, C = book, str(int(C)-offset)
+                break
+    source, target = _versionProfile(sourceVersion, state), _versionProfile(targetVersion, state)
+    if not source or not target:
+        return ()
+    ref = (BBB,C,verse,suffix or None)
+    if source == target:
+        refs = (ref,)
+    else:
+        result = _mapReference(source, target, ref)
+        if result.status != MappingStatus.EXACT:
+            return ()
+        refs = result.references
+    return _storedReferences(targetVersion, refs, state)
+
+
+def referenceHref(level, reference, version='OET', view='byC'):
+    BBB,C,V,*suffix = reference
+    V = str(V) + ((suffix[0] or '') if suffix else '')
+    prefix = '../' * level
+    if view in ('par','ilr','lst'):
+        # English page addresses have no suffix; a mapped suffix belongs to
+        # that whole verse page.
+        return f'{prefix}{view}/{BBB}/C{C}V{re.match(r"\d+", V)[0]}.htm#Top'
+    if view == 'byDoc':
+        return f'{prefix}{version}/byDoc/{BBB}.htm#C{C}V{V}'
+    return f'{prefix}{version}/byC/{BBB}_C{C}.htm#C{C}V{V}'
+
+
+def scriptureLink(level, reference, sourceVersion, targetVersion, view, label, state, title='View passage'):
+    refs = mappedReferences(reference, sourceVersion, targetVersion, state)
+    if not refs:
+        return label
+    links = []
+    for ref in refs:
+        text = label if len(refs) == 1 else f'{label} ({ref[0]} {ref[1]}:{ref[2]}{ref[3] or ""})'
+        links.append(f'<a title="{title}" data-vref="mapped" href="{referenceHref(level, ref, targetVersion, view)}">{text}</a>')
+    return ' / '.join(dict.fromkeys(links))
+
+
+_ANCHOR = re.compile(r'<a\b([^>]*?)href="([^"]+)"([^>]*)>(.*?)</a>', re.DOTALL)
+_VERSE_PAGE = re.compile(r'(?:[./]*(par|ilr|lst)/([A-Z0-9]{3})/|([./]*)(?:([A-Z0-9]{3})/)?)C(\d+)V(\d+[a-z]*).htm(?:#[^\"]*)?$')
+_VERSION_PAGE = re.compile(r'([./]*)([A-Za-z0-9][^/]*)/by(C|Doc|Sec)/([A-Z0-9]{3})(?:_C(\d+)|_S(\d+))?\.htm(?:#(.*))?$')
+_LOCAL_PAGE = re.compile(r'(?:\.\./by(?:C|Doc|Sec)/)?([A-Z0-9]{3})(?:_C(\d+)|_S(\d+))?\.htm(?:#(.*))?$')
+
+
+def _pageReference(BBB, C, section, anchor, sourceVersion, state):
+    if anchor and (match := re.fullmatch(r'C(\d+)(?:V(\d+[a-z]*))?', anchor)):
+        return BBB, match[1], match[2] or '1'
+    if section:
+        sections = getattr(state, 'sectionsListsForSections', {}).get(sourceVersion, {}).get(BBB, ())
+        for record in sections:
+            if str(record[0]) == section:
+                return BBB, str(record[1]), str(record[2])
+        return None
+    if C:
+        verse = anchor[1:] if anchor and re.fullmatch(r'V\d+[a-z]*', anchor) else '1'
+        return BBB,C,verse
+    return None # A book/index link has no verse position to map.
+
+
+def mapHtmlLinks(html, sourceVersion, level, state, *, segmentType='', reference=(), navigationVersion=None,
+                 versionBar=False):
+    """Translate scripture destinations, leaving word IDs and external URLs alone.
+
+    navigationVersion is the version of the containing page (OET for combined
+    rows). It can differ from the native version of the rendered text. An
+    unavailable mapping removes the link, retaining its readable contents.
+    """
+    if sourceVersion not in getattr(state, 'BibleVersifications', {}):
+        return html # Standalone renderer callers without site declarations.
+    pageVersion = navigationVersion or ('OET' if segmentType in (
+        'parallelVerse','interlinearVerse','simpleVerse','topicalPassage','relatedPassage') else sourceVersion)
+    def replace(match):
+        before, href, after, label = match.groups()
+        if 'data-vref="mapped"' in before + after:
+            return match[0]
+        if '://' in href or href.startswith(('mailto:','//')):
+            return match[0]
+        target, ref, view = None, None, 'byC'
+        canonical = False
+        if m := _VERSION_PAGE.fullmatch(href):
+            _, target, _, BBB, C, section, anchor = m.groups()
+            if target not in state.BibleVersifications:
+                return match[0]
+            ref = _pageReference(BBB,C,section,anchor,sourceVersion,state)
+            view = 'byDoc' if m[3] == 'Doc' else 'byC'
+            # Section IDs are edition-specific, even with identical numbering.
+            # Version switching uses the retained verse in a chapter page.
+            canonical = versionBar and (m[3] == 'Sec' or (bool(anchor) and not C and m[3] == 'C'))
+        elif not versionBar and (m := _VERSE_PAGE.fullmatch(href)):
+            folder, BBB, _, otherBBB, C, V = m.groups()
+            if not folder and segmentType not in ('parallelVerse','interlinearVerse','simpleVerse'):
+                return match[0]
+            view = folder or {'parallelVerse':'par','interlinearVerse':'ilr','simpleVerse':'lst'}[segmentType]
+            BBB = BBB or otherBBB or reference[0]
+            target, ref = 'OET', (BBB,C,V)
+        elif not versionBar and (m := _LOCAL_PAGE.fullmatch(href)):
+            BBB,C,section,anchor = m.groups()
+            target, ref = pageVersion, _pageReference(BBB,C,section,anchor,sourceVersion,state)
+            view = 'byDoc' if segmentType == 'book' and not C and not section else 'byC'
+            canonical = segmentType in ('topicalPassage','dictVerse') or (
+                bool(C) and segmentType == 'section' and not href.startswith('../byC/'))
+        elif not versionBar and pageVersion != sourceVersion and (m := re.fullmatch(r'#C(\d+)(?:V(\d+[a-z]*))?', href)):
+            if f'id="{href[1:]}"' in html:
+                return match[0] # Local footnote return; the LV renderer namespaces it.
+            target, ref = pageVersion, (reference[0], m[1], m[2] or '1')
+        if ref is None or target is None:
+            return match[0]
+        refs = mappedReferences(ref, sourceVersion, target, state)
+        if not refs:
+            return label
+        # Preserve links within a native edition, and stable same-system page
+        # anchors. Only links crossing numbering systems need new destinations.
+        if (not canonical and _versionProfile(sourceVersion, state) == _versionProfile(target, state)
+                and not getattr(state, 'BibleSourceBookLayouts', {}).get(sourceVersion)
+                and not getattr(state, 'BibleSourceBookLayouts', {}).get(target)):
+            return f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'
+        return ' / '.join(dict.fromkeys(
+            f'<a{before}data-vref="mapped" href="{referenceHref(level, r, target, view)}"{after}>{label}</a>' for r in refs))
+    return _ANCHOR.sub(replace, html)
+
+
+def wordReferenceMetadata(reference, state):
+    """Export both coordinate systems without changing a native word reference."""
+    BBB, cvw = reference.split('_', 1)
+    C, vw = cvw.split(':', 1)
+    V = vw.split('w', 1)[0]
+    result = _mapReference(state.BibleVersifications['OET-LV'], state.navigationVersification,
+                           (BBB,C,V,None))
+    return {'versification': state.BibleVersifications['OET-LV'],
+            'navigation_versification': state.navigationVersification,
+            'navigation_mapping_status': result.status.value,
+            'navigation_references': [f'{b}_{c}:{v}{s or ""}' for b,c,v,s in result.references]}

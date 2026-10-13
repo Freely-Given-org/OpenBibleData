@@ -38,6 +38,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
+from oetPassages import renderOETLVPassage
 from settings import State
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -200,7 +201,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     topic,topicFilename,refsList = TOPIC_LIST[topicNumber]
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({topicFilename}) with {len(refs)} Bible passages…" )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({topicFilename}) with {len(refsList)} Bible passages…" )
     rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
     leftLink = f'<a title="Previous kingdom" href="{TOPIC_LIST[topicNumber-1][1]}#Top">←</a> ' if topicNumber>0 else ''
@@ -208,6 +209,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     homeLink = f' <a title="Topic index" href="index.htm">⌂</a>'
 
     combinedHtmlChunks = []
+    lvChapterCache = {}
     for rr,ref in enumerate( refsList, start=1 ):
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
@@ -228,23 +230,16 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
                 assert refRest.isdigit()
                 C, Vs = refRest, None
             # print( f"    {rr} {topic} {ref=} {BBB=} {refRest=} {C=} {Vs=}")
+            startV = '1'
             if Vs is None: # then it's an entire chapter (no verses specified)
                 if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
                     rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C) )
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
-                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
-                except TypeError: # Book appears to be not available
-                    assert state.TEST_MODE_FLAG
-                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '-' in Vs: # then it's a verse range
                 startV, endV = Vs.split( '-' )
                 if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
                     rvVerseEntryList, rvContextList = rvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
-                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
-                except TypeError: # Book appears to be not available
-                    assert not state.ALL_PRODUCTION_BOOKS_FLAG
-                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '–' in Vs: # en-dash, then it's a chapter range
                 not_written_yet
             else: # assume it's a single verse
@@ -252,10 +247,6 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
                 if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
                     rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,Vs) )
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
-                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
-                except TypeError: # Book appears to be not available
-                    assert not state.ALL_PRODUCTION_BOOKS_FLAG
-                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
@@ -263,13 +254,8 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
 
-            if lvVerseEntryList:
-                lvTextHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False )
-                # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
-                lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
-            else: # We didn't get any LV data
-                assert not state.ALL_PRODUCTION_BOOKS_FLAG
-                lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
+            lvTextHtml, _ = renderOETLVPassage(level, lvBible, (BBB,C,startV),
+                rvVerseEntryList, 'topicalPassage', state, lvChapterCache, rr)
 
             if rvTextHtml.startswith( '<div class="rightS1Box">' ):
                 rvTextHtml = f'<div class="section">{rvTextHtml}' # This got removed above
@@ -314,7 +300,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(topicHtml):,} characters written to {filepath}" )
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refsList):,} references." )
     return True
 # end of createTopicPages.createTopicPage
 

@@ -955,9 +955,9 @@ fn pick_gloss<'a>(fields: &[&'a str]) -> &'a str {
 pub fn find_ol_quote_in_lv_core(
     reference: &str,
     lv_texts: &[String],
-    table_len: usize,
+    _table_len: usize,
     get_row: &dyn Fn(i64) -> Result<String, String>,
-    get_indexes: &dyn Fn(&str) -> Result<(i64, i64), String>,
+    get_indexes: &dyn Fn(&str) -> Result<Vec<i64>, String>,
     occurrence_number: i64,
     original_language_quote: &str,
     is_nt: bool,
@@ -995,7 +995,7 @@ pub fn find_ol_quote_in_lv_core(
     if word_number_str.is_empty() {
         return Ok(OlQuoteOutcome::NoStartingWord);
     }
-    let (first_word_number, last_word_number) = get_indexes(reference)?;
+    let word_numbers = get_indexes(reference)?;
 
     // Ok, now we can try to match the given Greek/Hebrew words
     //     Note: We don't try to match punctuation, only the clean words
@@ -1026,14 +1026,19 @@ pub fn find_ol_quote_in_lv_core(
 
     let mut current_occurrence_number = occurrence_number;
     let mut ol_index = 0usize;
-    let mut word_number_offset: i64 = 0;
     let mut lv_english_words: Vec<String> = Vec::new();
     let mut in_gap = false;
     // Just for curiosity / debugging
     let mut match_start: Option<i64> = None;
 
-    for word_number in first_word_number..=last_word_number {
-        let ol_word = ol_words[ol_index];
+    for &word_number in &word_numbers {
+        let row_str = get_row(word_number)?;
+        let row: Vec<String> = row_str.split('\t').map(String::from).collect();
+        if !is_nt && (row.get(1).map(String::as_str) == Some("seg")
+            || row.get(1).is_some_and(|rt| rt.contains("note"))) {
+            continue;
+        }
+        let mut ol_word = ol_words[ol_index];
         if ol_word == "&" {
             lv_english_words.push("&".to_string());
             ol_index += 1;
@@ -1054,33 +1059,11 @@ pub fn find_ol_quote_in_lv_core(
                 break; // finished
             }
             in_gap = true;
-            continue; // Pass over whatever this SR row was (i.e., sort of match the ampersand)
+            // A gap can be empty. Try the next quoted word against this row;
+            // never consume a real word merely because a separator was skipped.
+            ol_word = ol_words[ol_index];
         }
 
-        let fetch_row = |offset: i64| -> Result<(String, Vec<String>), String> {
-            let row_str = get_row(word_number + offset)?;
-            let row: Vec<String> = row_str.split('\t').map(String::from).collect();
-            Ok((row_str, row))
-        };
-        let (mut row_str, mut row) = fetch_row(word_number_offset)?;
-        if !is_nt {
-            while row.get(1).map(String::as_str) == Some("seg")
-                || row.get(1).is_some_and(|rt| rt.contains("note"))
-            {
-                // maqqaf segment/note row -- skip it
-                word_number_offset += 1;
-                if word_number + word_number_offset > last_word_number {
-                    break;
-                }
-                (row_str, row) = fetch_row(word_number_offset)?;
-            }
-        }
-        if word_number + word_number_offset > last_word_number {
-            break;
-        }
-        if !row_str.starts_with(&format!("{reference}w")) {
-            return Err(format!("AssertionError: {reference} {row_str:?}"));
-        }
         let field = |index: usize| -> Result<String, String> {
             row.get(index)
                 .cloned()
@@ -1168,17 +1151,8 @@ pub fn find_ol_quote_in_lv_core(
     if ol_index < ol_words.len() {
         // We didn't match them all
         let mut our_words: Vec<String> = Vec::new();
-        for probe_word_number in first_word_number..first_word_number + 999 {
-            if probe_word_number >= table_len as i64 {
-                // we must be in one of the last verses of Rev
-                break;
-            }
+        for &probe_word_number in &word_numbers {
             let row_str = get_row(probe_word_number)?;
-            if !row_str.starts_with(reference) {
-                // gone into the next verse (note: without the 'w',
-                // so segs/notes are included -- as in the original)
-                break;
-            }
             let row: Vec<String> = row_str.split('\t').map(String::from).collect();
             let field = |index: usize| -> Result<String, String> {
                 row.get(index)
@@ -1897,8 +1871,8 @@ mod tests {
     // ── findOLQuoteInLV core ────────────────────────────────────────────────
 
 
-        fn make_get_indexes(first: i64, last: i64) -> impl Fn(&str) -> Result<(i64, i64), String> {
-            move |_reference| Ok((first, last))
+        fn make_get_indexes(first: i64, last: i64) -> impl Fn(&str) -> Result<Vec<i64>, String> {
+            move |_reference| Ok((first..=last).collect())
         }
 
     #[test]
@@ -2004,11 +1978,25 @@ mod tests {
         let OlQuoteOutcome::Html(html) = outcome else { panic!() };
         assert!(
             html.contains(
-                "(Some words not found in <a href=\"#SR-GNT\">SR-GNT</a>: καὶ λέγει ἀρχή)"
+                "(Some words not found in <a href=\"#SR-GNT\">SR-GNT</a>: καὶ λέγει)"
             ),
             "{html}"
         );
         assert!(messages.borrow().iter().any(|(level, _)| level == "warning"));
+        assert!(!html.contains("ἀρχή")); // Outside the selected native rows.
+    }
+
+    #[test]
+    fn test_quote_across_disjoint_native_portions_keeps_row_ids() {
+        let texts = vec!["first¦5 second¦9".to_string()];
+        let get_row = |n: i64| match n {
+            5 => Ok(ot_row("GEN_1:2w1", "one", "b").replacen("\tWG\t", "\tfirst\t", 1)),
+            9 => Ok(ot_row("GEN_2:1w1", "two", "b").replacen("\tWG\t", "\tsecond\t", 1)),
+            _ => Err(format!("unselected row {n}")),
+        };
+        let outcome = find_ol_quote_in_lv_core("GEN_1:1", &texts, 10, &get_row,
+            &|_| Ok(vec![5,9]), 1, "one two", false, &|_,_| {}).unwrap();
+        assert_eq!(outcome, OlQuoteOutcome::Html("first second".to_string()));
     }
 
     #[test]
@@ -2064,9 +2052,9 @@ mod tests {
     }
 
     #[test]
-    fn test_find_ol_quote_wrong_reference_row_is_error() {
+    fn test_find_ol_quote_missing_selected_row_is_error() {
         let texts = vec!["v~=x¦11".to_string()];
-        // Rows belong to a different verse entirely
+        // Native references may differ, but every selected row must exist.
         let row = nt_row("LUK_9:9w1", "καὶ", "kai", "X", "1", "C", "None");
         let get_row = make_get_row(vec![(11, row)]);
         let no_log = |_level: &str, _message: &str| {};

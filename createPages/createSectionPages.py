@@ -64,6 +64,7 @@ CHANGELOG:
                 and passed bySec/{indexFilename} to makeTop (was bySec/{sectionFilename}).
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls have been removed. (Section lists now store un-livened entries; livening happens once, at the page-creation convert — the old code livened twice, at list-build and again (no-op) at page-build.)
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
+    2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
 """
 from pathlib import Path
 import os
@@ -73,18 +74,20 @@ from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
+from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
+from navigation import mapHtmlLinks
 from settings import State
+from oetPassages import renderOETLVPassage, oetLVSourceLink
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-12' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.96'
@@ -423,6 +426,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         sectionIndexLink = f'<a title="Go up to OET section index" href="{BBB}.htm#Top">⌂</a> '
         detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
         # just_had_MS1 = None
+        lvChapterCache = {}
         for n,startC,startV,endC,endV,sectionName,reasonMarker,rvContextList,rvVerseEntryList,sectionFilename in state.sectionsListsForSections['OET-RV'][BBB]:
             # if endC == '?': # Then these are the additional/alternative headings
             #     unexpected # Should be gone now
@@ -454,21 +458,16 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/bySec/{BBB}_S{n}.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version (chapter) by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
+<h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
             rvHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,startC, startV), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( rvBible, ESFMBible ), colouriseWordClasses=False )
             rvHtml = do_OET_RV_HTMLcustomisations( f'SectionA={BBB}_{startC}', rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
 
-            try:
-                lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB, startC, startV), (BBB, endC, endV) )
-            except KeyError: # this can fail in the introduction which is missing from LV
-                logging.critical( f"Seems OET-LV {BBB} is missing section starting with {startC}:{startV}" )
-                lvVerseEntryList, lvContextList = [], []
-            except TypeError: # if it returned None
-                logging.critical( f"createOETSectionPages missing book error for {lvBible.abbreviation} {BBB} {c=}" )
-                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
-            lvHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( lvBible, ESFMBible ), colouriseWordClasses=False )
-            lvHtml = do_OET_LV_HTMLcustomisations( f'SectionA={BBB}_{startC}', lvHtml )
+            lvHtml, firstNative = renderOETLVPassage(
+                level, lvBible, (BBB,startC,startV), rvVerseEntryList, 'section', state, lvChapterCache )
+            sectionHtml = sectionHtml.replace(
+                f"{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}",
+                oetLVSourceLink(level, BBB, firstNative) )
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvHtml = rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
             lvHtml = lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
@@ -486,7 +485,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 state.sectionsWithMaps[BBB].append( n )
 
             filepath = folder.joinpath( sectionFilename )
-            top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm', state ) \
+            top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm#C{startC}V{startV}', state ) \
                     .replace( '__TITLE__', f"OET {ourTidyBBB} section{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, OET, section, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{sectionFilename}#Top">OET</a>''',
@@ -805,8 +804,9 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             sectionHtml = f'''{sectionHtml}{textHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--secNave-->'''
 
+            sectionHtml = mapHtmlLinks(sectionHtml, thisBible.abbreviation, level, state, segmentType='section', reference=(BBB,startC,startV))
             filepath = folder.joinpath( sectionFilename )
-            top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
+            top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm#C{startC}V{startV}', state ) \
                     .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, section, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',

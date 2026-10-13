@@ -97,15 +97,16 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
+from versification import configureBibleVersification
 from html import checkHtml
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-12' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.1'
+PROGRAM_VERSION = '1.1.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -215,6 +216,7 @@ def preloadVersions( state:State ) -> int:
                                 continue
                             else: # for Bibles
                                 newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
+                                configureBibleVersification( newBibleObj, versionAbbreviation, state )
                                 # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
                                 # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
                                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
@@ -571,6 +573,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
+    if isinstance(thisBible, Bible):
+        configureBibleVersification( thisBible, versionAbbreviation, state )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 

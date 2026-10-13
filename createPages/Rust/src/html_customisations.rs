@@ -392,8 +392,8 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
 }
 
 // ── do_LSV_HTMLcustomisations ───────────────────────────────────────────────
-/// Byte-identical port of `html.do_LSV_HTMLcustomisations`: change the two
-/// parallel lines (` || `) to `<br>`.
+/// Change LSV's parallel-line markers (` || `) to `\n<br>`, following
+/// the site's convention of placing source newlines before HTML line breaks.
 pub fn do_lsv_html_customisations(_where_: &str, html: &str) -> String {
     html.replace(" || ", "\n<br>").replace("||", "\n<br>") // Second one catches any source inconsistencies
 }
@@ -814,9 +814,9 @@ mod tests {
     fn lsv_double_pipes() {
         assert_eq!(
             do_lsv_html_customisations("T", "a || b and ||c|| and d || e"),
-            "a<br>b and <br>c<br> and d<br>e"
+            "a\n<br>b and \n<br>c\n<br> and d\n<br>e"
         );
-        assert_eq!(do_lsv_html_customisations("T", "||x||"), "<br>x<br>");
+        assert_eq!(do_lsv_html_customisations("T", "||x||"), "\n<br>x\n<br>");
     }
 
     // -- T4T --

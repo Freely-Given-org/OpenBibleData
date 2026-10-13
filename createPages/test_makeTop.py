@@ -414,12 +414,30 @@ class TestMakeTopRustFidelity( unittest.TestCase ):
         self.state = get_stub_state()
 
     def test_makeTop_matches_reference_across_matrix( self ):
-        """html.makeTop must be byte-identical to the former Python code."""
+        """Unmapped page chrome remains byte-identical to the former Python code."""
+        # Scripture-link conversion is tested separately with real BOS profiles.
+        self.state.BibleVersifications = {}
         for level, va, pt, ff in CASES:
             with self.subTest( level=level, va=va, pageType=pt, ff=ff ):
                 expected = _ref_makeTop( level, va, pt, ff, self.state )
                 actual = htmlModule.makeTop( level, va, pt, ff, self.state )
                 self.assertEqual( actual, expected )
+
+    def test_makeTop_maps_version_links_at_changed_chapter_boundary(self):
+        for bible in self.state.preloadedBibles.values():
+            bible._books.add('MAL')
+        self.state.allBBBs = [*BBBS, 'MAL']
+        html = htmlModule.makeTop(2, 'OET-RV', 'chapter', 'byC/MAL_C4.htm', self.state)
+        self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19', html)
+        self.assertNotIn('OET-LV/byC/MAL_C4.htm', html)
+
+    def test_makeTop_maps_native_section_start_to_english(self):
+        for bible in self.state.preloadedBibles.values():
+            bible._books.add('MAL')
+        self.state.allBBBs = [*BBBS, 'MAL']
+        html = htmlModule.makeTop(2, 'OET-LV', 'section', 'bySec/MAL.htm#C3V19', self.state)
+        self.assertIn('OET/byC/MAL_C4.htm#C4V1', html)
+        self.assertIn('OET-RV/byC/MAL_C4.htm#C4V1', html)
 
     def test_makeViewNavListParagraph_matches_reference( self ):
         """html.makeViewNavListParagraph must be byte-identical to the former Python code."""

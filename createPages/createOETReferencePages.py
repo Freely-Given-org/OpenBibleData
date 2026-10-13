@@ -154,6 +154,8 @@ import bos_books_codes_py
 
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
+from navigation import mapHtmlLinks
+from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
@@ -1601,36 +1603,41 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
 @cache
 def get_OET_LV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     """
-    Fetch the reference (if it exists) and return it in HTML
+    Fetch the native word reference and return it in HTML
         without footnotes or cross-references.
     """
     thisBible = state.preloadedBibles['OET-LV']
-    try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) ) # Can return None if the book doesn't exist, but that shouldn't happen here
+    try: portions = thisBible.getPassageData(((BBB,C,V),))
     except KeyError: return ''
-    # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state, livenWordLinks=True )
-    assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
-    assert ' </span>' not in textHtml, f"OET-LV {BBB}_{C}:{V} {textHtml=}"
-    textHtml = do_OET_LV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml ).replace( '<br>', ' ' ) # Replace newline (between sentences) with em-space to make these verses display more compactly
-    return f'''<p class="LVVerseText"><b>OET-LV</b>: {textHtml} <small>({BBB}_{C}:{V})</small></p>'''
+    parts = []
+    for nativeRef, entries, context in portions:
+        text = convertVerseEntryListToHtml(level, 'OET-LV', nativeRef, 'dictVerse', context, entries,
+            basicOnly=True, state=state, livenWordLinks=True)
+        text = do_OET_LV_HTMLcustomisations(f'DictVerse={nativeRef}', text).replace('<br>', ' ')
+        parts.append(f'<p class="LVVerseText"><b>OET-LV</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
+    return ''.join(parts)
 # end of createOETReferencePages.get_OET_LV_verse_HTML
 
 
 @cache
 def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     """
-    Fetch the reference (if it exists) and return it in HTML
+    Map the native LV word reference to RV, then render every returned portion
         without footnotes or cross-references.
     """
     thisBible = state.preloadedBibles['OET-RV']
-    try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) )
-    except KeyError: return ''
-    # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state, livenWordLinks=True )
-    assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
-    assert ' </span>' not in textHtml, f"OET-RV {BBB}_{C}:{V} {textHtml=}"
-    textHtml = do_OET_RV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml )
-    return f'''<p class="RVVerseText"><b>OET-RV</b>: {textHtml} <small>({BBB} {C}:{V})</small></p>'''
+    try:
+        passage = thisBible.getMappedPassage(state.preloadedBibles['OET-LV'], ((BBB,C,V),))
+    except (KeyError, VersificationMappingError) as error:
+        logging.warning('Reference-page RV alignment unavailable for %s %s:%s: %s', BBB,C,V,error)
+        return '<p class="RVVerseText"><b>OET-RV</b>: Passage alignment unavailable.</p>'
+    parts = []
+    for nativeRef, entries, context in passage.portions:
+        text = convertVerseEntryListToHtml(level, 'OET-RV', nativeRef, 'dictVerse', context, entries,
+            basicOnly=True, state=state, livenWordLinks=True)
+        text = do_OET_RV_HTMLcustomisations(f'DictVerse={nativeRef}', text)
+        parts.append(f'<p class="RVVerseText"><b>OET-RV</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
+    return ''.join(parts)
 # end of createOETReferencePages.get_OET_RV_verse_HTML
 
 
@@ -1955,7 +1962,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
         else: nextN = hh+1
     prevLink = f'<b><a title="Previous word" href="{getHebrewWordpageFilename(prevN,state)}#Top">←</a></b> ' if prevN is not None else ''
     nextLink = f' <b><a title="Next word" href="{getHebrewWordpageFilename(nextN,state)}#Top">→</a></b>' if nextN else ''
-    oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
+    oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
     parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
     interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
     rowTypeField = '‘Ketiv’ (marginal note on original)' if rowType=='K' else 'Aramaic ‘ketiv’ (marginal note on original)' if rowType=='AK' else 'Segment punctuation' if rowType=='seg' else 'Aramaic' if rowType=='A' else rowType.title() if 'note' in rowType else rowType
@@ -2195,6 +2202,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
     wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word' )}'''
+    wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
     assert checkHtml( 'HebrewWordPage', wordsHtml )
     filepath = outputFolderPath.joinpath( word_output_filename )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2282,6 +2290,7 @@ def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:
                 if displayCounter >= maxWordsToShow: break
             assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
             assert not lemmaHTML.endswith('\n'), f"{lemmaHTML=}"
+            lemmaHTML = mapHtmlLinks(lemmaHTML, 'OET-LV', level, state)
             assert checkHtml( 'HebrewLemmaSegment', lemmaHTML, segmentOnly=True )
             return lemmaHTML
     # end of createOETReferencePages._make_hebrew_lemma_HTML_segment
@@ -2548,6 +2557,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
                         .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
         # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
@@ -3195,7 +3205,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         wordVLTGlossesList = sorted( state.OETRefData['NTFormVLTGlossesDict'][(greekWord,roleLetter,morphology)] )
 
 
-        oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
+        oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
@@ -3375,6 +3385,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
         wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word' )}'''
+        wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
         assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -3672,6 +3683,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
                         .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
         assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3778,6 +3790,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
+    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state)
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
@@ -3957,6 +3970,7 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
+    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state)
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
