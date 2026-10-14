@@ -599,10 +599,10 @@ html[data-features="on"][data-verses="left"] body span.synthParr { display: none
 /* The historical-translations (parallel-verse) block. */
 html[data-par-fields="hide"] div.hideables { display: none; }
 
-/* The transliteration / modernised-spelling lines on parallel verse pages.
- * The class name list matches the spans created by createParallelVersePages.py
- * (and the fallback list in Bible.js): modernised spellings (…_mod) plus the
- * _trans spans inserted in the Hebrew/Greek source lines. */
+/* Hide each complete secondary line: its break, indentation, parentheses and
+ * text (including "same as" notes). Keep the individual text selectors for
+ * older generated pages without wrappers. Mirrors the fallback in Bible.js. */
+html[data-par-translit="hide"] .parallelVerseSecondary,
 html[data-par-translit="hide"] span.SR-GNT_trans,
 html[data-par-translit="hide"] span.UGNT_trans,
 html[data-par-translit="hide"] span.SBL-GNT_trans,

@@ -85,6 +85,7 @@ CHANGELOG:
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
                 (instead of once per worker).
     2026-10-12 Use BOS versification mappings for all parallel sources, with English navigation.
+    2026-10-15 Hide complete secondary lines, including their parentheses and line breaks.
 """
 from pathlib import Path
 import os
@@ -122,7 +123,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-15'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.12'
@@ -137,6 +138,14 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 NON_BREAK_SPACE = ' ' # NBSP
 WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
+
+
+def formatParallelVerseSecondaryLine( secondaryHtml:str ) -> str:
+    """Keep a secondary line's break, indentation and parentheses inside its hideable wrapper."""
+    # Modernised book introductions can contain block elements, which cannot go in a span.
+    containerTag = 'div' if '<div ' in secondaryHtml or '<p ' in secondaryHtml else 'span'
+    return f'''\n<{containerTag} class="parallelVerseSecondary"><br>   ({secondaryHtml.replace('<br>','<br>   ')})</{containerTag}>'''
+# end of formatParallelVerseSecondaryLine
 
 
 def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
@@ -713,10 +722,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         else: # Hardwire added words to italics
                                             modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {sourceRef}' )
                                         modernisedTextHtml = modernisedTextHtml.replace( '_verseTextChunk"', '_mod"' )
-                                        # if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
-                                        #     assert C=='-1' and V=='0'
-                                        #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
-                                        # else: # no div
                                     if versionAbbreviation=='KJB-1611' and not modernisedTextHtml.startswith('<small>') and not sourceRef.endswith( ':0' ): # Don't include chapter intros
                                         if debugKJBCompareBit:
                                             print( f"    {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
@@ -797,7 +802,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         # if parRef == 'PSA_68:6': assert False, "We want to stop here"
                                     if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                         # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
-                                        textHtml = f'''{textHtml}\n<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
+                                        textHtml = f'{textHtml}{formatParallelVerseSecondaryLine(modernisedTextHtml)}'
                                     # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                                 elif versionAbbreviation in ('Luth','ClVg'):
                                     translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
@@ -815,15 +820,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
                                         if state.DO_SPELL_CHECKS_FLAG:
                                             adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
+                                        secondaryLineHtml = formatParallelVerseSecondaryLine( adjustedForeignTextHtml )
                                         # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                         # assert '</p>' not in textHtml
                                         if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                             assert '</div>' in textHtml
-                                            textHtml = textHtml.replace( '<hr', f'''\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
-                                                        if '<hr ' in textHtml else f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                            textHtml = textHtml.replace( '<hr', f'{secondaryLineHtml}<hr' ) \
+                                                        if '<hr ' in textHtml else f'{textHtml}{secondaryLineHtml}'
                                         else: # no <div>s so should be ok to add a span
                                             assert '</div>' not in textHtml
-                                            textHtml = f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                            textHtml = f'{textHtml}{secondaryLineHtml}'
                                 elif versionAbbreviation == 'SR-GNT':
                                     SRtranscription = grammaticalKeysHtmlList = None
                                     if sourceC!='-1' and sourceV!='0' and textHtml:
@@ -863,8 +869,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     if textHtml:
                                         textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
                                     if SRtranscription:
-                                        textHtml = f'''{textHtml}
-    <br>   ({SRtranscription.replace('<br>','<br>   ')})'''
+                                        textHtml = f'{textHtml}{formatParallelVerseSecondaryLine(SRtranscription)}'
                                     textHtml = f'{textHtml}{keysHtml}'
 
                                 elif versionAbbreviation in ('UGNT','SBL-GNT','RP-GNT','TC-GNT','BrLXX'):
@@ -882,15 +887,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         or 'Uh' in grkTranscription or ' uh' in grkTranscription or grkTranscription.startswith('uh'):
                                             raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {sourceRef} {grkTranscription=} from '{textHtml}'" )
                                     if grkTranscription:
+                                        secondaryLineHtml = formatParallelVerseSecondaryLine( grkTranscription )
                                         # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                         # assert '</p>' not in textHtml, f"Parallel verse {versionAbbreviation} {parRef} {textHtml=} {transcription=}"
                                         if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                             assert '</div>' in textHtml
-                                            textHtml = textHtml.replace( '<hr', f'''<br> ''  ({grkTranscription.replace('<br>','<br>   ')})<hr''' ) \
-                                                        if '<hr ' in textHtml else f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
+                                            textHtml = textHtml.replace( '<hr', f'{secondaryLineHtml}<hr' ) \
+                                                        if '<hr ' in textHtml else f'{textHtml}{secondaryLineHtml}'
                                         else: # no <div>s so should be ok to add a span
                                             assert '</div>' not in textHtml
-                                            textHtml = f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
+                                            textHtml = f'{textHtml}{secondaryLineHtml}'
                                 elif versionAbbreviation == 'UHB':
                                     if sourceBBB=='PSA' and 'class="d"' in textHtml:
                                         # There's no special formatting in the original Hebrew, so we don't want it here either
@@ -950,8 +956,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
                                     if uhbTranscription:
                                         if sourceRef == 'JOS_16:0': assert False, "We want to stop here"
-                                        textHtml = f'''{textHtml}
-    <br>   ({uhbTranscription.replace('<br>','<br>   ')})'''
+                                        textHtml = f'{textHtml}{formatParallelVerseSecondaryLine(uhbTranscription)}'
                                     textHtml = f'{textHtml}{keysHtml}'
                                     # assert checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
 

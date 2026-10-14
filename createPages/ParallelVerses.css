@@ -137,6 +137,11 @@ span.Wycl_verseTextChunk {}
 span.YLT_verseTextChunk {}
 div.verseText {}
 
+/* Whole secondary lines, including the leading break and parentheses.
+ * Book introductions need a div wrapper; verse lines use a span. */
+span.parallelVerseSecondary {}
+div.parallelVerseSecondary {}
+
 span.Bshps_mod { font-family:sans-serif; font-size:0.85em; }
 span.Cvdl_mod { font-family:sans-serif; font-size:0.85em; }
 span.ClVg_trans { font-family:sans-serif; font-size:0.85em; }
