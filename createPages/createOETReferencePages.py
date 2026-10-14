@@ -1627,11 +1627,12 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     """
     thisBible = state.preloadedBibles['OET-RV']
     try:
-        passage = thisBible.getMappedPassage(state.preloadedBibles['OET-LV'], ((BBB,C,V),))
+        passage = thisBible.getMappedPassage(state.preloadedBibles['OET-LV'], ((BBB,C,V),), expandGroups=True)
     except (KeyError, VersificationMappingError) as error:
         logging.warning('Reference-page RV alignment unavailable for %s %s:%s: %s', BBB,C,V,error)
         return '<p class="RVVerseText"><b>OET-RV</b>: Passage alignment unavailable.</p>'
-    parts = []
+    from versification import combinedPassageLabel
+    parts = [f'<p class="rem">{label}</p>'] if (label := combinedPassageLabel(passage)) else []
     for nativeRef, entries, context in passage.portions:
         text = convertVerseEntryListToHtml(level, 'OET-RV', nativeRef, 'dictVerse', context, entries,
             basicOnly=True, state=state, livenWordLinks=True)

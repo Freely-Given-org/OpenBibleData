@@ -16,7 +16,7 @@ from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappin
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 import bos_books_codes_py
 
-from settings import State
+from settings import State, CNTR_BOOK_ID_MAP
 import navigation as nav
 import oetWords as words
 import versification as vf
@@ -148,6 +148,18 @@ class WordMappingTests(unittest.TestCase):
         self.table()
         self.assertEqual(words.nativeWordRows((('MAL','3','1',None),('MAL','3','20',None)),self.state),(1,4))
 
+    def test_combined_acts_passage_preserves_all_native_word_rows(self):
+        bible = self.bible('OET-LV','ACT','\\c 19\n\\v 40 Speech¦98355. Dismissal¦98365.\n')
+        name = words.wordTableName('ACT')
+        self.state.OETRefData['word_table_indexes'][name] = {'ACT_19:40':(98355,98368)}
+        for verse in ('40','41'):
+            passage = bible.getMappedPassage('eng',[('ACT','19',verse)],expandGroups=True)
+            self.assertEqual(words.passageWordRows(passage,self.state),tuple(range(98355,98369)))
+            texts,rows = words.translationNoteQuoteData('ACT','19',verse,self.state)
+            self.assertEqual(rows,list(range(98355,98369)))
+            self.assertIn('Speech¦98355. Dismissal¦98365.',' '.join(texts))
+            self.assertIn('Combined passage: English ACT 19:40–41',vf.combinedPassageLabel(passage))
+
     def test_suffix_rows_require_exact_stored_text(self):
         self.bible('OET-LV','MAL','\\c 3\n\\v 19a voice¦2.\n\\v 19b God¦3.\n')
         self.table()
@@ -206,10 +218,22 @@ class WordMappingTests(unittest.TestCase):
         self.bible('OET-RV','MAL','\\c 4\n\\v 1 voice¦2 God¦3.\n')
         self.table()
         self.state.booksToLoad = {'OET':['MAL']}
+        html = self.interlinearGenerator()(2,'MAL',4,1,self.state)
+        self.assertNotIn('Wrong',html)
+        self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19',html)
+        self.assertIn('ref/HebWrd/2.htm',html)
+        self.assertIn('ref/HebWrd/3.htm',html)
+        self.assertNotIn('ref/HebWrd/1.htm',html)
+        ids = re.findall(r'\bid="([^"]+)"', html)
+        self.assertEqual(len(ids),len(set(ids)))
+
+    def interlinearGenerator(self):
         namespace = dict(globals(), State=State, DEBUGGING_THIS_MODULE=False, NEWLINE='\n',
             vPrint=lambda *a:None, dPrint=lambda *a:None, fnPrint=lambda *a:None,
             findSectionNumber=lambda *a:0, getOETTidyBBB=lambda BBB,**kw:BBB,
             referenceHref=nav.referenceHref, passageWordRows=words.passageWordRows,
+            combinedPassageLabel=vf.combinedPassageLabel,
+            getGreekWordpageFilename=lambda n,s:f'{n}.htm',
             VersificationMappingError=vf.VersificationMappingError,
             getPositiveLeadingInt=lambda s:int(re.match(r'\d+',s)[0]),
             getFormattedSILOpenTranslationNotes=lambda *a:'', formatUnfoldingWordTranslationNotes=lambda *a:'',
@@ -219,15 +243,28 @@ class WordMappingTests(unittest.TestCase):
             splitOETLVInterlinearWords=rust.splitOETLVInterlinearWords,
             splitOETRVInterlinearWords=rust.splitOETRVInterlinearWords,
             buildInterlinearWordRows=rust.buildInterlinearWordRows)
-        generate = functionFromFile('createOETInterlinearPages.py','createOETInterlinearVerseInner',namespace)
-        html = generate(2,'MAL',4,1,self.state)
-        self.assertNotIn('Wrong',html)
-        self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19',html)
-        self.assertIn('ref/HebWrd/2.htm',html)
-        self.assertIn('ref/HebWrd/3.htm',html)
-        self.assertNotIn('ref/HebWrd/1.htm',html)
-        ids = re.findall(r'\bid="([^"]+)"', html)
-        self.assertEqual(len(ids),len(set(ids)))
+        return functionFromFile('createOETInterlinearPages.py','createOETInterlinearVerseInner',namespace)
+
+    @unittest.skipIf(rust is None, 'Build the OBD Rust extension for this integration test')
+    def test_combined_acts_interlinear_has_native_rows_in_both_orders(self):
+        self.bible('OET-LV','ACT','\\c 19\n\\v 40 Speech¦1. Dismissal¦2.\n')
+        self.bible('OET-RV','ACT','\\c 19\n\\v 40 Speech¦1.\n\\v 41 Dismissal¦2.\n')
+        name = words.wordTableName('ACT')
+        self.state.OETRefData['word_tables'][name] = ['header',
+            'ACT_19:40w1\tλόγος\tλόγος\tλόγος\tSpeech\tSpeech\t\tX\t30560\tN\tNMS\t',
+            'ACT_19:40w2\tἀπέλυσεν\tἀπολύω\tἀπολύω\tDismissal\tDismissal\t\tX\t6300\tV\tIAA3S\t']
+        self.state.OETRefData['word_table_indexes'][name] = {'ACT_19:40':(1,2)}
+        self.state.booksToLoad = {'OET':['ACT']}
+        generate = self.interlinearGenerator()
+        for verse in (40,41):
+            with self.subTest(verse=verse):
+                html = generate(2,'ACT',19,verse,self.state)
+                self.assertIn('Combined passage: English ACT 19:40–41',html)
+                self.assertIn('native ACT 19:40',html)
+                self.assertNotIn('alignment unavailable',html)
+                self.assertIn('OET-LV/byC/ACT_C19.htm#C19V40',html)
+                for word in (1,2):
+                    self.assertEqual(html.count(f'ref/GrkWrd/{word}.htm#Top'),2)
 
 
 if __name__ == '__main__':

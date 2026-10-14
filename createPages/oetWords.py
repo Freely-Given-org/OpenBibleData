@@ -37,7 +37,7 @@ def nativeWordRows(references, state):
 
 
 def mappedWordRows(sourceSystem, references, state):
-    result = state.preloadedBibles['OET-LV'].convertReferencesFromVersification(sourceSystem, references)
+    result = state.preloadedBibles['OET-LV'].convertReferencesFromVersification(sourceSystem, references, expandGroups=True)
     if result.status != MappingStatus.EXACT:
         raise VersificationMappingError(result)
     return nativeWordRows(result.references, state)
@@ -55,7 +55,7 @@ def translationNoteQuoteData(BBB, C, V, state):
     """Supply the Rust quote matcher with mapped LV text and native word rows."""
     try:
         passage = state.preloadedBibles['OET-LV'].getMappedPassage(
-            state.BibleVersifications['UTN'], ((BBB,C,V),))
+            state.BibleVersifications['UTN'], ((BBB,C,V),), expandGroups=True)
         rows = passageWordRows(passage, state)
     except (VersificationMappingError, KeyError) as error:
         logging.warning('Translation-note LV alignment unavailable at %s %s:%s: %s', BBB,C,V,error)

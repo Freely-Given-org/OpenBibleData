@@ -61,7 +61,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
-from versification import navigationVersification, _mapReference
+from versification import navigationVersification, _mapReference, combinedPassageLabel
 from oetWords import passageWordRows
 from navigation import referenceHref
 from oetPassages import _namespaceIds
@@ -362,7 +362,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
     nativeWordNumbers = ()
     try:
-        lvPassage = lvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),))
+        lvPassage = lvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), expandGroups=True)
         nativeWordNumbers = passageWordRows(lvPassage, state)
         lvVerseEntryList = [entry for portion in lvPassage.portions for entry in portion.entries]
         lvParts = []
@@ -372,7 +372,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                     basicOnly=True, state=state, livenWordLinks=True))
             label = f'<small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small> ' if nativeRef != (BBB,C,V) else ''
             lvParts.append(label + _namespaceIds(text, f'LV{partNumber}_'))
-        lvTextHtml = ' '.join(lvParts)
+        lvTextHtml = combinedPassageLabel(lvPassage) + ' '.join(lvParts)
         nativeLink = referenceHref(level, lvPassage.portions[0].reference, 'OET-LV')
         lvHtml = f'<div class="LV"><p class="LV"><span class="wrkName"><a title="View Literal Version passage" href="{nativeLink}">OET-LV</a></span> {lvTextHtml}</p></div><!--LV-->'
     except (KeyError, TypeError, VersificationMappingError) as error:
@@ -383,7 +383,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         lvVerseEntryList = []
         nativeWordNumbers = ()
     try:
-        rvPassage = rvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), combineAdjacent=True)
+        rvPassage = rvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), combineAdjacent=True, expandGroups=True)
         rvVerseEntryList = [entry for portion in rvPassage.portions for entry in portion.entries]
         # NOTE: The old code used lvBible for the liven (a quirk), so no TEST_MODE OET-RV
         # noLinkYet highlighting/preprocessing ever ran here -- we replicate that with addNoLinkYetSpans=False.
@@ -391,6 +391,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             convertVerseEntryListToHtml(level, 'OET-RV', portion.reference, 'interlinearVerse',
                 portion.context, portion.entries, basicOnly=True, state=state,
                 livenWordLinks=True, addNoLinkYetSpans=False)) for portion in rvPassage.portions)
+        rvTextHtml = combinedPassageLabel(rvPassage) + rvTextHtml
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError, VersificationMappingError):

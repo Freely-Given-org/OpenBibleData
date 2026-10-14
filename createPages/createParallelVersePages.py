@@ -105,8 +105,8 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from oetWords import matchedHebrewWordRows
-from versification import (navigationVersification, parallelVerseReferences,
-                            getVersePortions, versePortionHtml, MissingMappedBookError)
+from versification import (navigationVersification, parallelVersePassage,
+                            versePortionHtml, MissingMappedBookError)
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
@@ -416,8 +416,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     # thisBible.loadBookIfNecessary( BBB )
                     try:
-                        mappedReferences = parallelVerseReferences(versionAbbreviation, thisBible, (BBB,C,V), state)
-                        versePortions = getVersePortions(thisBible, mappedReferences, verseEntriesForChapterMap)
+                        versePortions, combinedLabel = parallelVersePassage(
+                            versionAbbreviation, thisBible, (BBB,C,V), state, verseEntriesForChapterMap)
                     except VersificationMappingError as error:
                         result = error.result
                         logging.warning(f'{versionAbbreviation} {parRef}: {error}')
@@ -427,7 +427,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     except KeyError as error:
                         if versionAbbreviation in state.selectedVersesOnlyVersions or c == -1 or v == 0:
                             continue
-                        nativeReferences = ', '.join(f'{bk} {ch}:{vs}{sf or ""}' for bk,ch,vs,sf in mappedReferences)
+                        missingRef = getattr(error, 'reference', (BBB,C,V))
+                        nativeReferences = f'{missingRef[0]} {missingRef[1]}:{missingRef[2]}'
                         missingWhat = 'book' if isinstance(error, MissingMappedBookError) else 'verse'
                         warningText = f'No {versionAbbreviation} {nativeReferences} {missingWhat} available'
                         logging.warning(warningText)
@@ -1113,7 +1114,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     logging.warning( warningText )
 
                         if vHtml:
-                            vHtml = versePortionHtml(vHtml, versionAbbreviation, (sourceBBB,sourceC,sourceV), (BBB,C,V), portionNumber)
+                            vHtml = versePortionHtml(vHtml, versionAbbreviation, (sourceBBB,sourceC,sourceV), (BBB,C,V), portionNumber, combinedLabel)
                             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                             assert checkHtml( f'Parallel vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
                             assert not vHtml.endswith( '\n' )

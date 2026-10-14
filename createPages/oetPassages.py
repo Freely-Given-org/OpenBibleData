@@ -12,6 +12,7 @@ import re
 
 from BibleOrgSys.Internals.InternalBiblePassages import passageReferencesFromEntries
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
+from versification import combinedPassageLabel
 
 
 def oetRVChunks(bible, BBB, chapter=None):
@@ -66,14 +67,20 @@ def _editorialLV(bible, reference, sourceEntries):
 
 
 def mappedOETLVPortions(bible, reference, sourceEntries, state, chapterCache):
-    """Map the entire RV group at once, then fetch every destination or fail."""
+    """Fetch complete native portions, including any indivisible mapping group."""
+    return _mappedOETLVPassage(bible, reference, sourceEntries, state, chapterCache)[0]
+
+
+def _mappedOETLVPassage(bible, reference, sourceEntries, state, chapterCache):
+    """Keep BOS coverage metadata available to the OBD renderer."""
     if reference[1] == '-1':
-        return _editorialLV(bible, reference, sourceEntries)
+        return _editorialLV(bible, reference, sourceEntries), ''
     references = passageReferencesFromEntries(reference, sourceEntries, state.navigationVersification)
     if not references: # editorial heading without scripture
-        return []
-    return bible.getMappedPassage(state.navigationVersification, references,
-        chapterCache=chapterCache, combineAdjacent=True).portions
+        return [], ''
+    passage = bible.getMappedPassage(state.navigationVersification, references,
+        chapterCache=chapterCache, combineAdjacent=True, expandGroups=True)
+    return passage.portions, combinedPassageLabel(passage)
 
 
 def _namespaceIds(html, prefix):
@@ -95,14 +102,14 @@ def renderOETLVPassage(level, bible, reference, sourceEntries, segmentType, stat
     from html import do_OET_LV_HTMLcustomisations
 
     try:
-        portions = mappedOETLVPortions(bible, reference, sourceEntries, state, chapterCache)
+        portions, combinedLabel = _mappedOETLVPassage(bible, reference, sourceEntries, state, chapterCache)
     except VersificationMappingError as error:
         logging.warning('OET %s %s LV alignment unavailable: %s', segmentType, reference, error)
         return f'<p class="error">OET-LV passage alignment unavailable ({error.result.status.value}).</p>', None
     except KeyError as error:
         logging.warning('OET %s %s missing mapped LV passage: %s', segmentType, reference, error)
         return '<p class="error">OET-LV passage is not available in this edition.</p>', None
-    bits = []
+    bits = [f'<p class="rem">{combinedLabel}</p>'] if combinedLabel else []
     for partNumber, (nativeRef, entries, context) in enumerate(portions):
         html = convertVerseEntryListToHtml(level, 'OET-LV', nativeRef, segmentType,
             context, entries, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False,

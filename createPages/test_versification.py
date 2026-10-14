@@ -22,6 +22,7 @@ from BibleOrgSys.Reference.BibleVersificationMappings import (
     MappingStatus, VersificationMappingEngine, VersificationMappingError,
 )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
+import BibleOrgSys.Reference.BibleVersification as bv
 import bos_books_codes_py
 from bible_organisational_system import getSmallLeadingInt
 
@@ -101,7 +102,7 @@ class MappingTests(unittest.TestCase):
             (Bible(versification='Luther'), ('PSA','3','1'), MappingStatus.UNSUPPORTED),
             (Bible(), ('GEN','1','1'), MappingStatus.UNSUPPORTED),
             (Bible(versification='vul'), ('TOB','1','1'), MappingStatus.UNSUPPORTED),
-            (Bible(versification='eng'), ('PSA','13','5'), MappingStatus.AMBIGUOUS),
+            (Bible(versification='org'), ('PSA','13','5'), MappingStatus.PARTIAL),
         ):
             with self.subTest(reference=reference, system=bible.getVersificationSystemName()):
                 with self.assertRaises(VersificationMappingError) as caught:
@@ -127,7 +128,8 @@ class MappingTests(unittest.TestCase):
         })
         vf._mapReference.cache_clear()
         try:
-            with patch.object(vf, 'get_default_mapping_engine', return_value=engine):
+            with patch.object(vf, 'get_default_mapping_engine', return_value=engine), \
+                 patch.object(bv, 'get_default_mapping_engine', return_value=engine):
                 self.assertEqual(self.refs(('GEN','1','1')),
                                  (('GEN','1','1',None),('GEN','1','2',None)))
                 with self.assertRaises(VersificationMappingError) as caught:
@@ -158,6 +160,24 @@ class TextRetrievalTests(unittest.TestCase):
         self.assertIn('Title only.', self.text(title))
         self.assertNotIn('Title only.', self.text(verse))
         self.assertIn('Verse one.', self.text(verse))
+
+    def test_stored_bridge_is_labelled_even_in_english_numbering(self):
+        for verse in ('2','3'):
+            portions,label = vf.parallelVersePassage('ASV',self.bible,('PSA','3',verse),State(),{})
+            self.assertEqual(len(portions),1)
+            self.assertIn('Verse bridge.',self.text(portions[0]))
+            self.assertIn('Combined passage: English PSA 3:2–3',label)
+            self.assertIn('native PSA 3:2–3',label)
+
+    def test_import_storage_alias_keeps_a_bridge_clearly_labelled(self):
+        (Path(self.temp.name)/'15EZR.usfm').write_text('\\id EZR\n\\c 11\n\\p\n\\v 1-2 Native bridge.\n')
+        bible = USFMBible(self.temp.name,versification='lxx')
+        bible.load()
+        portions,label = vf.parallelVersePassage('BrLXX',bible,('NEH','1','2'),State(),{})
+        self.assertEqual(len(portions),1)
+        self.assertIn('Native bridge.',self.text(portions[0]))
+        self.assertIn('Combined native passage: EZR 11:1–2',label)
+        self.assertIn('requested English NEH 1:2',label)
 
     def test_bridges_render_once_with_bulk_or_scalar_index(self):
         refs = (('PSA','3','2',None),('PSA','3','3',None))
@@ -266,7 +286,7 @@ class ParallelPageTests(unittest.TestCase):
             getFormattedSILOpenTranslationNotes=lambda *args: '',
             getBibleMapperMaps=lambda *args: '',
             UntranslatedVerseError=type('UntranslatedVerseError',(Exception,),{}),
-            **{name:getattr(vf,name) for name in ('navigationVersification','parallelVerseReferences',
+            **{name:getattr(vf,name) for name in ('navigationVersification','parallelVerseReferences','parallelVersePassage',
                 'getVersePortions','versePortionHtml','MissingMappedBookError')},
         )
         source = Path(__file__).with_name(self.builder + '.py')
@@ -317,7 +337,8 @@ class ParallelPageTests(unittest.TestCase):
         try:
             self.namespace['navigationVersification'] = lambda name: SimpleNamespace(
                 getNumChapters=lambda book: 1, getNumVerses=lambda book,chapter: 2)
-            with patch.object(vf, 'get_default_mapping_engine', return_value=engine):
+            with patch.object(vf, 'get_default_mapping_engine', return_value=engine), \
+                 patch.object(bv, 'get_default_mapping_engine', return_value=engine):
                 self.runBook('GEN')
         finally:
             vf._mapReference.cache_clear()
@@ -336,6 +357,31 @@ class ParallelPageTests(unittest.TestCase):
         page = (self.output/'MAL/C4V1.htm').read_text()
         self.assertIn('Verse alignment unavailable (unsupported)', page)
         self.assertNotIn('Wrong if used', page)
+
+    def test_acts_19_40_and_41_keep_english_text_and_label_combined_lv(self):
+        self.load('ACT', '\\c 19\n\\p\n\\v 40 Native speech. Native dismissal.\n')
+        folder = self.root / 'ASV'
+        folder.mkdir()
+        (folder/'ACT.usfm').write_text('\\id ACT\n\\c 19\n\\p\n'
+            '\\v 40 English speech.\n\\v 41 English dismissal.\n')
+        english = USFMBible(folder,givenAbbreviation='ASV',versification='eng')
+        english.load()
+        self.state.preloadedBibles['ASV'] = english
+        self.state.BibleVersions.append('ASV')
+        self.namespace['navigationVersification'] = lambda name: SimpleNamespace(
+            getNumChapters=lambda book:19, getNumVerses=lambda book,chapter:41 if str(chapter)=='19' else 1)
+        self.runBook('ACT')
+        for verse, wanted, absent in ((40,'English speech.','English dismissal.'),
+                                      (41,'English dismissal.','English speech.')):
+            with self.subTest(verse=verse):
+                page = (self.output/f'ACT/C19V{verse}.htm').read_text()
+                self.assertIn(wanted,page)
+                self.assertNotIn(absent,page)
+                self.assertIn('Native speech. Native dismissal.',page)
+                self.assertIn('Combined passage: English ACT 19:40–41',page)
+                self.assertIn('native ACT 19:40; verse text cannot be split',page)
+                self.assertNotIn('alignment unavailable',page)
+                self.assertIn('OET-LV/byC/ACT_C19.htm#V40',page)
 
 
 class VerseListPageTests(ParallelPageTests):

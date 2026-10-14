@@ -53,7 +53,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createParallelVersePages import getPlainText
 from createSectionPages import findSectionNumber
-from versification import navigationVersification, parallelVerseReferences, getVersePortions, versePortionHtml
+from versification import navigationVersification, parallelVersePassage, versePortionHtml
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 # from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
@@ -307,8 +307,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     try:
-                        mappedReferences = parallelVerseReferences(versionAbbreviation, thisBible, (BBB,C,V), state)
-                        versePortions = getVersePortions(thisBible, mappedReferences, verseEntriesForChapterMap)
+                        versePortions, combinedLabel = parallelVersePassage(
+                            versionAbbreviation, thisBible, (BBB,C,V), state, verseEntriesForChapterMap)
                     except (VersificationMappingError, KeyError) as error:
                         if isinstance(error, KeyError) and (versionAbbreviation in state.selectedVersesOnlyVersions or c == -1 or v == 0):
                             continue
@@ -896,7 +896,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     logging.warning( warningText )
 
                         if vHtml:
-                            vHtml = versePortionHtml(vHtml, versionAbbreviation, nativeRef, (BBB,C,V), portionNumber)
+                            vHtml = versePortionHtml(vHtml, versionAbbreviation, nativeRef, (BBB,C,V), portionNumber, combinedLabel)
                             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                             assert checkHtml( f'VerseList vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
                             assert not vHtml.endswith( '\n' )

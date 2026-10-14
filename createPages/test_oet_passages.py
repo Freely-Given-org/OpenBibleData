@@ -138,9 +138,10 @@ class OETPassageTests(unittest.TestCase):
             parts = op.mappedOETLVPortions(lv,('GEN','1'),entries,self.state,{})
             self.assertEqual(len(parts),1)
             one,_ = rv.getContextVerseData(('GEN','1','1'))
-            with self.assertRaises(VersificationMappingError) as caught:
-                op.mappedOETLVPortions(lv,('GEN','1','1'),one,self.state,{})
-            self.assertEqual(caught.exception.result.status, MappingStatus.PARTIAL)
+            html,_ = op.renderOETLVPassage(2,lv,('GEN','1','1'),one,'section',self.state,{})
+            self.assertIn('Merged.',html)
+            self.assertIn('Combined passage: English GEN 1:1–2',html)
+            self.assertIn('native GEN 1:1',html)
 
     def test_disjoint_group_never_fetches_intervening_text(self):
         rv = self.load('GEN','OET-RV','\\c 1\n\\p\n\\v 1 Source.\n\\v 2 Also source.\n')
