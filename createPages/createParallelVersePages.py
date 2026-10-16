@@ -88,6 +88,7 @@ CHANGELOG:
     2026-10-15 Hide complete secondary lines, including their parentheses and line breaks.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-16 Import German and Latin translations from their separate BOS modules.
+    2026-10-17 Report books omitted from navigation and skip them before creating folders.
 """
 from pathlib import Path
 import os
@@ -109,6 +110,7 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from oetWords import matchedHebrewWordRows
+from navigation import navigationBookList
 from versification import (navigationVersification, parallelVersePassage,
                             versePortionHtml, MissingMappedBookError)
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
@@ -126,7 +128,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-16'
+LAST_MODIFIED_DATE = '2026-10-17'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.12'
@@ -195,14 +197,13 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Discovered par {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Reordered to par {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
+    navigationBBBs = navigationBookList(reorderBooksForOETVersions(state.allBBBs), state, 'parallel')
     BBBLinks, BBBNextLinks = [], []
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
-        # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
-        if bos_books_codes_py.is_chapter_verse_book( BBB ) and navigationVersification(state.navigationVersification).getNumChapters(BBB):
-            ourTidyBBB = getOETTidyBBB( BBB )
-            ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-            BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-            BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+    for BBB in navigationBBBs:
+        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
+        BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
@@ -210,14 +211,13 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     state.versesWithImages = defaultdict( list )
     state.possibleUnmatchedProperNames = set()
     mpBookParameters = [] # (level, folder, BBB, BBBNextLinks, parallelVersions) tuples for the forked workers
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
+    for BBB in navigationBBBs:
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
-            if bos_books_codes_py.is_chapter_verse_book( BBB ) and navigationVersification(state.navigationVersification).getNumChapters(BBB):
-                if BibleOrgSysGlobals.maxProcesses > 1 \
-                and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these parallel verse pages
-                    mpBookParameters.append( (level, folder, BBB, BBBNextLinks, parallelVersions) )
-                else: # no multiprocessing available -- do this book sequentially
-                    createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
+            if BibleOrgSysGlobals.maxProcesses > 1 \
+            and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these parallel verse pages
+                mpBookParameters.append( (level, folder, BBB, BBBNextLinks, parallelVersions) )
+            else: # no multiprocessing available -- do this book sequentially
+                createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     if mpBookParameters:
         # Pre-load spell-check dictionaries and name sets in the parent process before forking.
         # Each forked child inherits these via copy-on-write, so the lazy-load guard inside
@@ -307,6 +307,15 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         displaying the verse for every available version.
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    # Page addresses must not depend on version order, loaded subsets, or a
+    # source's native numbering (e.g. original Malachi has only three chapters).
+    referenceSystem = navigationVersification(state.navigationVersification)
+    try: numChapters = referenceSystem.getNumChapters(BBB)
+    except KeyError: numChapters = None
+    if not numChapters:
+        logging.warning(f'Skipping parallel book {BBB}: no chapter information in '
+            f'navigation versification {state.navigationVersification!r}')
+        return True
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
     isOT = bos_books_codes_py.is_old_testament_nr( BBB )
@@ -335,16 +344,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
     assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
 
-    # Page addresses must not depend on version order, loaded subsets, or a
-    # source's native numbering (e.g. original Malachi has only three chapters).
-    referenceSystem = navigationVersification(state.navigationVersification)
-    try:
-        numChapters = referenceSystem.getNumChapters(BBB)
-        if numChapters is None:
-            raise KeyError(BBB)
-    except KeyError:
-        logging.warning(f'No {state.navigationVersification} navigation defined for {BBB}; skipping parallel book')
-        return True
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
 
     vLinksList = []

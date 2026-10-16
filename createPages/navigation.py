@@ -2,11 +2,36 @@
 
 BOS decides correspondence. This module chooses site destinations and retains
 native labels, source word filenames, and edition-specific storage identities.
+
+CHANGELOG:
+    2026-10-17 Exclude books without navigation chapter counts from links and page jobs.
 """
+import logging
 import re
 
+import bos_books_codes_py
 from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus
-from versification import _mapReference, _storedReferences
+from versification import _mapReference, _storedReferences, navigationVersification
+
+
+def navigationBookList(books, state, pageType):
+    """Keep source order, selecting books with a defined navigation address space.
+
+    BOS returns None for valid book identities absent from a profile (e.g. ESA
+    in eng). Do not substitute a source Bible's counts: that would create pages
+    with native numbering under English navigation addresses.
+    """
+    system = navigationVersification(state.navigationVersification)
+    result = []
+    for BBB in books:
+        if not bos_books_codes_py.is_chapter_verse_book(BBB):
+            continue
+        if not system.getNumChapters(BBB):
+            logging.warning(f'Skipping {pageType} pages and navigation links for {BBB}: '
+                f'no chapter information in navigation versification {state.navigationVersification!r}')
+            continue
+        result.append(BBB)
+    return result
 
 
 def _versionProfile(version, state):

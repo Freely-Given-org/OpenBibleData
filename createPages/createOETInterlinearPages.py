@@ -45,10 +45,11 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-01 Fixed bad links on second book index page
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/addNoLinkYetSpans keyword args. The RV interlinear call explicitly passes addNoLinkYetSpans=False to replicate the old quirk where lvBible was (wrongly) passed to the liven, disabling the TEST_MODE OET-RV noLinkYet gate.
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-17 Use supported OET navigation books for links and jobs; handle absent chapter counts.
 
 TODO:
     Add colour keys for LV and RV words
-    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
 """
 from pathlib import Path
 import os
@@ -64,7 +65,7 @@ import bos_books_codes_py
 
 from versification import navigationVersification, _mapReference, combinedPassageLabel
 from oetWords import passageWordRows
-from navigation import referenceHref
+from navigation import navigationBookList, referenceHref
 from oetPassages import _namespaceIds
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
@@ -76,7 +77,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-17' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.70'
@@ -106,26 +107,24 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered ilr {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Reordered to ilr {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
+    navigationBBBs = navigationBookList(reorderBooksForOETVersions(state.booksToLoad['OET']), state, 'interlinear')
     BBBLinks, BBBNextLinks = [], []
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
-        # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
-        if bos_books_codes_py.is_chapter_verse_book( BBB ):
-            ourTidyBBB = getOETTidyBBB( BBB )
-            ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-            BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-            BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+    for BBB in navigationBBBs:
+        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
+        BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have ilr {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual interlinear pages
     mpBookParameters = [] # (level, folder, BBB, BBBNextLinks) tuples for the forked workers
-    for BBB in state.booksToLoad['OET']:
-        if bos_books_codes_py.is_chapter_verse_book( BBB ):
-            if BibleOrgSysGlobals.maxProcesses > 1 \
-            and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these interlinear pages
-                mpBookParameters.append( (level, folder, BBB, BBBNextLinks) )
-            else: # no multiprocessing available -- do this book sequentially
-                createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
+    for BBB in navigationBBBs:
+        if BibleOrgSysGlobals.maxProcesses > 1 \
+        and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these interlinear pages
+            mpBookParameters.append( (level, folder, BBB, BBBNextLinks) )
+        else: # no multiprocessing available -- do this book sequentially
+            createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
     if mpBookParameters:
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
@@ -149,7 +148,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 <h1 id="Top">OET interlinear verse pages</h1>
 <h2>Index of books</h2>
 <p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p><!--note-->
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearIndex', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBookNavListParagraph(BBBLinks, 'InterlinearIndex', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'interlinearVerse' )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -187,6 +186,13 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     assert level == 1
+    referenceBible = navigationVersification(state.navigationVersification)
+    try: numChapters = referenceBible.getNumChapters(BBB)
+    except KeyError: numChapters = None
+    if not numChapters:
+        logging.warning(f'Skipping interlinear book {BBB}: no chapter information in '
+            f'navigation versification {state.navigationVersification!r}')
+        return True
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
 
@@ -209,9 +215,6 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                                     .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
     assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
 
-    referenceBible = navigationVersification(state.navigationVersification)
-    try: numChapters = referenceBible.getNumChapters(BBB)
-    except KeyError: return False
     chapterLinks = []
     chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \

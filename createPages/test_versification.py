@@ -1,10 +1,11 @@
 """Small, offline BOS integration tests; no site datasets or OBD Rust renderer.
 
 From OpenBibleData:
-    ../BibleOrgSys/.venv/bin/python -m unittest discover -s createPages -p test_versification.py
+    uv run python -m unittest discover -s createPages -p test_versification.py
 
 CHANGELOG:
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
+    2026-10-17 Cover missing navigation books in page loops, links, and forked jobs.
 """
 import ast
 from collections import defaultdict
@@ -16,7 +17,7 @@ import re
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.Formats.USFMBible import USFMBible
@@ -31,6 +32,8 @@ from bible_organisational_system import getSmallLeadingInt
 
 from settings import State
 import versification as vf
+from navigation import navigationBookList
+from parallel import runParallelPages
 
 
 class MappingTests(unittest.TestCase):
@@ -321,6 +324,16 @@ class ParallelPageTests(unittest.TestCase):
             [f'<a title="{BBB}" href="../{BBB}/C1V1.htm#chLst">{BBB}</a>'],
             self.state.BibleVersions, self.state))
 
+    def test_book_without_navigation_is_skipped_before_rendering(self):
+        self.assertIsNone(vf.navigationVersification('eng').getNumChapters('ESA'))
+        logging.disable(logging.NOTSET)
+        with self.assertLogs(level='WARNING') as logged:
+            self.assertTrue(self.generate(1, self.output, 'ESA', [], self.state.BibleVersions, self.state))
+        self.assertIn('ESA', logged.output[0])
+        self.assertIn("'eng'", logged.output[0])
+        self.assertFalse((self.output/'ESA').exists())
+        self.assertEqual(self.rendered, [])
+
     def test_malachi_navigation_native_rendering_and_source_link(self):
         self.load('MAL', '\\c 3\n\\p\n' + ''.join(f'\\v {v} Native verse {v}.\n' for v in range(1,25)))
         self.runBook('MAL')
@@ -416,6 +429,80 @@ class ParallelPageTests(unittest.TestCase):
 class VerseListPageTests(ParallelPageTests):
     builder = 'createVerseListPages'
     pageTitle = 'Simple verse list for'
+
+
+class NavigationBookSelectionTests(unittest.TestCase):
+    """Exercise the real parent page builders and BOS fork runner with tiny jobs."""
+    builders = (('createVerseListPages', 'createVerseListPagesForBook'),
+                ('createParallelVersePages', 'createParallelVersePagesForBook'),
+                ('createOETInterlinearPages', 'createOETInterlinearVersePagesForBook'))
+
+    def loadFunctions(self, module, names, namespace):
+        source = Path(__file__).with_name(module + '.py')
+        functions = [node for node in ast.parse(source.read_text()).body
+                     if isinstance(node, ast.FunctionDef) and node.name in names]
+        self.assertEqual(len(functions), len(names))
+        exec(compile(ast.Module(body=functions, type_ignores=[]), str(source), 'exec'), namespace)
+
+    def test_scheduled_books_match_navigation_links_in_serial_and_forked_builds(self):
+        for module, perBook in self.builders:
+            for processes in (1, 2):
+                with self.subTest(module=module, processes=processes), TemporaryDirectory() as temp:
+                    folder = Path(temp)/'output'
+                    state = SimpleNamespace(navigationVersification='eng',
+                        allBBBs=['MAL','ESA','MAT','FRT','TOB'], booksToLoad={'OET':['MAL','ESA','MAT','FRT']},
+                        preloadedBibles={}, BibleVersions=['UTN'], TEST_MODE_FLAG=False,
+                        UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG=False, DO_SPELL_CHECKS_FLAG=False)
+
+                    def createBook(level, output, BBB, links, *args):
+                        (output/f'{BBB}.txt').write_text(''.join(links))
+                        return True
+
+                    namespace = dict(globals(), state=state, DEBUGGING_THIS_MODULE=False,
+                        navigationBookList=navigationBookList, runParallelPages=runParallelPages,
+                        reorderBooksForOETVersions=lambda books: books,
+                        getOETTidyBBB=lambda book, **kwargs: book, getOETBookName=lambda book: book,
+                        makeBookNavListParagraph=lambda links,*args: ''.join(links),
+                        makeTop=lambda *args: '<html><head><title>__TITLE__</title></head><body>',
+                        makeBottom=lambda *args: '</body></html>', checkHtml=lambda *args: True,
+                        vPrint=lambda *args: None, fnPrint=lambda *args: None,
+                        getVerseMetaInfoHtml=lambda *args: '', collectSpellCheckResults=lambda: (),
+                        mergeSpellCheckResults=lambda *args: None,
+                        **{perBook:createBook})
+                    self.loadFunctions(module, (module, f'_{perBook}_MP'), namespace)
+                    # Only the comments dataset is replaced; output files are real.
+                    realOpen = open
+                    comments = mock_open(read_data='Version\tVerseReference\tOptionalTextSegment\tComment\n')
+                    namespace['open'] = lambda path,*args,**kwargs: (comments(path,*args,**kwargs)
+                        if str(path) == '../datasets/VersionComments.tsv' else realOpen(path,*args,**kwargs))
+                    with patch.object(BibleOrgSysGlobals, 'maxProcesses', processes), \
+                         patch.object(BibleOrgSysGlobals, 'alreadyMultiprocessing', False), \
+                         self.assertLogs(level='WARNING') as logged:
+                        self.assertTrue(namespace[module](1, folder, state))
+                        self.assertFalse(BibleOrgSysGlobals.alreadyMultiprocessing)
+                    self.assertEqual(len(logged.output), 1)
+                    self.assertIn('ESA', logged.output[0])
+                    self.assertIn("'eng'", logged.output[0])
+                    expected = {'MAL','MAT'} if module == 'createOETInterlinearPages' else {'MAL','MAT','TOB'}
+                    self.assertEqual({p.stem for p in folder.glob('*.txt')}, expected)
+                    for page in folder.iterdir():
+                        html = page.read_text()
+                        for BBB in expected:
+                            self.assertIn(f'{BBB}/index.htm', html)
+                        for BBB in {'ESA','FRT','TOB'} - expected:
+                            self.assertNotIn(f'{BBB}/', html)
+
+    def test_interlinear_direct_call_skips_absent_navigation_before_making_folder(self):
+        module, perBook = self.builders[-1]
+        namespace = dict(globals(), DEBUGGING_THIS_MODULE=False,
+            navigationVersification=vf.navigationVersification, fnPrint=lambda *args: None)
+        self.loadFunctions(module, (perBook,), namespace)
+        with TemporaryDirectory() as temp, self.assertLogs(level='WARNING') as logged:
+            state = SimpleNamespace(navigationVersification='eng', BibleVersions=[])
+            self.assertTrue(namespace[perBook](1, Path(temp), 'ESA', [], state))
+            self.assertEqual(list(Path(temp).iterdir()), [])
+        self.assertIn('ESA', logged.output[0])
+        self.assertIn("'eng'", logged.output[0])
 
 
 if __name__ == '__main__':
