@@ -86,11 +86,13 @@ CHANGELOG:
                 (instead of once per worker).
     2026-10-12 Use BOS versification mappings for all parallel sources, with English navigation.
     2026-10-15 Hide complete secondary lines, including their parentheses and line breaks.
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-16 Import German and Latin translations from their separate BOS modules.
 """
 from pathlib import Path
 import os
 import logging
-import multiprocessing
+from parallel import runParallelPages
 import re
 from collections import defaultdict
 
@@ -98,7 +100,8 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
-from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
+from BibleOrgSys.Reference.LutherGermanToEnglish import translateGerman
+from BibleOrgSys.Reference.VulgateLatinToEnglish import translateLatin
 from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
@@ -123,7 +126,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-15'
+LAST_MODIFIED_DATE = '2026-10-16'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.12'
@@ -231,11 +234,9 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses, maxtasksperchild=1 ) as pool: # start worker processes (maxtasksperchild=1 so each worker starts with fresh spell-check accumulators)
-            results = pool.map( _createParallelVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
-            assert len(results) == len(mpBookParameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_createParallelVersePagesForBook_MP, mpBookParameters,
+            taskNames=[f'book {p[2]}' for p in mpBookParameters], freshProcess=True)
+        assert len(results) == len(mpBookParameters)
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )

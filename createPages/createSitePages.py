@@ -68,6 +68,7 @@ CHANGELOG:
     2026-09-01 Fixed some bad links on the details page(s)
     2026-09-04 Added a separate program version number string in State
     2026-09-16 Replace assert quirk on program completion with a better summary
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
 """
 from pathlib import Path
 import os
@@ -75,7 +76,7 @@ import shutil
 import glob
 from datetime import date
 import logging
-import multiprocessing
+from parallel import runParallelPages
 from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -100,7 +101,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.4.3'
@@ -318,11 +319,9 @@ def _createSitePages() -> bool:
             # NOTE: Outputs (including error and warning messages) from the various versions may be interspersed.
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {len(mpParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-            BibleOrgSysGlobals.alreadyMultiprocessing = True
-            with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-                results = pool.map( _createVersionPages_MP, mpParameters ) # have the pool create the pages
-                assert len(results) == len(mpParameters)
-            BibleOrgSysGlobals.alreadyMultiprocessing = False
+            results = runParallelPages(_createVersionPages_MP, mpParameters,
+                taskNames=[f'version {p[0]}' for p in mpParameters])
+            assert len(results) == len(mpParameters)
             assert all(results)
 
         if 'OET' in state.BibleVersions: # this is a special case
@@ -348,11 +347,9 @@ def _createSitePages() -> bool:
             #        so the forked children only need to read them while writing each version's own bySec/ folder.
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}section pages for {len(mpSectionParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-            BibleOrgSysGlobals.alreadyMultiprocessing = True
-            with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-                results = pool.map( _createSectionPages_MP, mpSectionParameters ) # have the pool create the pages
-                assert len(results) == len(mpSectionParameters)
-            BibleOrgSysGlobals.alreadyMultiprocessing = False
+            results = runParallelPages(_createSectionPages_MP, mpSectionParameters,
+                taskNames=[f'version {p[0]}' for p in mpSectionParameters])
+            assert len(results) == len(mpSectionParameters)
             assert all(results)
 
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':

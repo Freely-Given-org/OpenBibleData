@@ -38,6 +38,7 @@ CHANGELOG:
     2026-09-24 Added RV-only and LV-only warnings
     2026-10-01 Added GHT
     2026-10-12 Declare source and navigation versifications for parallel pages.
+    2026-10-16 Use the BOS Luther mapping verified against LUTH1545STR.
 """
 from pathlib import Path
 
@@ -45,7 +46,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-17' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.2.0'
@@ -62,11 +63,11 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.6.1' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.87' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.0.3' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.88' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
-    TEST_OT_BOOK_LIST = ['PSA','MAL'] # So we can test versification issues
+    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
@@ -208,8 +209,8 @@ class State:
 
     # Page URLs and navigation use English numbering. These declarations describe
     # the stored source addresses, not the language or textual ancestry of a work.
-    # BOS historical names (e.g. Luther) are count-only until a mapping is supplied;
-    # the parallel pages report unavailable alignments instead of guessing.
+    # Luther selects the BOS profile verified against our LUTH1545STR source.
+    # Other historical/count-only schemes still need explicit mapping profiles.
     navigationVersification = 'eng'
     BibleVersifications = dict.fromkeys((
         'OET','OET-RV', 'AHB','SLBL','GHT','ULT','UST','NET','BSB','MSB','BLB',

@@ -130,6 +130,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks pre-calls in get_OET_LV_verse_HTML/get_OET_RV_verse_HTML have been removed.
     2026-09-30 Sort all Heb & Grk word & lemma index pages (again???)
     2026-10-01 Ensure that all index pages dispay at #Top
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
   """
 from pathlib import Path
 import os
@@ -139,7 +140,7 @@ import json
 import logging
 import unicodedata
 from time import time
-import multiprocessing
+from parallel import runParallelPages
 from functools import cache
 import docutils.core
 from docutils.parsers.rst import roles
@@ -163,7 +164,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.7'
@@ -1701,11 +1702,9 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             parameters.append( (level, hh, hebrewWord, columns_string, outputFolderPath, output_filename) )
             taskMetaList.append( (rowType, hebrewWord, output_filename) )
         assert len(parameters) == len(taskMetaList)
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Hebrew_word_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Hebrew_word_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
         for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename) in zip( results, taskMetaList ):
@@ -2648,11 +2647,9 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Hebrew_lemma_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Hebrew_lemma_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
     else: # no multi-processing
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Hebrew lemma pages sequentially…" )
@@ -2967,11 +2964,9 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Greek_word_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Greek_word_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
         for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord)) in enumerate( zip(results,taskMetaList), start=1 ):
@@ -3474,11 +3469,9 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Greek_lemma_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Greek_lemma_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
     else: # no multi-processing
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages sequentially…" )
@@ -3849,11 +3842,9 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             parameters.append( (level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath) )
             taskMetaList.append( strongsNumber )
         assert len(parameters) == len(taskMetaList)
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Hebrew_Strongs_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Hebrew_Strongs_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
         for (result,indexEntryHtml),_unusedStrongNumber in zip( results, taskMetaList ):
             if result: numPagesMade += 1
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )
@@ -4029,11 +4020,9 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             parameters.append( (level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath) )
             taskMetaList.append( strongsNumber )
         assert len(parameters) == len(taskMetaList)
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _create_Greek_Strongs_page_MP, parameters ) # have the pool do our loads
-            assert len(results) == len(parameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_create_Greek_Strongs_page_MP, parameters,
+            taskNames=[str(p[1]) for p in parameters])
+        assert len(results) == len(parameters)
         for (result,indexEntryHtml),_unusedStrongNumber in zip( results, taskMetaList ):
             if result: numPagesMade += 1
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )

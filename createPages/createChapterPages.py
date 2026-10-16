@@ -39,9 +39,11 @@ CHANGELOG:
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the chapter-page hot paths have been removed.
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-16 Preload the BibleMapper index in the parent before forking chapter-page workers.
 """
 from pathlib import Path
-import multiprocessing
+from parallel import runParallelPages
 import os
 import logging
 
@@ -55,11 +57,11 @@ from settings import State, state, CNTR_BOOK_ID_MAP
 from oetPassages import renderOETSideBySideChunks, oetLVSourceLink
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from Bibles import getBibleMapperMaps, getOpenBibleImages
+from Bibles import getBibleMapperMaps, getOpenBibleImages, preloadBibleMapperIndex
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.89'
@@ -338,17 +340,16 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             if bookFilenames:
                 BBBs.append( BBBResult ); filenames.extend( bookFilenames )
     if mpBookParameters:
+        preloadBibleMapperIndex( rvBible ) # Child cache updates would otherwise be lost when each worker exits.
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET chapter pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _createOETSideBySideChapterBook_MP, mpBookParameters ) # have the pool create the chapters
-            assert len(results) == len(mpBookParameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_createOETSideBySideChapterBook_MP, mpBookParameters,
+            taskNames=[f'book {p[2]}' for p in mpBookParameters])
+        assert len(results) == len(mpBookParameters)
         for resultBool, BBBResult, bookFilenames in results:
             assert resultBool is True
             if bookFilenames:

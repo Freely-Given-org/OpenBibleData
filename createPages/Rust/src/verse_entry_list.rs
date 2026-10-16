@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Port of `convertVerseEntryListToHtml` from `usfm.py`.
 //!
 //! This module contains the main verse-entry-to-HTML conversion pipeline
@@ -5,6 +6,8 @@
 //! HTML segment.
 //!
 //! Changelog:
+//!  2026-10-16: Report malformed note markers with version, book, C:V,
+//!              processed entry number/marker, and offending text.
 //!  2026-08-22: Fixed list-close ordering bugs inherited from usfm.py — an
 //!              open <li> is now closed BEFORE its enclosing </ul>, both in
 //!              close_list() and in the li level-drop recovery branch.
@@ -509,6 +512,22 @@ where
         let c = c_owned.as_str();
         let v_owned = state.v_value.clone();
         let v = v_owned.as_str();
+
+        // Notes belong to individual processed entries. Validate while their
+        // actual C:V is available, before concatenation loses that information.
+        // This follows basicOnly stripping, so omitted notes remain omitted.
+        crate::verse_to_html::validate_note_markers(rest_str).map_err(|e| {
+            let reference = match (c.is_empty(), v.is_empty()) {
+                (false, false) => format!("{c}:{v}"),
+                (false, true) => format!("chapter {c}, before first verse"),
+                _ => "introduction (no C:V)".to_string(),
+            };
+            ConvertError::VerseToHtml(format!(
+                "{version_abbreviation} {bos_book_code} {reference} \
+                 ({segment_type}, processed entry {}, marker '{marker}'): {e}",
+                vel_index + 1,
+            ))
+        })?;
 
         // ── Marker dispatch ──
         match marker {

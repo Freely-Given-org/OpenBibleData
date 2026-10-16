@@ -41,6 +41,7 @@ CHANGELOG:
     2026-09-11 Tolerate dictionary entries that are missing their '\\lg ' language line (skip them with a warning) and handle running from a different folder
     2026-09-25 Handle tradName fields
     2026-10-11 Handle addOwner span in OET-LV
+    2026-10-17 Recognise reviewed names and specialist vocabulary in Luther and Vulgate translations
 """
 from pathlib import Path
 from csv import  DictReader
@@ -53,10 +54,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-11' # by RJH
+LAST_MODIFIED_DATE = '2026-10-17' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -482,6 +483,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( ('baptized',) )
     elif versionAbbreviation == 'Luth':
         wordSet.update( ('EI','Yuda','fiancé(e','asabthani','kumi') ) # (Final parenthesis gets removed)
+        wordSet.update( ('Tsevaot','Syrophoenicia') ) # Hebrew title and the region in Mark 7:26
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('carmel', # No idea why this isn't capitalised in ClVg ???
                          'Moyses','Sion','Yuda',
@@ -506,6 +508,15 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'TERT', 'THEOD','THEODOR', 'THEOPH','THEOP',
                          'XIS', 'XES',
                          'ZACH','ZAC',
+                         ) )
+        # Reviewed names and English terms in the translated commentary. Keep this
+        # explicit: accepting every table output would also hide damaged translations.
+        wordSet.update( ('Cassiodorus','Ebionites','Eunomius','Eutychians','Eutyches',
+                         'Hegesippus','Helvidius','Hesta','Machaerus','Manichaean','Montanus',
+                         'Origen','Photinus','Sebaste','Tertullian','Vespasian',
+                         'Yabin','Yeconiah','Yeduthun','Yonadab','Yosephus','Yulian','Yupiter','Zebub',
+                         'catechumens','schismatics','tetrarchies',
+                         'sor', # Explicit Hebrew transliteration in the commentary on Psalm 82:8
                          ) )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
@@ -805,31 +816,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="LEB_verseTextChunk">','').replace('<span class="Wycl_verseTextChunk">','')
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                     vPrint( 'Normal' if (word.upper()==word and (versionAbbreviation not in ('LSV','OET-LV'))
-                                or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','drede','yee',
-                                       'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast','hee',
-                                       'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken','sixtie',
-                                       'silf','nedi','modir','sunne','hygh','i','sprete','wyn','ethir','zobah','hode','honde','equite',
-                                       'tashcheth','kindreds','tho','ynne','oute','wrooth','thei','hade','ioiyng',
-                                       'diy','stablish','puplis','nyle','hertli','eet','saten','gileful','hertli','greces',
-                                       'welde','moun','chees','bitake','Cursid','comen','wite','kitte','sien','kepen',
-                                       'standerd','penie','peny','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
-                                       'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
-                                       'horon','gilead','edom',
-                                            'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
-                                            'hile','drooue','woodness','lomb','stonde','kynde',
-                                            'yt','sounde','blinde','broughtst','aud','Candlesticke','prophecie',
-                                            'subarbis','lepre','breede','hilid','armeris',
-                                            'warpe','woofe','baken','goate','Uaile','kil','kinde','foules','finnes',
-                                            'Owle','looke','nakednes','sheafe','willowes','Edoma','swines','bewaile','creepe',
-                                            'iubilee','cleene','ayenbouyt','trespas','dow','quyk','comelyngis',
-                                            'comeling','biere','buk','schuldur','lowere','vowes','vyndage','wexith','membris','skinne','haire','steale','grinde',
-                                            'unclenness','Owle','scabbe','darke','plaister','bondmaids','towe','hautines',
-                                            'hautiness','Seraphims','flie','Remaliahs','praye','jubile','inwardes','preuytie','tippe','lowse','owen',
-                                            'drinke','euidence','burne','fanne','returne','arme','dismaied',
-                                            'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
-                                            'compassio','herdst','ark','arcke','arke',
-                                            'judgment','talentes','householdr','baptist','honour','heaue','pur','gehenna','marvelled','chamberlaynes','fastings','walke',
-
+                                or (word in ('s',
                                        ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                                 or 'twas' in word )
                             and word not in ('OK','NOT','SURE','TOO','LITERAL')
@@ -846,7 +833,6 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                     'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                     'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                    'denyt',
 
                                     'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                     'beati','bene','beneficia','bos',
@@ -874,10 +860,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'si','signi','simplici','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                     'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                     'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
-                                    'l','nos','ut',
-                                    'rethey','becausegentos','leados',
-                                        'susis','inedia','esurientem','hactenus','fruitio','silentnt','regenerati','confiteatur','deprimit','admirationem','workum',
-
+                                    'l','nos','ut','rethey',
                                     )
                         else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             if versionAbbreviation == 'Luth':

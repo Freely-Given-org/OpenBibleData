@@ -67,6 +67,7 @@ CHANGELOG:
     2026-07-04 Added OpenBibleImages and getOpenBibleImages
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-08 Updated to handle additional Speakers column in our sentenceImportance DB
+    2026-10-16 Extract BibleMapper index preloading so forked page workers can inherit the cache.
 """
 from datetime import datetime
 import os, os.path
@@ -103,7 +104,7 @@ from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '1.1.2'
@@ -1569,22 +1570,21 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
 
 
 BMM_INDEX = defaultdict( set )
+BMM_INDEX_LOADED = False
 BMM_TEXT_CACHE = {}
-def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
+def preloadBibleMapperIndex( referenceBible:Bible ) -> None:
     """
-    Can be called for a verse, a chapter, or a section
+    Load the map index once, before forking workers that need to inherit it.
 
-    Returns the html that will display a Bible map.
+    An index with no matches for the loaded books is also considered loaded.
     """
-    global BMM_INDEX, BMM_TEXT_CACHE
+    global BMM_INDEX_LOADED
 
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
-        fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(BMM_INDEX):,} index entries loaded" )
-
-    if not BMM_INDEX:
+    if not BMM_INDEX_LOADED:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) needs to load map index…")
-        mapIndexFilepath = Path( '../copiedBibles/maps/mapIndex.tsv' )
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, "preloadBibleMapperIndex() needs to load map index…")
+        mapIndex = defaultdict( set ) # Publish only after the entire file has loaded successfully.
+        mapIndexFilepath = BIBLE_MAPPER_PATH.joinpath( 'mapIndex.tsv' )
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
             for line in tsvFile: # Five-column TSV
                 if line.startswith( 'ReferenceRange' ): continue # It's the header line
@@ -1610,7 +1610,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                     for c in range( int(iStartC), int(iEndC)+1 ):
                         chapters.add( str(c) )
                         for v in range( int(iStartV) if c==int(iStartC) else 1, (int(iEndV) if c==int(iEndC) else referenceBible.getNumVerses( mapBBB, c ))+1 ):
-                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                            mapIndex[f'{mapBBB}_{c}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 elif '-' in mapCVstuff: # hyphen: it's a verse range
                     startCVstuff, endCVstuff = mapCVstuff.split( '-' )
                     # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
@@ -1620,23 +1620,40 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                     iEndV = endCVstuff
                     # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
                     for v in range( int(iStartV), int(iEndV)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                        mapIndex[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 elif ':' in mapCVstuff: # it's a single verse
                     # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
                     mapC = mapCVstuff.split( ':' )[0]
                     chapters.add( mapC )
-                    BMM_INDEX[mapRefsRange].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                    mapIndex[mapRefsRange].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 else: # it's a single chapter
                     mapC = mapCVstuff
                     # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
                     chapters.add( mapC )
                     for v in range( 1, referenceBible.getNumVerses( mapBBB, mapC)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                        mapIndex[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 for mapC in chapters:
-                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                    mapIndex[f'{mapBBB}_{mapC}:None'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+        BMM_INDEX.update( mapIndex )
+        BMM_INDEX_LOADED = True
         # print( f"({len(BMM_INDEX)}) {BMM_INDEX.keys()=}" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadBibleMapperIndex() loaded {len(BMM_INDEX):,} verse and chapter entries.")
+# end of Bibles.preloadBibleMapperIndex
+
+
+def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
+    """
+    Can be called for a verse, a chapter, or a section
+
+    Returns the html that will display a Bible map.
+    """
+    global BMM_INDEX, BMM_TEXT_CACHE
+
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(BMM_INDEX):,} index entries loaded" )
+
+    preloadBibleMapperIndex( referenceBible )
 
     # First get the range of verses that we want to scan and collect all the map filenames for that set
     mapFilenamesSet = set()

@@ -31,9 +31,10 @@ CHANGELOG:
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the book-page hot paths have been removed.
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
 """
 from pathlib import Path
-import multiprocessing
+from parallel import runParallelPages
 import os
 import re
 import logging
@@ -50,7 +51,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.73'
@@ -245,11 +246,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET book pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _createOETBookPagesForBook_MP, mpBookParameters ) # have the pool create the books
-            assert len(results) == len(mpBookParameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_createOETBookPagesForBook_MP, mpBookParameters,
+            taskNames=[f'book {p[2]}' for p in mpBookParameters])
+        assert len(results) == len(mpBookParameters)
         for resultBool, BBBResult, bookFilenames in results:
             assert resultBool is True
             if bookFilenames:

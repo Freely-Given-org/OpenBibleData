@@ -57,10 +57,11 @@ function hide_show_fields() {
     }
 }
 
-// The transliteration / modernised-spelling classes actually generated on the
-// parallel verse pages (see createParallelVersePages.py). Mirrors the list in
-// common.css's html[data-par-translit="hide"] selector.
-const transliteration_classes = ['SR-GNT_trans','UGNT_trans','SBL-GNT_trans','TC-GNT_trans','RP-GNT_trans',
+// Hide complete secondary lines, including their breaks and parentheses.
+// Keep the individual text classes for older generated pages without wrappers.
+// Mirrors common.css's html[data-par-translit="hide"] selector.
+const transliteration_classes = ['parallelVerseSecondary',
+    'SR-GNT_trans','UGNT_trans','SBL-GNT_trans','TC-GNT_trans','RP-GNT_trans',
     'BrLXX_trans','UHB_trans','Luth_trans','ClVg_trans',
     'Wycl_mod','TNT_mod','Cvdl_mod','Gnva_mod','Bshps_mod','KJB-1611_mod','KJB-1769_mod','RV_mod'];
 

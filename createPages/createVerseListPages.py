@@ -29,11 +29,13 @@ CHANGELOG:
     2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
                 (instead of once per worker).
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-16 Import German and Latin translations from their separate BOS modules.
 """
 from pathlib import Path
 import os
 import logging
-import multiprocessing
+from parallel import runParallelPages
 import re
 from collections import defaultdict
 
@@ -41,7 +43,8 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
-from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
+from BibleOrgSys.Reference.LutherGermanToEnglish import translateGerman
+from BibleOrgSys.Reference.VulgateLatinToEnglish import translateLatin
 from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
@@ -61,7 +64,7 @@ from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSH
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createVerseListPages"
 PROGRAM_NAME = "OpenBibleData createVerseListPages functions"
 PROGRAM_VERSION = '0.2.2'
@@ -134,11 +137,9 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}verse list pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses, maxtasksperchild=1 ) as pool: # start worker processes (maxtasksperchild=1 so each worker starts with fresh spell-check accumulators)
-            results = pool.map( _createVerseListPagesForBook_MP, mpBookParameters ) # have the pool create the pages
-            assert len(results) == len(mpBookParameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_createVerseListPagesForBook_MP, mpBookParameters,
+            taskNames=[f'book {p[2]}' for p in mpBookParameters], freshProcess=True)
+        assert len(results) == len(mpBookParameters)
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}verse list page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )

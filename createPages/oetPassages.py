@@ -6,6 +6,9 @@
 Split the source entries before rendering, rather than cutting translated HTML
 at matching numbers. The renderer remains responsible for balanced markup and
 word links. Import it only when rendering, so the mapping can be tested offline.
+
+CHANGELOG:
+    2026-10-16 Identify OET-RV when malformed source labels prevent passage mapping.
 """
 import logging
 import re
@@ -75,7 +78,8 @@ def _mappedOETLVPassage(bible, reference, sourceEntries, state, chapterCache):
     """Keep BOS coverage metadata available to the OBD renderer."""
     if reference[1] == '-1':
         return _editorialLV(bible, reference, sourceEntries), ''
-    references = passageReferencesFromEntries(reference, sourceEntries, state.navigationVersification)
+    references = passageReferencesFromEntries(reference, sourceEntries, state.navigationVersification,
+        sourceBible=getattr(state, 'preloadedBibles', {}).get('OET-RV') or 'OET-RV')
     if not references: # editorial heading without scripture
         return [], ''
     passage = bible.getMappedPassage(state.navigationVersification, references,

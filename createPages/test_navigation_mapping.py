@@ -1,4 +1,7 @@
-"""Offline mapping tests, including the production Rust bridge when available."""
+"""Offline mapping tests, including the production Rust bridge when available.
+CHANGELOG:
+    2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
+"""
 import ast
 from collections import defaultdict
 from functools import cache
@@ -78,7 +81,7 @@ class NavigationTests(unittest.TestCase):
         self.assertIn('href="#LV_C3V19"', _namespaceIds(result, 'LV_'))
 
     def test_unsupported_mapping_is_not_a_guessed_link(self):
-        self.state.BibleVersifications = dict(self.state.BibleVersifications, **{'OET-LV':'Luther'})
+        self.state.BibleVersifications = dict(self.state.BibleVersifications, **{'OET-LV':'KJV'})
         self.assertEqual(nav.mapHtmlLinks('<a href="../../par/PSA/C3V2.htm">2</a>', 'OET-LV', 2, self.state), '2')
 
     def test_json_metadata_keeps_native_ref_and_separate_english_ref(self):

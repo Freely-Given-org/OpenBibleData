@@ -2,6 +2,9 @@
 
 The recording renderer exercises addresses, grouping, links and note isolation;
 it does not replace the server's full-site HTML/layout validation.
+
+CHANGELOG:
+    2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
 """
 import ast
 from collections import defaultdict
@@ -192,7 +195,7 @@ class OETPassageTests(unittest.TestCase):
         self.assertIn('not available',html)
         self.assertNotIn('Incomplete.',html)
         self.assertEqual(self.rendered,[])
-        lv.setVersificationSystem('Luther')
+        lv.setVersificationSystem('KJV')
         html,_=self.renderLV(lv,rv,('MAL','4'))
         self.assertIn('alignment unavailable (unsupported)',html)
         self.assertEqual(self.rendered,[])

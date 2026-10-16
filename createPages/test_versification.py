@@ -2,6 +2,9 @@
 
 From OpenBibleData:
     ../BibleOrgSys/.venv/bin/python -m unittest discover -s createPages -p test_versification.py
+
+CHANGELOG:
+    2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
 """
 import ast
 from collections import defaultdict
@@ -89,6 +92,12 @@ class MappingTests(unittest.TestCase):
         vf.configureBibleVersification(old, 'OET-RV', self.state)
         self.assertEqual(old.getVersificationSystemName(), 'eng')
 
+    def test_luther_configuration_maps_instead_of_suppressing_text(self):
+        luther = vf.configureBibleVersification(Bible(), 'Luth', self.state)
+        self.assertEqual(luther.getVersificationSystemName(),'Luther')
+        self.assertEqual(self.refs(('MAT','7','1'),luther,'Luth'),(('MAT','7','1',None),))
+        self.assertEqual(self.refs(('PSA','3','1'),luther,'Luth'),(('PSA','3','2',None),))
+
     def test_wycliffe_confirmed_mark_boundary_after_cache_loading(self):
         wycliffe = pickle.loads(pickle.dumps(Bible()))
         vf.configureBibleVersification(wycliffe, 'Wycl', self.state)
@@ -99,7 +108,7 @@ class MappingTests(unittest.TestCase):
 
     def test_unavailable_and_ambiguous_results_never_fall_back(self):
         for bible, reference, status in (
-            (Bible(versification='Luther'), ('PSA','3','1'), MappingStatus.UNSUPPORTED),
+            (Bible(versification='KJV'), ('PSA','3','1'), MappingStatus.UNSUPPORTED),
             (Bible(), ('GEN','1','1'), MappingStatus.UNSUPPORTED),
             (Bible(versification='vul'), ('TOB','1','1'), MappingStatus.UNSUPPORTED),
             (Bible(versification='org'), ('PSA','13','5'), MappingStatus.PARTIAL),
@@ -352,11 +361,31 @@ class ParallelPageTests(unittest.TestCase):
 
     def test_unsupported_alignment_is_visible_without_wrong_text(self):
         bible = self.load('MAL', '\\c 3\n\\p\n\\v 1 Wrong if used on page 4:1.\n')
-        bible.setVersificationSystem('Luther')
+        bible.setVersificationSystem('KJV')
         self.runBook('MAL')
         page = (self.output/'MAL/C4V1.htm').read_text()
         self.assertIn('Verse alignment unavailable (unsupported)', page)
         self.assertNotIn('Wrong if used', page)
+
+    def test_luther_matthew_text_and_combined_acts_are_displayed(self):
+        self.state.BibleVersions = ['Luth']
+        self.namespace['translateGerman'] = lambda text: text
+        self.namespace['formatParallelVerseSecondaryLine'] = lambda text: f'<small>{text}</small>'
+        for book,text in (
+                ('MAT','\\c 7\n\\p\n\\v 1 Richtet nicht, auf daß ihr nicht gerichtet werdet!\n'),
+                ('ACT','\\c 19\n\\p\n\\v 40 Speech. Und da er solches gesagt, ließ er die Gemeinde gehen.\n')):
+            bible = self.load(book,text)
+            vf.configureBibleVersification(bible,'Luth',self.state)
+            self.state.preloadedBibles['Luth'] = bible
+            self.runBook(book)
+        page = (self.output/'MAT/C7V1.htm').read_text()
+        self.assertIn('Richtet nicht',page)
+        self.assertNotIn('alignment unavailable',page)
+        for verse in (40,41):
+            page = (self.output/f'ACT/C19V{verse}.htm').read_text()
+            self.assertIn('ließ er die Gemeinde gehen',page)
+            self.assertIn('Combined passage: English ACT 19:40–41',page)
+            self.assertIn('native ACT 19:40',page)
 
     def test_acts_19_40_and_41_keep_english_text_and_label_combined_lv(self):
         self.load('ACT', '\\c 19\n\\p\n\\v 40 Native speech. Native dismissal.\n')

@@ -48,13 +48,14 @@ CHANGELOG:
 
 TODO:
     Add colour keys for LV and RV words
+    2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
 """
 from pathlib import Path
 import os
 import logging
 from collections import defaultdict
 import re
-import multiprocessing
+from parallel import runParallelPages
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -75,7 +76,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.70'
@@ -132,11 +133,9 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}interlinear pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-            results = pool.map( _createOETInterlinearVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
-            assert len(results) == len(mpBookParameters)
-        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        results = runParallelPages(_createOETInterlinearVersePagesForBook_MP, mpBookParameters,
+            taskNames=[f'book {p[2]}' for p in mpBookParameters])
+        assert len(results) == len(mpBookParameters)
         assert all(results)
 
     # Create index page
