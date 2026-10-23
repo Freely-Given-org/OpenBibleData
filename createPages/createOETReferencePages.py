@@ -131,6 +131,11 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-09-30 Sort all Heb & Grk word & lemma index pages (again???)
     2026-10-01 Ensure that all index pages dispay at #Top
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-23 Explain verse colours and alignment on Hebrew/Greek word and lemma pages,
+                bold each example's linked word in the full LV and RV verses, and
+                show the selected occurrence even when the example list is truncated.
+    2026-10-23 Omit the verse-block separator when punctuation, notes, unused variants,
+                or unloaded TEST books have no focused verses.
   """
 from pathlib import Path
 import os
@@ -156,6 +161,7 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from navigation import mapHtmlLinks
+from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
@@ -164,10 +170,10 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-23' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.0.7'
+PROGRAM_VERSION = '1.0.8'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1643,6 +1649,37 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
 # end of createOETReferencePages.get_OET_RV_verse_HTML
 
 
+def get_focused_OET_verse_HTML( level:int, BBB:str, C:str, V:str, wordPath:str ) -> tuple[str,str]:
+    """Bold the exact source-word links, including every part of a split English gloss.
+
+    Keep highlighting outside the verse caches: two examples in the same verse can
+    focus different occurrences. RV portions may have different verse numbers, but
+    their word links still identify the original LV word. Unaligned text stays as is.
+    """
+    wordLink = re.compile(r'<a\b[^>]*\bhref="[^"<>]*/' + re.escape(wordPath)
+                          + r'#Top"[^>]*>.*?</a>', re.DOTALL)
+    return tuple(wordLink.sub(lambda match: f'<b>{match[0]}</b>', verseHtml)
+                 for verseHtml in (get_OET_LV_verse_HTML(level, BBB, C, V),
+                                   get_OET_RV_verse_HTML(level, BBB, C, V)))
+
+
+def add_reference_colour_key( pageHtml:str, level:int ) -> str:
+    """Put one colour control and an explanation above the examples on word/lemma pages."""
+    if '<p class="btnBar">' not in pageHtml: return pageHtml # Hebrew punctuation/notes
+    usedClasses = {name for classes in re.findall(r'\bclass="([^"]+)"', pageHtml)
+                        for name in classes.split()}
+    colourKeys = [key for name, key in (GREEK_CASE_CLASS_KEY_DICT | HEBREW_CASE_CLASS_KEY_DICT).items()
+                     if name in usedClasses]
+    if 'noLinkYet' in usedClasses:
+        colourKeys.append('<span class="noLinkYet">grey</span>:word alignment not yet available')
+    colourKey = f'''\n<p class="key" id="ColourKey"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours" aria-label="Show or hide grammatical colours" onclick="hide_show_colours()">C</button> {', '.join(colourKeys) + '.' if colourKeys else 'No grammatical colours in these examples.'}
+<br><b>Bold</b> in each verse marks the word or words linked to that example’s source word, where an alignment is available.
+<br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong). An unbolded RV line may have no alignment for this word.
+See the <a href="{'../'*level}OETKey.htm#Top">OET key</a> for other text colours and marks.</small></p>'''
+    buttonBarEnd = pageHtml.index('</p>', pageHtml.index('<p class="btnBar">')) + len('</p>')
+    return f'{pageHtml[:buttonBarEnd]}{colourKey}{pageHtml[buttonBarEnd:]}'
+
+
 def _create_Hebrew_word_page_MP( parameters ):
     """
     Multiprocessing version! (forked children inherit our module-level state copy-on-write)
@@ -1967,14 +2004,18 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
     rowTypeField = '‘Ketiv’ (marginal note on original)' if rowType=='K' else 'Aramaic ‘ketiv’ (marginal note on original)' if rowType=='AK' else 'Segment punctuation' if rowType=='seg' else 'Aramaic' if rowType=='A' else rowType.title() if 'note' in rowType else rowType
     hebrewWordTitle = rowTypeField if rowType=='seg' or 'note' in rowType else hebrewWord # f'{hebrewWord}\u202d' # unicode LRO
-    buttonBar = '' if rowType=='seg' or 'note' in rowType else f'\n<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>'
+    buttonBar = '' if rowType=='seg' or 'note' in rowType else f'\n<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>'
 
+    focusedVerses = ''
+    if rowType!='seg' and 'note' not in rowType and (not state.TEST_MODE_FLAG or BBB in state.preloadedBibles['OET-RV']):
+        focusedVerses = '\n'.join(get_focused_OET_verse_HTML(
+            level, BBB, C, V, f'HebWrd/{getHebrewWordpageFilename(hh,state)}'))
     word_output_filenames = {'words':f'words/{word_output_filename}', 'verses':f'verses/{word_output_filename}','both':f'both/{word_output_filename}' }
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
 <p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
 <br> {translationFields}{capsField if state.TEST_MODE_FLAG else ''}
-<br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
+<br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>{f'{NEWLINE}{focusedVerses}' if focusedVerses else ''}
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
 (We are still searching for a digitized facsimile of the Leningradensis manuscript that we can easily link to. See <a href="https://www.AnimatedHebrew.com/mss/index.html#leningrad">this list</a> and <a href="https://archive.org/details/Leningrad_Codex/">this archive</a> for now.)
@@ -2050,8 +2091,8 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             oOSISbookCode = bos_books_codes_py.bos_to_osis_book_code( oBBB )
             oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
             if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
-                oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
-                oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
+                oOET_LV_verse_HTML, oOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                    level, oBBB, oC, oV, f'HebWrd/{getHebrewWordpageFilename(oN,state)}' )
             # print( f"   {oBBB} {oC}:{oV} {oOET_RV_verse_HTML=}")
             wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBBwithNotes} {oC}:{oV}</a>''' \
 f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>{f'\n{oOET_LV_verse_HTML}' if oOET_LV_verse_HTML else ''}{f'\n{oOET_RV_verse_HTML}' if oOET_RV_verse_HTML else ''}''' \
@@ -2100,8 +2141,8 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                     # elif len(nList)>400:
                     else:
                         # print( f"This one {n=} similarWord={mainGlossWord=} was in ({len(nList)})" )
-                        if len(nList)>400:
-                            if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preprocessHebrewWordsLemmasGlosses has EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
+                        if len(nList)>400 and BibleOrgSysGlobals.verbosityLevel >= 4:
+                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"preprocessHebrewWordsLemmasGlosses has EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
                     for thisN in nList:
                         # if thisN == hh: continue # That's the current word row
                         eWordRef, eRowType, eMorphemeRowList, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][HebrewWordFileName][thisN].split( '\t' )
@@ -2158,8 +2199,8 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                                 # if eTidyMorphology != '···': usedMorphologies.add( eTidyMorphology )
                             eOET_LV_verse_HTML = eOET_RV_verse_HTML = None
                             if not state.TEST_MODE_FLAG or eBBB in state.preloadedBibles['OET-RV']:
-                                eOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, eBBB, eC, eV )
-                                eOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, eBBB, eC, eV )
+                                eOET_LV_verse_HTML, eOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                                    level, eBBB, eC, eV, f'HebWrd/{getHebrewWordpageFilename(thisN,state)}' )
                             # print( f"     {eBBB} {eC}:{eV} {eOET_RV_verse_HTML=}")
                             extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>''' \
 f''' <b>{eHebrewPossibleLink}</b> ({transliterate_Hebrew(eHebrewWord)}) <small>{etidyMorphologyField}</small>{f' {eLemmaLinksStr}' if eLemmaLinksStr else ''} {eTranslation}''' \
@@ -2201,7 +2242,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                     .replace( '__TITLE__', f"Hebrew word ‘{hebrewWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
-    wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word' )}'''
+    wordsHtml = f'''{top}{add_reference_colour_key(wordsHtml, level)}{keyHtml}{makeBottom( level, None, 'word' )}'''
     wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
     assert checkHtml( 'HebrewWordPage', wordsHtml )
     filepath = outputFolderPath.joinpath( word_output_filename )
@@ -2273,8 +2314,8 @@ def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:
                 if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
                 oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
                 if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
-                    oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
-                    oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
+                    oOET_LV_verse_HTML, oOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                        level, oBBB, oC, oV, f'HebWrd/{getHebrewWordpageFilename(oN,state)}' )
                 # print( f"   {oBBB} {oC}:{oV} {oOET_RV_verse_HTML=}")
                 oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBBwithNotes} {oC}:{oV}</a>''' \
                                 if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
@@ -2323,7 +2364,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
 
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
 <p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(hebLemmaFormsList)==1 else f'{len(hebLemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getHebrewWordpageFilename(getFirstHebrewWordNumber(heb,morph), state)}#Top">{heb}</a> <small>({state.OETRefData["OTLemmaFormsCountDict"][(hebLemma,heb,morph)]:,}, {morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in hebLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if numHebLemmaOETGlossesList==1 else f'{numHebLemmaOETGlossesList:,} different ways'}: {tidy_Hebrew_lemma_gloss(', '.join(hebLemmaOETGlossesStrList))}.</p>'''
 
@@ -2556,7 +2597,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
         top = makeTop( level, None, 'lemma', None, state ) \
                         .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
         lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
@@ -2882,8 +2923,8 @@ def _make_greek_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:i
                 translation = '<small>(no English gloss here)</small>' if oVLTGlossWords=='-' else f'''‘{tidy_Greek_lemma_gloss(oFormattedContextGlossWords)}’'''
                 oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
                 if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
-                    oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
-                    oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
+                    oOET_LV_verse_HTML, oOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                        level, oBBB, oC, oV, f'GrkWrd/{getGreekWordpageFilename(oN,state)}' )
                 lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
                     f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
                     f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbb} {oC}:{oV} word {oW}</a></p>{f'\n{oOET_LV_verse_HTML}' if oOET_LV_verse_HTML else ''}{f'\n{oOET_RV_verse_HTML}' if oOET_RV_verse_HTML else ''}'''
@@ -3205,13 +3246,17 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
+        focusedVerses = ''
+        if probability and (not state.TEST_MODE_FLAG or BBB in state.preloadedBibles['OET-RV']):
+            focusedVerses = '\n'.join(get_focused_OET_verse_HTML(
+                level, BBB, C, V, f'GrkWrd/{getGreekWordpageFilename(gg,state)}'))
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
 <p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
  Strongs={f'<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#Top">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
-<br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
+<br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>{f'{NEWLINE}{focusedVerses}' if focusedVerses else ''}
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
 From there, you can click on the 🔍 magnifying glass icon to view a photograph of the actual leaf of the codex.
@@ -3273,8 +3318,8 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 translation = '<small>(no English gloss here)</small>' if oOETGlossWords=='-' else f'''‘{tidyGlossOfGreekWord(oFormattedContextGlossWords)}’'''
                 oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
                 if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
-                    oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
-                    oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
+                    oOET_LV_verse_HTML, oOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                        level, oBBB, oC, oV, f'GrkWrd/{getGreekWordpageFilename(oN,state)}' )
                 wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
 f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbbWithNotes} {oC}:{oV} word {oW}</a></p>{f'\n{oOET_LV_verse_HTML}' if oOET_LV_verse_HTML else ''}{f'\n{oOET_RV_verse_HTML}' if oOET_RV_verse_HTML else ''}''' \
                     if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else \
@@ -3310,8 +3355,8 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                     # print( f'''    {n} {ref} {greekWord} '{mainGlossWord}' {f'{similarWord=} ' if similarWord!=mainGlossWord else ''}({len(nList)}) {nlist[:8]=}{'…' if len(nList)>8 else ''}''' )
                     if len(nList) > 1:
                         if similarWord==mainGlossWord: assert gg in nList
-                        if len(nList)>400:
-                            if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"create_Greek_word_pages has EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
+                        if len(nList)>400 and BibleOrgSysGlobals.verbosityLevel >= 4:
+                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"create_Greek_word_pages has EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                         for thisN in nList:
                             # if thisN == gg: continue # That's the current word row
                             eWordRef, eGreekWord, eSRLemma, _eGrkLemma, _eVLTGlossWordsStr, _eOETGlossWordsStr, _eGlossCaps, _eProbability, _eExtendedStrongs, eRoleLetter, eMorphology, _eTagsStr = state.OETRefData['word_tables'][GreekWordFileName][thisN].split( '\t' )
@@ -3339,8 +3384,8 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                     eTidyRoleMorphology = eRoleLetter
                                 eOET_LV_verse_HTML = eOET_RV_verse_HTML = None
                                 if not state.TEST_MODE_FLAG or eBBB in state.preloadedBibles['OET-RV']:
-                                    eOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, eBBB, eC, eV )
-                                    eOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, eBBB, eC, eV )
+                                    eOET_LV_verse_HTML, eOET_RV_verse_HTML = get_focused_OET_verse_HTML(
+                                        level, eBBB, eC, eV, f'GrkWrd/{getGreekWordpageFilename(thisN,state)}' )
                                 extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>'''
 f''' <b>{eGreekPossibleLink}</b> ({transliterate_Greek(eGreekWord)}) <small>{eTidyRoleMorphology}</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}'''
 f''' ‘{eFormattedContextGlossWords}’'''
@@ -3380,7 +3425,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                         .replace( '__TITLE__', f"Greek word ‘{greekWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
-        wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word' )}'''
+        wordsHtml = f'''{top}{add_reference_colour_key(wordsHtml, level)}{keyHtml}{makeBottom( level, None, 'word' )}'''
         wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
         assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
@@ -3571,7 +3616,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
 
         lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
 <p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
         if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
@@ -3676,7 +3721,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         top = makeTop( level, None, 'lemma', None, state ) \
                         .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
         lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
         assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )

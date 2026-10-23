@@ -1,4 +1,5 @@
-//! Byte-identical ports of the per-version HTML customisations in `html.py`.
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Per-version HTML customisations originally ported from `html.py`.
 //!
 //! These functions are the bulk-mutation pass applied to each version's
 //! chapter/verse HTML before the page is assembled:
@@ -21,7 +22,7 @@
 //!
 //! All `.replace()` chains preserve Python's `str.replace` semantics (replace
 //! every non-overlapping occurrence, left-to-right) — Rust's `str::replace`
-//! does exactly the same, so the chains below are drop-in identical.
+//! does exactly the same. OET now protects markup/notes and combines titles.
 //!
 //! Python `assert` statements are transcribed as explicit checks gated on
 //! `have_strict_checking_flag() || cfg!(debug_assertions)` (matching the
@@ -36,8 +37,10 @@
 //! Changelog:
 //!   2026-09-16: Initial port of the four customisation functions.
 //!   2026-09-17: Ported convert_adds_to_italics and handleAndExtractFootnotes.
+//!   2026-10-23: Combine OET formatting/word titles and protect LV markup and notes.
 
 use crate::html_validation::{check_html, py_repr};
+use crate::oet_html::{combine_oet_titles, protect_lv_html};
 use bos_internals::have_strict_checking_flag;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -81,7 +84,7 @@ fn check_segment_like_python(where_: &str, html: &mut String) -> Result<(), Stri
 }
 
 // ── do_OET_RV_HTMLcustomisations ────────────────────────────────────────────
-/// Byte-identical port of `html.do_OET_RV_HTMLcustomisations`.
+/// Shared OET-RV formatting and source-word tooltip customisation.
 ///
 /// Returns an error (with a Python-compatible message prefix) instead of
 /// panicking; the Python originals raise the corresponding exception.
@@ -242,7 +245,7 @@ pub fn do_oet_rv_html_customisations(where_: &str, html: &str) -> Result<String,
         return Err("NameError: name 'NOT_ENOUGH_LOOPS' is not defined".to_string());
     }
 
-    //
+    let result = combine_oet_titles(&result);
     if strict {
         let mut check_copy = result.clone();
         check_segment_like_python(where_, &mut check_copy)?;
@@ -251,10 +254,16 @@ pub fn do_oet_rv_html_customisations(where_: &str, html: &str) -> Result<String,
 }
 
 // ── do_OET_LV_HTMLcustomisations ────────────────────────────────────────────
-/// Byte-identical port of `html.do_OET_LV_HTMLcustomisations`.
+/// Shared OET-LV formatting, with markup and note contents kept opaque.
 pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String, String> {
     let strict = have_strict_checking_flag() || cfg!(debug_assertions);
     if strict {
+        // These addition markers belong to OET-RV only. Check before hiding tags.
+        for marker in ["-", "*", "@", "~", "≈", "?"] {
+            if html.contains(&format!("<span class=\"add\">{marker}")) {
+                return Err("AssertionError: ".to_string());
+            }
+        }
         if html.contains("<br>\n") {
             return Err("AssertionError: ".to_string());
         }
@@ -264,6 +273,9 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
             ));
         }
     }
+
+    let protected = protect_lv_html(html);
+    let html = protected.text.as_str();
 
     // -- Preserve the colon in times like 12:30 and in C:V and v0.1 fields --
     // (Python works with character indices; replicate exactly with a Vec<char>.)
@@ -300,18 +312,8 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
     }
     let oet_lv_html: String = chars.into_iter().collect();
 
-    if strict {
-        // Only expected in OET-RV
-        for marker in ["-", "*", "@", "~", "≈", "?"] {
-            let needle = format!("<span class=\"add\">{marker}");
-            if oet_lv_html.contains(&needle) {
-                return Err("AssertionError: ".to_string());
-            }
-        }
-    }
-
-    // -- Protect fields we need to preserve, then make each sentence start a
-    //    new line, then adjust specialised add markers, then underlines --
+    // Markup and notes are already opaque. Preserve punctuation in displayed
+    // references/paths, then break sentences and style translation joiners.
     let oet_lv_html = oet_lv_html
         .replace("_V", "~~ULINE~~V")
         .replace("_verseText", "~~ULINE~~verseText")
@@ -334,25 +336,12 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
         .replace('?', "?\n<br>")
         .replace('!', "!\n<br>")
         .replace(':', ":\n<br>")
-        // Adjust specialised add markers
-        .replace(r#"<span class="add">+"#, r#"<span class="addArticle">"#)
-        .replace(r#"<span class="add">="#, r#"<span class="addCopula">"#)
-        .replace(r#"<span class="add"><a title"#, "~~PROTECT~~")
-        .replace(r#"<span class="add"><"#, r#"<span class="addDirectObject">"#)
-        .replace("~~PROTECT~~", r#"<span class="add"><a title"#)
-        .replace(r#"<span class="add">>"#, r#"<span class="addExtra">"#)
-        .replace(r#"<span class="add">&"#, r#"<span class="addOwner">"#)
         // Put all underlines into a span with a class (then a button can hide them)
         .replace("=\"", "~~EQUAL\"") // Protect class=, id=, etc.
-        .replace('=', "_")
-        .replace('÷', "_") // For OT morphemes
+        .replace(['=', '÷'], "_") // Includes OT morpheme separators.
         .replace("~~EQUAL\"", "=\"") // Unprotect class=, id=, etc.
-        .replace('_', "<span class=\"ul\">_</span>") // THIS IS ONE THAT CAN OVERREACH
+        .replace('_', "<span class=\"ul\">_</span>") // Only translation text remains here.
         // Now unprotect everything again
-        .replace("--fnUNDERLINE--", "_")
-        .replace("--fnEQUAL--", "=")
-        .replace("--fnCOLON--", ":")
-        .replace("--fnPERIOD--", ".") // Unprotect sanitised footnotes (see usfm.py)
         .replace("~~COMMENT~~", "<!--")
         .replace("~~ULINE~~", "_")
         .replace("~~COLON~~", ":")
@@ -360,6 +349,13 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
         // TODO: Not sure that this is the best place to do this next one for the OT
         .replace(" DOM ", " <span class=\"dom\">DOM</span> ")
         .to_string();
+
+    let oet_lv_html = protected
+        .restore(&oet_lv_html)
+        .replace("--fnUNDERLINE--", "_")
+        .replace("--fnEQUAL--", "=")
+        .replace("--fnCOLON--", ":")
+        .replace("--fnPERIOD--", ".");
 
     // -- Move sentence-ending <br>s out of the way of closing tags --
     let oet_lv_html = oet_lv_html
@@ -383,6 +379,7 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
         }
     }
 
+    let oet_lv_html = combine_oet_titles(&oet_lv_html);
     if strict {
         let where_label = format!("do_OET_LV_HTMLcustomisations where='{where_}'");
         let mut check_copy = oet_lv_html.clone();
@@ -643,7 +640,7 @@ mod tests {
         // Each symbol replaces (consumes) its '<span class="add">' opener; the
         // closers pass through unchanged, keeping the snippet strict-check-clean.
         let input = r#"<span class="add">?><span class="add">><span class="add">?+<span class="add">+</span></span></span></span>"#;
-        let expected = r#"<span class="addExtra unsure" title="added implied info (less certain)"><span class="addExtra" title="added implied info"><span class="addArticle unsure" title="added article (less certain)"><span class="addArticle" title="added article"></span></span></span></span>"#;
+        let expected = r#"<span class="addExtra unsure" title="added implied info (less certain)"><span class="addExtra" title="added implied info (less certain); added implied info"><span class="addArticle unsure" title="added implied info (less certain); added implied info; added article (less certain)"><span class="addArticle" title="added implied info (less certain); added implied info; added article (less certain); added article"></span></span></span></span>"#;
         assert_eq!(rv(input), expected);
     }
 
@@ -662,23 +659,23 @@ mod tests {
         let cases = [
             (
                 r#"<span class="RVadd"><span class="wj">w</span></span>"#,
-                r#"<span class="RVadd"><span class="wj">w</span></span>"#,
+                r#"<span class="RVadd" title="added info"><span class="wj">w</span></span>"#,
             ),
             (
                 r#"<span class="RVadd">RAW-alpha</span>"#,
-                r#"<span class="RVadd">RAW-alpha</span>"#,
+                r#"<span class="RVadd" title="added info">RAW-alpha</span>"#,
             ),
             (
                 r#"<span class="RVadd">123☺</span>"#,
-                r#"<span class="RVadd">123☺</span>"#,
+                r#"<span class="RVadd" title="added info">123☺</span>"#,
             ),
             (
                 r#"<span class="RVadd"><a title="x">w</a></span>"#,
-                r#"<span class="RVadd"><a title="x">w</a></span>"#,
+                r#"<span class="RVadd" title="added info"><a title="x">w</a></span>"#,
             ),
             (
                 r#"<span class="RVadd"><span class="nominaSacra">w</span></span>"#,
-                r#"<span class="RVadd"><span class="nominaSacra">w</span></span>"#,
+                r#"<span class="RVadd" title="added info"><span class="nominaSacra">w</span></span>"#,
             ),
         ];
         for (input, expected) in cases {
@@ -761,7 +758,7 @@ mod tests {
     #[test]
     fn lv_add_markers() {
         let input = r#"<span class="add">+art</span><span class="add">=cop</span><span class="add"><a title="x">deep</a></span><span class="add"><x></span><span class="add">>extra</span><span class="add">&own</span>"#;
-        let expected = r#"<span class="addArticle">art</span><span class="addCopula">cop</span><span class="add"><a title="x">deep</a></span><span class="addDirectObject">x></span><span class="addExtra">extra</span><span class="addOwner">own</span>"#;
+        let expected = r#"<span class="addArticle" title="added article">art</span><span class="addCopula" title="added copula">cop</span><span class="add" title="added info"><a title="x">deep</a></span><span class="addDirectObject" title="added direct object">x></span><span class="addExtra" title="added implied info">extra</span><span class="addOwner" title="added ‘owner’">own</span>"#;
         assert_eq!(lv(input), expected);
     }
 

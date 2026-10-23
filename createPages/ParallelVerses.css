@@ -190,6 +190,7 @@ span.va { vertical-align:super; font-size:0.5em; color:crimson; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.noVerse {} /* We don't have that verse */
+small.versificationRef {}
 span.d { color:sienna; }
 p.ms1 { text-align:center; font-weight:bold; font-size:1.5em; }
 p.ms2 { text-align:center; font-weight:bold; font-size:1.3em; }

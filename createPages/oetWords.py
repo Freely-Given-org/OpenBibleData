@@ -1,4 +1,10 @@
-"""OET word-table access. References may change; native row identifiers never do."""
+#!/usr/bin/env -S uv run
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""OET word-table access. References may change; native row identifiers never do.
+
+CHANGELOG:
+    2026-10-21 Exclude Hebrew paragraph-marker rows from UHB word alignment.
+"""
 import logging
 import re
 import unicodedata
@@ -75,8 +81,11 @@ def matchedHebrewWordRows(BBB, C, V, words, state):
     rows = mappedWordRows(state.BibleVersifications['UHB'], ((BBB,C,V),), state)
     table = state.OETRefData['word_tables'][wordTableName(BBB)]
     candidates = [(n, table[n].split('\t')) for n in rows]
+    # brightenUHB removes paragraph markers from the displayed word list.
+    # Keep maqaf/paseq rows: those separators still occupy positions in it.
     candidates = [(n, fields) for n, fields in candidates
-                  if 'note' not in fields[1] and consonants(fields[6])]
+                  if 'note' not in fields[1] and consonants(fields[6])
+                  and not (fields[1] == 'seg' and fields[5] in ('x-pe', 'x-samekh'))]
     if [consonants(word) for word in words] != [consonants(fields[6]) for _, fields in candidates]:
         raise ValueError(f'UHB {BBB} {C}:{V}: mapped word rows differ from the displayed Hebrew')
     return [n for n, _ in candidates]

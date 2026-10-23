@@ -47,6 +47,7 @@ span.glossPost { color:brown; }
 
 /* For our verses embedded in word pages */
 p.vRef { margin-bottom:0.2em; }
+small.versificationRef {}
 p.LVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-size:0.7em; }
 p.RVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-size:0.7em; }
 span.OET-LV_verseTextChunk {}

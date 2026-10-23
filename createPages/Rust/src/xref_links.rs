@@ -1,6 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Logic for livening cross-reference fields in USFM/HTML text.
 //!
 //! Port of `livenXRefField` from `usfm.py`.
+//!
+//! CHANGELOG:
+//!  2026-10-23: Separate note origins from target context; retain conjunctions and
+//!              verse lists, and disambiguate KJB-1611 Psalm/Proverb shorthand.
 
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -68,9 +73,20 @@ static CV_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})").unwrap()
 });
 
-/// Next verse reference regex (comma separated).
+/// A few KJB-1611 continuations omit the chapter/verse dot: "and 115 2".
+static KJB_SPACED_CV_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r" ?(?:and|&) +([1-9][0-9]{0,2}) +([1-9][0-9]{0,2})\b").unwrap()
+});
+
+/// Continuation reference: a verse list, or another C:V after a conjunction.
+/// Keep the separator so it cannot be discarded before interpreting the number.
 static NEXT_V_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r",([1-9][0-9]{0,2})").unwrap()
+    // No whitespace after a dot: in ",15. 1.Mac. 2.24" the 1 begins a book name.
+    Regex::new(r"(?:,\s*(?:(?:and|&)\s*)?|(?:\band\b|&)\s*)([1-9][0-9]{0,2})(?:[:.]([1-9][0-9]{0,2}))?[abc]?\b").unwrap()
+});
+
+static THIS_CHAPTER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)^[.\s]*(?:of|in) this chapter\b").unwrap()
 });
 
 // ---------------------------------------------------------------------------
@@ -101,17 +117,43 @@ impl std::error::Error for XRefError {}
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Regex pattern to match opening characters after a match so we can skip them.
-const SEPARATOR_PREFIXES: &[&str] = &[
-    ". and ", ". &c.", ".&c. ", ". & ", ". ,", ",", ".,",
-];
-
 /// Characters that can appear in a verse/chapter range tail.
 const RANGE_CHARS: &str = "-–1234567890abc:";
 
 /// Check if a character is part of a verse range tail.
 fn is_range_char(c: char) -> bool {
     RANGE_CHARS.contains(c)
+}
+
+/// Ambiguous historical shorthand cannot always be resolved by punctuation.
+/// Key exceptions by origin AND complete source field so ordinary verse lists
+/// (including verse 119) and revised source texts retain the general rules.
+enum AbbreviatedTarget {
+    Chapter(&'static str, &'static str),
+    Verse(&'static str, &'static str, &'static str),
+    Unresolved,
+}
+
+fn kjb_1611_abbreviated_target(
+    source_book: &str, source_ref: &str, field: &str, number: &str,
+) -> Option<AbbreviatedTarget> {
+    match (source_book, source_ref, field.trim(), number) {
+        ("PSA", "25:4", "Psa.27.11. & 86.11. & 119.", "119")
+        | ("PSA", "27:11", "Psal. 25.4 and 86.11 and 119.", "119") => {
+            Some(AbbreviatedTarget::Chapter("PSA", "119"))
+        }
+        ("PRO", "28:12", "Iohn 11.10. eccles. 10.6 and ver. 28.", "28") => {
+            Some(AbbreviatedTarget::Verse("PRO", "28", "28"))
+        }
+        // These source numbers exceed the target chapter's length. Preserve
+        // their wording without inventing a correction or creating a dead link.
+        ("SA1", "7:3", "Iosh. 14.15,23.", "23")
+        | ("PSA", "43:5", "Psal. 42.6. and 12.", "12")
+        | ("JER", "4:6", "Chap. 1.13, 14, 23. chap. 6.26.", "23") => {
+            Some(AbbreviatedTarget::Unresolved)
+        }
+        _ => None,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -171,41 +213,39 @@ where
 
     // --- Main loop ---
     let mut re_start_ix: usize = 0;
+    // Whole-book and multi-chapter views need the note's own origin, not the
+    // page's first chapter. Never overwrite it with a cross-reference target.
+    let source_c = xo_text.split_once(':')
+        .map(|(chapter, _)| chapter)
+        .filter(|chapter| !chapter.is_empty() && chapter.chars().all(|c| c.is_ascii_digit()))
+        .unwrap_or(c);
     let mut last_xr_bos_book_code = bos_book_code.to_string();
-    let mut last_xc: String = c.to_string();
-    let mut current_c = c.to_string(); // track xC within the loop
+    let mut last_xc = source_c.to_string();
+    let mut last_was_chapter = false;
 
     let loop_limit: usize = if segment_type == "book" { 599 } else { 50 };
 
     for _safety_count in 0..loop_limit {
-        // Skip past separator prefixes
-        loop {
-            let mut skipped = false;
-            for prefix in SEPARATOR_PREFIXES {
-                if xref_live_middle[re_start_ix..].starts_with(prefix) {
-                    re_start_ix += prefix.len();
-                    skipped = true;
-                    break;
-                }
-            }
-            if !skipped { break; }
-        }
-
         if re_start_ix >= xref_live_middle.len().saturating_sub(1) {
             break;
         }
 
         let slice = &xref_live_middle[re_start_ix..];
 
-        // Run all four captures on the slice
+        // Find explicit and abbreviated references without discarding separators.
         let cap_bcv = BCV_REF_REGEX.captures(slice);
         let cap_bv  = BV_REF_REGEX.captures(slice);
         let cap_cv  = CV_REF_REGEX.captures(slice);
         let cap_v   = NEXT_V_REF_REGEX.captures(slice);
+        let cap_spaced_cv = if version_abbreviation == "KJB-1611" {
+            KJB_SPACED_CV_REGEX.captures(slice)
+        } else {
+            None
+        };
 
         // Determine which match starts earliest.  Among ties prefer the longer span.
         #[derive(Clone, Copy, PartialEq, Eq)]
-        enum Kind { BCV, BV, CV, V }
+        enum Kind { BCV, BV, CV, V, SpacedCV }
 
         let mut best: Option<(usize, usize, Kind)> = None; // (start_in_slice, end_in_slice, kind)
 
@@ -226,6 +266,7 @@ where
         consider!(cap_bv,  Kind::BV);
         consider!(cap_cv,  Kind::CV);
         consider!(cap_v,   Kind::V);
+        consider!(cap_spaced_cv, Kind::SpacedCV);
 
         let (best_start, best_end, kind) = match best {
             Some(t) => t,
@@ -238,41 +279,82 @@ where
             Kind::BV  => cap_bv.unwrap(),
             Kind::CV  => cap_cv.unwrap(),
             Kind::V   => cap_v.unwrap(),
+            Kind::SpacedCV => cap_spaced_cv.unwrap(),
         };
 
         let first_start = best_start + re_start_ix;
         let first_end   = best_end   + re_start_ix;
+        let full_match = captures.get(0).unwrap().as_str().trim_start();
+        let before_match = xref_live_middle[..first_start].trim_end();
+        let joined = full_match.starts_with("and ")
+            || before_match.split_whitespace().next_back() == Some("and")
+            || before_match.ends_with('&');
+        let this_chapter = THIS_CHAPTER_REGEX.is_match(&xref_live_middle[first_end..]);
 
         // --- Determine xBBB, xC, xV from the match ---
         let mut xr_bos_book_code: Option<String> = None;
-        let mut xc = current_c.clone();
+        let mut xc = last_xc.clone();
         let mut xv = String::new();
         let mut xb_name = String::new();
+        let mut is_chapter = false;
+        let mut abbreviated_number = None;
 
         match kind {
             Kind::V => {
-                // Just a verse number, use current book + chapter
-                xv = captures.get(1).unwrap().as_str().to_string();
+                let number = captures.get(1).unwrap().as_str();
                 xr_bos_book_code = Some(last_xr_bos_book_code.clone());
-                if version_abbreviation == "BrTr" && bos_book_code == "JDG" {
-                    xc = "1".to_string();
+                if let Some(verse) = captures.get(2) {
+                    xc = number.to_string();
+                    xv = verse.as_str().to_string();
+                } else {
+                    abbreviated_number = Some(number);
+                    is_chapter = last_was_chapter;
+                    if is_chapter {
+                        xc = number.to_string();
+                        xv = "1".to_string();
+                    } else {
+                        xv = number.to_string();
+                        if version_abbreviation == "BrTr" && bos_book_code == "JDG" {
+                            xc = "1".to_string();
+                        }
+                    }
                 }
             }
-            Kind::CV => {
+            Kind::CV | Kind::SpacedCV => {
                 xc = captures.get(1).unwrap().as_str().to_string();
                 xv = captures.get(2).unwrap().as_str().to_string();
                 xr_bos_book_code = Some(last_xr_bos_book_code.clone());
             }
             Kind::BV => {
                 xb_name = captures.get(1).unwrap().as_str().trim().to_string();
-                let x_cor_v = captures.get(2).unwrap().as_str().to_string();
+                let number = captures.get(2).unwrap().as_str();
+                let x_cor_v = number.to_string();
+                abbreviated_number = Some(number);
 
                 // Check for verse-like words
                 let xb_lower = xb_name.to_lowercase();
-                if matches!(xb_lower.as_str(), "verses" | "verse" | "vers" | "ver" | "v" | "and") {
-                    xr_bos_book_code = Some(bos_book_code.to_string());
+                if xb_lower == "and" {
+                    xr_bos_book_code = Some(last_xr_bos_book_code.clone());
+                    is_chapter = last_was_chapter;
+                    if is_chapter {
+                        xc = x_cor_v;
+                        xv = "1".to_string();
+                    } else {
+                        xv = x_cor_v;
+                    }
+                } else if matches!(xb_lower.as_str(), "verses" | "verse" | "vers" | "ver" | "v") {
+                    xr_bos_book_code = Some(if joined && !this_chapter {
+                        last_xr_bos_book_code.clone()
+                    } else {
+                        xc = source_c.to_string();
+                        bos_book_code.to_string()
+                    });
                     xv = x_cor_v;
-                    xc = current_c.clone();
+                } else if matches!(xb_lower.as_str(), "chapter" | "chap" | "cha" | "c" | "ca") {
+                    xr_bos_book_code = Some(if joined { &last_xr_bos_book_code } else { bos_book_code }.to_string());
+                    xc = x_cor_v;
+                    xv = "1".to_string();
+                    is_chapter = true;
                 } else {
                     // Try single-chapter book lookup
                     if let Some(found_bos_book_code) = resolve_book_name(&xb_name, version_abbreviation, bos_book_code) {
@@ -282,6 +364,7 @@ where
                         } else {
                             xc = x_cor_v;
                             xv = "1".to_string();
+                            is_chapter = true;
                         }
                         xr_bos_book_code = Some(found_bos_book_code);
                     }
@@ -296,31 +379,38 @@ where
                 let full_match = captures.get(0).unwrap().as_str();
                 if full_match.contains('–') {
                     xv = "1".to_string();
+                    is_chapter = true;
                 }
 
                 xr_bos_book_code = resolve_book_name(&xb_name, version_abbreviation, bos_book_code).map(|s| s.to_string());
+                let xb_lower = xb_name.to_lowercase();
+                if xb_lower == "and" {
+                    xr_bos_book_code = Some(last_xr_bos_book_code.clone());
+                    if xc == "ver" {
+                        abbreviated_number = Some(captures.get(3).unwrap().as_str());
+                        xc = last_xc.clone();
+                        if this_chapter {
+                            xr_bos_book_code = Some(bos_book_code.to_string());
+                            xc = source_c.to_string();
+                        }
+                    }
+                } else if matches!(xb_lower.as_str(), "chapter" | "chap" | "cha" | "c" | "ca") {
+                    xr_bos_book_code = Some(if joined { &last_xr_bos_book_code } else { bos_book_code }.to_string());
+                }
             }
         }
 
         // --- KJB-1611 special handling for book name words ---
         if version_abbreviation == "KJB-1611" && kind == Kind::BCV {
             let xb_lower = xb_name.to_lowercase();
-            if matches!(xb_lower.as_str(), "and" | "ant" | "antiq" | "as" | "in" | "lambes" | "lib" | "see" | "the" | "to" | "called" | "araunah" | "dodo" | "elishua" | "vzziah" | "esdr" | "ez") {
+            if matches!(xb_lower.as_str(), "ant" | "antiq" | "as" | "in" | "lambes" | "lib" | "see" | "the" | "to" | "called" | "araunah" | "dodo" | "elishua" | "vzziah" | "esdr" | "ez") {
                 // Skip this word
                 re_start_ix = if xb_name == "to" { first_end } else { first_start + captures.get(1).unwrap().as_str().len() };
                 continue;
             }
-            if matches!(xb_lower.as_str(), "chap" | "cha" | "c") {
-                xr_bos_book_code = Some(bos_book_code.to_string());
-            }
             if matches!(xb_lower.as_str(), "verse" | "vers" | "ver") {
                 xr_bos_book_code = Some(bos_book_code.to_string());
-                xc = if !xo_text.is_empty() && xo_text.contains(':') {
-                    xo_text.split(':').next().unwrap_or("?").to_string()
-                } else {
-                    // Try to get from ref_tuple c
-                    current_c.clone()
-                };
+                xc = source_c.to_string();
             }
             // Special: "A&s" already replaced above
         }
@@ -351,9 +441,6 @@ where
 
         // --- KJB-1611 special post-processing ---
         if version_abbreviation == "KJB-1611" {
-            if matches!(xb_name.as_str(), "As" | "in" | "and") {
-                xr_bos_book_code = Some(last_xr_bos_book_code.clone());
-            }
             if xc == "ver" || xc == "Ver" {
                 if let Some(ref b) = xr_bos_book_code {
                     if bos_books_codes::is_single_chapter_book(b) {
@@ -361,7 +448,7 @@ where
                     } else if xb_name == "and" {
                         xc = last_xc.clone();
                     } else {
-                        xc = current_c.clone();
+                        xc = source_c.to_string();
                     }
                 }
             }
@@ -369,6 +456,29 @@ where
                 xr_bos_book_code = Some("NEH".to_string());
                 xc = "1".to_string();
                 xv = "1".to_string();
+            }
+            if let Some(number) = abbreviated_number {
+                if let Some(target) = kjb_1611_abbreviated_target(
+                    bos_book_code, xo_text, xref_original_middle, number,
+                ) {
+                    let (book, chapter, verse) = match target {
+                        AbbreviatedTarget::Chapter(book, chapter) => {
+                            is_chapter = true;
+                            (book, chapter, "1")
+                        }
+                        AbbreviatedTarget::Verse(book, chapter, verse) => {
+                            is_chapter = false;
+                            (book, chapter, verse)
+                        }
+                        AbbreviatedTarget::Unresolved => {
+                            re_start_ix = first_end;
+                            continue;
+                        }
+                    };
+                    xr_bos_book_code = Some(book.to_string());
+                    xc = chapter.to_string();
+                    xv = verse.to_string();
+                }
             }
         }
 
@@ -383,13 +493,11 @@ where
         };
 
         // Validate chapter/verse are digits
-        if !xc.chars().all(|c| c.is_ascii_digit()) || !xv.chars().all(|c| c.is_ascii_digit()) {
+        if xc.is_empty() || xv.is_empty()
+            || !xc.chars().all(|c| c.is_ascii_digit()) || !xv.chars().all(|c| c.is_ascii_digit()) {
             re_start_ix = first_end;
             continue;
         }
-
-        last_xr_bos_book_code = xr_bos_book_code.clone();
-        last_xc = xc.clone();
 
         // --- Capture the full match text (including range tail) ---
         let mut match_inner_end = first_end;
@@ -406,18 +514,14 @@ where
         // --- Validate chapter count ---
         let int_xc: i32 = xc.parse().unwrap_or(0);
         if int_xc > bos_books_codes::get_max_chapters(&xr_bos_book_code) as i32 {
-            if version_abbreviation == "KJB-1611" && bos_book_code == "EZR"
-                && xo_text == "3:10"
-                && (xc == "16" || xc == "25")
-            {
-                // Special case: link to 1 Chronicles
-                // This is a very specific KJB-1611 fix
-                re_start_ix = first_end;
-                continue;
-            }
             re_start_ix = first_end;
             continue;
         }
+
+        // Only a validated target may become the context of a later reference.
+        last_xr_bos_book_code = xr_bos_book_code.clone();
+        last_xc = xc.clone();
+        last_was_chapter = is_chapter;
 
         // --- Build the link ---
         let title_prefix = if field_type == "x" { "cross " } else { "" };
@@ -453,8 +557,6 @@ where
 
         xref_live_middle = format!("{}{}{}", &xref_live_middle[..first_start], inside, &xref_live_middle[match_inner_end..]);
         re_start_ix = first_start + inside.len();
-
-        current_c = xc.clone();
     }
 
     Ok(xref_live_middle)

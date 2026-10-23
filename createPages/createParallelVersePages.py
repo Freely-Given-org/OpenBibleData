@@ -32,6 +32,8 @@ main calls fullDemo()
 
 
 CHANGELOG:
+    2026-10-17 Log SR-GNT word-number mismatches as ERROR instead of CRITICAL.
+    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2023-10-23 Move SR-GNT up so it's under OET-LV
     2023-10-25 Add word numbers to SR-GNT words
     2023-12-15 Improve SR-GNT colorisation and add colourisation for other GNTs that differ
@@ -89,6 +91,9 @@ CHANGELOG:
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-16 Import German and Latin translations from their separate BOS modules.
     2026-10-17 Report books omitted from navigation and skip them before creating folders.
+    2026-10-21 Share version-level substituted pickles and merge forked workers' additions.
+    2026-10-21 Include OET colours in Hebrew keys when UHB alignment fails; handle standalone paragraph markers.
+    2026-10-23 Share grammatical colour-key definitions with word and lemma pages.
 """
 from pathlib import Path
 import os
@@ -100,9 +105,7 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
-from BibleOrgSys.Reference.LutherGermanToEnglish import translateGerman
-from BibleOrgSys.Reference.VulgateLatinToEnglish import translateLatin
+from substitutedVersions import getSubstitutedText, prepareSubstitutedVersions, saveSubstitutedVersions
 from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
@@ -110,6 +113,7 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from oetWords import matchedHebrewWordRows
+from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from navigation import navigationBookList
 from versification import (navigationVersification, parallelVersePassage,
                             versePortionHtml, MissingMappedBookError)
@@ -128,7 +132,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-17'
+LAST_MODIFIED_DATE = '2026-10-21'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.12'
@@ -158,6 +162,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
+    prepareSubstitutedVersions(state)
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
@@ -240,11 +245,13 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        for resultBool, BBB, versesWithImagesList, possibleUnmatchedProperNamesSet, spellCheckResults in results:
+        for resultBool, BBB, versesWithImagesList, possibleUnmatchedProperNamesSet, spellCheckResults, substitutions in results:
             assert resultBool is True
             if versesWithImagesList: state.versesWithImages[BBB].extend( versesWithImagesList )
             state.possibleUnmatchedProperNames.update( possibleUnmatchedProperNamesSet )
             mergeSpellCheckResults( spellCheckResults )
+            state.substitutedVersions.mergeWorkerResult(substitutions)
+    saveSubstitutedVersions(state)
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
@@ -277,23 +284,25 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 # end of createParallelVersePages.createParallelVersePages
 
 
-def _createParallelVersePagesForBook_MP( parameters ) -> tuple[bool,str,list,set,tuple]:
+def _createParallelVersePagesForBook_MP( parameters ) -> tuple[bool,str,list,set,tuple,tuple]:
     """
     Multiprocessing version! (forked children inherit our module-level state copy-on-write)
 
     Parameter is a 5-tuple containing the level, destination folder, BBB book code,
         next-book links, and the reordered list of parallel version abbreviations.
-    Returns a 5-tuple containing the True result of createParallelVersePagesForBook plus the BBB,
+    Returns a 6-tuple containing the True result of createParallelVersePagesForBook plus the BBB,
         this book's versesWithImages list, its possibleUnmatchedProperNames set, and its
-        collected spell-check results -- because changes that a child process makes
+        collected spell-check results and derived-edition additions -- because changes that a child process makes
         to the inherited state are lost when it exits.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_createParallelVersePagesForBook_MP( {parameters[:3]}… )" )
     level, folder, BBB, BBBNextLinks, parallelVersions = parameters
+    prepareSubstitutedVersions(state).startWorker()
     resultBool = createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     assert resultBool is True
     return ( resultBool, BBB, list(state.versesWithImages.get(BBB,())),
-                set(state.possibleUnmatchedProperNames), collectSpellCheckResults() )
+                set(state.possibleUnmatchedProperNames), collectSpellCheckResults(),
+                state.substitutedVersions.workerResult() )
 # end of createParallelVersePages._createParallelVersePagesForBook_MP
 
 
@@ -639,14 +648,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # if V=='4': assert False, "We want to stop here"
                                     if versionAbbreviation == 'Wycl': # not sure why it has grave accents in it ???
                                         footnoteFreeTextHtml = footnoteFreeTextHtml.replace( '`', '' )
-                                    modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml
+                                    modernisedTextHtml = getSubstitutedText( state, versionAbbreviation, sourceRef, footnoteFreeTextHtml
                                                                                     .replace('<span class="nd">L<span style="font-size:.75em;">ORDE</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'S')
                                                                                     .replace('<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'s'),
                                                                             allowOptions=True ) # Can return words like 'hateth/hates'
                                     if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                         modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                 .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
-                                                                .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                                                .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yubilee', 'Jubilee' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                     modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                     if state.DO_SPELL_CHECKS_FLAG:
                                         modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
@@ -805,16 +814,15 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         textHtml = f'{textHtml}{formatParallelVerseSecondaryLine(modernisedTextHtml)}'
                                     # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                                 elif versionAbbreviation in ('Luth','ClVg'):
-                                    translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
                                     adjustedForeignTextHtml = None
                                     if sourceC!='-1' and sourceV!='0' and textHtml:
                                         # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
                                         # assert footnoteFreeTextHtml.endswith( '</span>' )
                                         # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
                                         # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
-                                        adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
+                                        adjustedForeignTextHtml = getSubstitutedText( state, versionAbbreviation, sourceRef, footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
                                         if footnotesHtml:
-                                            translatedFootnotesHtml = removeDuplicateFNids( sourceRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
+                                            translatedFootnotesHtml = removeDuplicateFNids( sourceRef, f'{footnotesHtml}__JOIN__{getSubstitutedText( state, versionAbbreviation, sourceRef, footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"',''), kind="footnotes" )}' ).split( '__JOIN__' )[1]
                                             if state.DO_SPELL_CHECKS_FLAG:
                                                 translatedFootnotesHtml = spellCheckAndMarkHTMLText( versionAbbreviation, sourceRef, translatedFootnotesHtml, footnotesHtml, state ) # Puts spans around mispellings
                                     if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
@@ -948,11 +956,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         assert checkHtml( f'uhbTranscription {sourceRef}', uhbTranscription, segmentOnly=True )
                                         # if C=='2': assert False, "We want to stop here"
                                     collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.bos_to_osis_book_code(sourceBBB)}&c={sourceC}&v={sourceV}'
-                                    try:
-                                        keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+                                    keysHtml = ''
+                                    if sourceC!='-1' and sourceV!='0':
+                                        # OET rows are coloured independently of UHB word alignment.
+                                        # Describe every Hebrew colour already displayed above the key.
+                                        displayedClasses = {name for classes in re.findall(r'\bclass="([^"]*)"', f'{parallelHtml}{textHtml}')
+                                                            for name in classes.split()}
+                                        grammaticalKeysHtmlList = [keyHtml for name, keyHtml in HEBREW_CASE_CLASS_KEY_DICT.items()
+                                                                   if name in displayedClasses]
+                                        if grammaticalKeysHtmlList:
+                                            keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
     <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                    except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
-                                        keysHtml = ''
                                     textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
                                     if uhbTranscription:
                                         if sourceRef == 'JOS_16:0': assert False, "We want to stop here"
@@ -1283,13 +1297,6 @@ def getPlainText( givenVerseEntryList ) -> str:
 
 
 GREEK_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
-GREEK_CASE_CLASS_KEY_DICT = { 'grkVrb':'<span class="grkVrb">khaki</span>:verbs',
-                              'grkNom':'<span class="grkNom">light-green</span>:nominative/subject',
-                              'grkAcc':'<span class="grkAcc">orange</span>:accusative/object',
-                              'grkGen':'<span class="grkGen">pink</span>:genitive/possessor',
-                              'grkDat':'<span class="grkDat">cyan</span>:dative/indirect object',
-                              'grkVoc':'<span class="grkVoc">magenta</span>:vocative',
-                              'grkNeg':'<span class="grkNeg">red</span>:negative'}
 def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]:
     """
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
@@ -1333,7 +1340,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
         if not greekWord.startswith('κρ') and not greekWord.startswith('μακρ') and not greekWord.startswith('γενν'): # Seems there were some spelling changes
             # and greekWord not in ('κράββατον','κράββατόν'):
             if removeGreekAccents( greekWord.lower() ) != removeGreekAccents( strippedGrkWord.lower() ):
-                logging.critical( f"Unable to find word number for {brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
+                logging.error( f"Unable to find word number for {brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
                 break # We failed to match -- it's not critical so we'll just stop here (meaning we won't have all the word numbers for this verse)
             # assert greekWord.lower() == strippedGrkWord.lower(), f"{brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {grkWordNumbers=}"
         grkWordNumbers.append( currentWordNumber )
@@ -1441,16 +1448,6 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
 
 
 # HEBREW_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
-HEBREW_CASE_CLASS_KEY_DICT = { 'hebVrb':'<span class="hebVrb">khaki</span>:verbs',
-                            #   'hebNom':'<span class="hebNom">light-green</span>:nominative/subject',
-                            #   'hebAcc':'<span class="hebAcc">orange</span>:accusative/object',
-                            #   'hebGen':'<span class="hebGen">pink</span>:genitive/possessor',
-                            #   'hebDat':'<span class="hebDat">cyan</span>:dative/indirect object',
-                            #   'hebVoc':'<span class="hebVoc">magenta</span>:vocative',
-                              'hebNeg':'<span class="hebNeg">red</span>:negative',
-                              'hebEl':'<span class="hebEl">blue</span>:Elohim',
-                              'hebYhwh':'<span class="hebYhwh">green</span>:YHWH',
-                              }
 def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]:
     """
     Take the UHB text (which includes punctuation and might also include <br> characters and footnote callers)
@@ -1543,9 +1540,6 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                           .replace( '¶', ' ')
                           .replace( '־', ' ־ ') # We surrounded maqaf by spaces so it's processed like a word
                           .replace( '׀', ' ׀ ' ) # Same for HEBREW PUNCTUATION PASEQ U+05C0
-                          .replace( ' פ ', ' ') # Remove stand-alone pe, first one at Gen 35:22
-                          .replace( ' ס ', ' ') # Remove stand-alone samekh, first one at Deu 2:8
-                        #   .replace( ' ס', '') # Remove stand-alone samekh at end of strong, first one at Exo 14:25 XXX THIS IS DELETING SAMEKH AT START OF WORDS!!!!
                           .replace( '  ', ' ').replace( '   ', ' ')
                         #   .replace( '\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n', '' )
                           )
@@ -1555,12 +1549,11 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
     except ValueError: # No footnotes
         assert 'class="fn"' not in cleanedAdjustedBrightenUHBTextHtml
     assert 'width:40%' not in cleanedAdjustedBrightenUHBTextHtml, f"{UHBRef} {cleanedAdjustedBrightenUHBTextHtml=}"
-    if cleanedAdjustedBrightenUHBTextHtml.endswith(' פ'):
-        cleanedAdjustedBrightenUHBTextHtml = cleanedAdjustedBrightenUHBTextHtml[:-2] # Remove final stand-alone samekh
-        # print( f"{UHBRef} Did extra clean-up '{cleanedAdjustedBrightenUHBTextHtml.replace(WJ,'')}'")
     punctuatedHebWords = cleanedAdjustedBrightenUHBTextHtml.split( ' ' )
     strippedHebWords = []
     for punctuatedHebWord in punctuatedHebWords:
+        if punctuatedHebWord in ('פ', 'ס'):
+            continue # Standalone paragraph markers, including at the end of a verse
         if punctuatedHebWord.endswith( '׃׆ס' ):
             punctuatedHebWord = punctuatedHebWord[:-3] # Remove 'sof pasuq' and 'reverse nun' and 'samekh' Hebrew characters
         if punctuatedHebWord.endswith( '׃פ' ) or punctuatedHebWord.endswith( '׃ס' ): # We don't want to remove these from the end of normal words

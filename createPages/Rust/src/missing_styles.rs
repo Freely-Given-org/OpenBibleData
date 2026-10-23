@@ -7,6 +7,9 @@
 //! merged lookup) in static caches populated once per process, does the
 //! per-line scan in one pass, and returns only the missing `(element, class)`
 //! pairs for Python to report (byte-identical messages to the old code).
+//!
+//! CHANGELOG:
+//!     2026-10-23 Recognise small.class selectors used by verse-number mapping notes.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -232,6 +235,20 @@ pub fn parse_css_text(stylesheet_name: &str, text: &str) -> Result<ClassMap, Str
                 format!("li.{class_name} already in {stylesheet_name}"),
             )?;
             lst.insert("li".to_string());
+        } else if let Some(tail) = ss_line.strip_prefix("small.") {
+            let class_name = tail.split(' ').next().unwrap_or("").to_string();
+            strict_check(
+                strict,
+                !class_name.contains(' ') && !class_name.contains(','),
+                format!("small class {class_name:?}"),
+            )?;
+            let lst = map.entry(class_name.clone()).or_default();
+            strict_check(
+                strict,
+                !lst.contains("small"),
+                format!("small.{class_name} already in {stylesheet_name}"),
+            )?;
+            lst.insert("small".to_string());
         } else if let Some(tail) = ss_line.strip_prefix("body.") {
             let class_name = tail.split(' ').next().unwrap_or("").to_string();
             strict_check(
@@ -452,6 +469,7 @@ h1.PromisedLand, p.PromisedLand { color:gold; }\n\
 ol.verse { color:black; }\n\
 ol.foo { color:black; }\n\
 li.foo { color:black; }\n\
+small.versificationRef {}\n\
 body.container { color:black; }\n\
 img.icon { color:black; }\n\
 hr.foo { color:black; }\n\
@@ -473,6 +491,7 @@ a.PLS { color:black; }\n\
         assert!(map["verse"].contains("ol"));
         assert!(map["foo"].contains("ol"));
         assert!(map["foo"].contains("li"));
+        assert_eq!(map["versificationRef"], HashSet::from(["small".to_string()]));
         assert!(map["container"].contains("body"));
         assert!(map["icon"].contains("img"));
         assert!(map["PLS"].contains("a"));

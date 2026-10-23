@@ -1,5 +1,10 @@
+#!/usr/bin/env -S uv run
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Offline mapping tests, including the production Rust bridge when available.
 CHANGELOG:
+    2026-10-23 Distinguish shared OET/RV section links from version switching.
+    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
 """
 import ast
@@ -80,8 +85,18 @@ class NavigationTests(unittest.TestCase):
         result = nav.mapHtmlLinks(html, 'OET-LV', 2, self.state, reference=('MAL','3','19'), navigationVersion='OET')
         self.assertIn('href="#LV_C3V19"', _namespaceIds(result, 'LV_'))
 
+    def test_combined_oet_sections_keep_rv_addresses(self):
+        html = '<a title="Jump to section" href="../../OET/bySec/MRK_S0.htm#C1V1">1:1-13</a>'
+        mapped = nav.mapHtmlLinks(html, 'OET-RV', 2, self.state, segmentType='parallelVerse')
+        self.assertEqual(mapped, html.replace('href=', 'data-vref="mapped" href='))
+        self.assertEqual(nav.mapHtmlLinks(mapped, 'OET-RV', 2, self.state), mapped)
+        # Version-bar links still select a chapter in the target edition.
+        switched = nav.mapHtmlLinks(html, 'OET-RV', 2, self.state, versionBar=True)
+        self.assertIn('OET/byC/MRK_C1.htm#C1V1', switched)
+        self.assertNotIn('bySec', switched)
+
     def test_unsupported_mapping_is_not_a_guessed_link(self):
-        self.state.BibleVersifications = dict(self.state.BibleVersifications, **{'OET-LV':'KJV'})
+        self.state.BibleVersifications = dict(self.state.BibleVersifications, **{'OET-LV':'Original'})
         self.assertEqual(nav.mapHtmlLinks('<a href="../../par/PSA/C3V2.htm">2</a>', 'OET-LV', 2, self.state), '2')
 
     def test_json_metadata_keeps_native_ref_and_separate_english_ref(self):
@@ -90,9 +105,10 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(original['ref'], 'MAL_3:19w1')
         self.assertEqual(original['word_number'], 381095)
         self.assertEqual(original['navigation_references'], ['MAL_4:1'])
-        self.assertEqual(original['versification'], 'org')
+        self.assertEqual(original['versification'], 'OET-LV')
 
     def test_one_native_reference_can_have_several_english_destinations(self):
+        self.state.BibleVersifications = dict(self.state.BibleVersifications, **{'OET-LV':'org'})
         engine = VersificationMappingEngine({'maxVerses':{'GEN':[3]}}, {
             'org':{'maxVerses':{'GEN':[3]},'identityBooks':{'GEN':'GEN'}},
             'eng':{'maxVerses':{'GEN':[4]},'groupMappings':[{'source':'GEN 1:1-2','target':'GEN 1:1'}]},

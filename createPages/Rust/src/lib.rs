@@ -1,4 +1,7 @@
 //! PyO3 module exposing OpenBibleData Rust extensions.
+//!
+//! CHANGELOG:
+//!     2026-10-23 Keep the section cache's source dict alive to prevent stale identity hits.
 
 /// Use a faster/scalable allocator for this cdylib's Rust allocations when the
 /// `allocator-mimalloc` cargo feature is enabled (default: off).
@@ -28,6 +31,7 @@ pub mod roman_numerals;
 pub mod section_numbers;
 pub mod character_formatting;
 pub mod html_customisations;
+mod oet_html;
 pub mod html_validation;
 pub mod missing_styles;
 pub mod xref_links;
@@ -186,40 +190,40 @@ fn log_message(py: Python<'_>, level: &str, message: &str) {
 ///
 /// Stored as an `Arc` so that each call cheaply clones the ref-count (not the
 /// data) into the `find_section_fn` closure, avoiding a full cache clone.
-static SECTION_LOOKUP_CACHE: Mutex<Option<(usize, Arc<section_numbers::SectionLookupCache>)>> =
+/// Retain the source dict too: its address may otherwise be reused after a
+/// short-lived State is dropped, incorrectly matching a different section list.
+static SECTION_LOOKUP_CACHE: Mutex<Option<(Py<PyAny>, Arc<section_numbers::SectionLookupCache>)>> =
     Mutex::new(None);
 
 /// Return a reference-counted handle to the section-lookup cache for the given
 /// `state`, building it on first use (or when the dict object changes).
 fn cached_section_lookup_cache(state: Option<&Bound<'_, PyAny>>) -> Option<Arc<section_numbers::SectionLookupCache>> {
     let state_obj = state?;
-    let identity = state_obj.getattr("sectionsListsForSections").ok()?
-        .as_ptr() as usize;
+    let sections_lists = state_obj.getattr("sectionsListsForSections").ok()?;
 
     {
         let guard = SECTION_LOOKUP_CACHE.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some((cached_identity, cache)) = guard.as_ref() {
-            if *cached_identity == identity {
+        if let Some((cached_source, cache)) = guard.as_ref() {
+            if cached_source.as_ptr() == sections_lists.as_ptr() {
                 return Some(cache.clone());
             }
         }
     }
 
-    let built = state_obj.getattr("sectionsListsForSections").ok()
-        .and_then(|sections_lists| build_section_lookup_cache(&sections_lists));
+    let built = build_section_lookup_cache(&sections_lists);
 
     let mut guard = SECTION_LOOKUP_CACHE.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some((cached_identity, cache)) = guard.as_ref() {
+    if let Some((cached_source, cache)) = guard.as_ref() {
         // Another call snuck in and rebuilt for this identity while we were
         // building; reuse it rather than replacing with a duplicate.
-        if *cached_identity == identity {
+        if cached_source.as_ptr() == sections_lists.as_ptr() {
             return Some(cache.clone());
         }
     }
     match built {
         Some(cache) => {
             let cache = Arc::new(cache);
-            *guard = Some((identity, cache.clone()));
+            *guard = Some((sections_lists.unbind(), cache.clone()));
             Some(cache)
         }
         None => None,

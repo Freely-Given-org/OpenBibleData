@@ -4,8 +4,11 @@ From OpenBibleData:
     uv run python -m unittest discover -s createPages -p test_versification.py
 
 CHANGELOG:
+    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
     2026-10-17 Cover missing navigation books in page loops, links, and forked jobs.
+    2026-10-17 Keep combined-passage notes out of verse text, including OET's nested label.
+    2026-10-21 Include derived-edition lifecycle in the parent/worker navigation fixture.
 """
 import ast
 from collections import defaultdict
@@ -34,6 +37,7 @@ from settings import State
 import versification as vf
 from navigation import navigationBookList
 from parallel import runParallelPages
+from substitutedVersions import prepareSubstitutedVersions, saveSubstitutedVersions
 
 
 class MappingTests(unittest.TestCase):
@@ -90,10 +94,10 @@ class MappingTests(unittest.TestCase):
     def test_cached_declarations_are_refreshed(self):
         old = pickle.loads(pickle.dumps(Bible(versification='eng')))
         vf.configureBibleVersification(old, 'OET-LV', self.state)
-        self.assertEqual(old.getVersificationSystemName(), 'org')
+        self.assertEqual(old.getVersificationSystemName(), 'OET-LV')
         old = pickle.loads(pickle.dumps(Bible()))
         vf.configureBibleVersification(old, 'OET-RV', self.state)
-        self.assertEqual(old.getVersificationSystemName(), 'eng')
+        self.assertEqual(old.getVersificationSystemName(), 'OET-RV')
 
     def test_luther_configuration_maps_instead_of_suppressing_text(self):
         luther = vf.configureBibleVersification(Bible(), 'Luth', self.state)
@@ -111,7 +115,7 @@ class MappingTests(unittest.TestCase):
 
     def test_unavailable_and_ambiguous_results_never_fall_back(self):
         for bible, reference, status in (
-            (Bible(versification='KJV'), ('PSA','3','1'), MappingStatus.UNSUPPORTED),
+            (Bible(versification='Original'), ('PSA','3','1'), MappingStatus.UNSUPPORTED),
             (Bible(), ('GEN','1','1'), MappingStatus.UNSUPPORTED),
             (Bible(versification='vul'), ('TOB','1','1'), MappingStatus.UNSUPPORTED),
             (Bible(versification='org'), ('PSA','13','5'), MappingStatus.PARTIAL),
@@ -234,13 +238,56 @@ class TextRetrievalTests(unittest.TestCase):
             vf.getVersePortions(self.bible, (('GEN','1','1',None),), {})
 
     def test_portion_html_uses_native_label_and_unique_footnote_ids(self):
-        html = '<p id="LV"><span><a href="LV/byC/MAL_C3.htm#V19">LV</a></span><a href="#fn1">†</a></p><p id="fn1"><a href="#C3V19">3:19</a></p>'
+        html = '<p id="LV"><span class="wrkName"><a href="LV/byC/MAL_C3.htm#V19">LV</a></span><a href="#fn1">†</a></p><p id="fn1"><a href="#C3V19">3:19</a></p>'
         result = vf.versePortionHtml(html, 'LV', ('MAL','3','19'), ('MAL','4','1'), 1)
         self.assertIn('(MAL 3:19)', result)
         self.assertIn('href="LV/byC/MAL_C3.htm#V19"', result)
         self.assertIn('id="fn1_part2"', result)
         self.assertIn('href="#fn1_part2"', result)
         self.assertIn('href="#LV_part2"', result)
+
+
+class PortionHtmlTests(unittest.TestCase):
+    oetHeading = ('<span id="C1V1" class="wrkName">'
+                  '<a title="View OET section" href="OET/bySec/JN1_S2.htm#V1">OET</a> '
+                  '<small>(<a title="View OET-RV section" href="OET-RV/bySec/JN1_S2.htm#V1">'
+                  'OET-RV</a>)</small></span>')
+    verse = (' <span class="v">1-3</span> <span class="OET-RV_verseTextChunk">'
+             'We are reporting: <b><i><span class="nominaSacra">'
+             '<a title="Ἰησοῦ" href="../../ref/GrkWrd/JN1c1v3w34.htm#Top">Yeshua</a></span> '
+             'the messiah and son of God</i></b>.</span></p>')
+
+    def test_combined_passage_is_only_in_version_tooltips(self):
+        explanation = ('Combined passage: English JN1 1:1–3 '
+                       '(native JN1 1:1–3; verse text cannot be split).')
+        combined = f'<small class="versificationRef">{explanation}</small> '
+        for heading in (self.oetHeading,
+                        '<span class="wrkName"><a title="View version" href="chapter.htm">ASV</a></span>',
+                        '<span class="wrkName">ASV</span>'):
+            for pageVerse in ('1', '2', '3'):
+                with self.subTest(heading=heading, pageVerse=pageVerse):
+                    html = f'<p id="OET-RV">{heading}{self.verse}'
+                    result = vf.versePortionHtml(html, 'OET-RV', ('JN1','1','1'), ('JN1','1',pageVerse), 0, combined)
+                    self.assertEqual(re.sub(r'<[^>]+>', '', result), re.sub(r'<[^>]+>', '', html))
+                    self.assertTrue(result.endswith(self.verse))
+                    self.assertNotIn('class="versificationRef"', result)
+                    titles = re.findall(r'title="([^"]*)"', result[:-len(self.verse)])
+                    self.assertTrue(titles)
+                    self.assertTrue(all(title.endswith(explanation) for title in titles))
+                    for title in re.findall(r'title="([^"]*)"', heading):
+                        self.assertIn(f'title="{title} {explanation}"', result)
+
+    def test_native_reference_follows_complete_oet_heading(self):
+        html = f'<p id="OET-RV">{self.oetHeading}{self.verse}'
+        result = vf.versePortionHtml(html, 'OET-RV', ('MAL','3','19'), ('MAL','4','1'), 0)
+        self.assertIn(f'{self.oetHeading} <small class="versificationRef">(MAL 3:19)</small>', result)
+        self.assertTrue(result.endswith(self.verse))
+
+    def test_missing_heading_never_inserts_note_into_a_word_link(self):
+        html = f'<p>{self.verse}'
+        for combined in ('', '<small class="versificationRef">Combined passage.</small>'):
+            with self.subTest(combined=combined):
+                self.assertEqual(vf.versePortionHtml(html, 'OET-RV', ('JN1','1','1'), ('JN1','1','3'), 0, combined), html)
 
 
 class ParallelPageTests(unittest.TestCase):
@@ -289,6 +336,7 @@ class ParallelPageTests(unittest.TestCase):
             checkHtml=lambda *args,**kwargs: True,
             getVerseMetaInfoHtml=lambda *args: '',
             convertVerseEntryListToHtml=render,
+            getSubstitutedText=lambda state, version, reference, text, **kwargs: text,
             handleAndExtractFootnotes=lambda version,text: (text,text,''),
             do_OET_LV_HTMLcustomisations=lambda location,text: text,
             convert_adds_to_italics=lambda text,*args: text,
@@ -374,7 +422,7 @@ class ParallelPageTests(unittest.TestCase):
 
     def test_unsupported_alignment_is_visible_without_wrong_text(self):
         bible = self.load('MAL', '\\c 3\n\\p\n\\v 1 Wrong if used on page 4:1.\n')
-        bible.setVersificationSystem('KJV')
+        bible.setVersificationSystem('Original')
         self.runBook('MAL')
         page = (self.output/'MAL/C4V1.htm').read_text()
         self.assertIn('Verse alignment unavailable (unsupported)', page)
@@ -452,6 +500,8 @@ class NavigationBookSelectionTests(unittest.TestCase):
                     state = SimpleNamespace(navigationVersification='eng',
                         allBBBs=['MAL','ESA','MAT','FRT','TOB'], booksToLoad={'OET':['MAL','ESA','MAT','FRT']},
                         preloadedBibles={}, BibleVersions=['UTN'], TEST_MODE_FLAG=False,
+                        BibleLocations={}, SUBSTITUTED_VERSIONS_FOLDER=Path(temp)/'cache',
+                        CACHE_SUBSTITUTED_VERSIONS_FLAG=True, LOAD_RESOURCES_FROM_PICKLES_FLAG=True,
                         UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG=False, DO_SPELL_CHECKS_FLAG=False)
 
                     def createBook(level, output, BBB, links, *args):

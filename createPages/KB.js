@@ -1,7 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
 // Adapted from https://ralzohairi.medium.com/adding-custom-keyboard-shortcuts-to-your-website-b4151fda2e7a
 //  and from https://stackoverflow.com/questions/53192433/how-to-detect-swipe-in-javascript
 //
-// Last modified by RJH: 2026-03-22
+// CHANGELOG:
+//  2026-10-17 Require deliberate horizontal swipes and preserve vertical scrolling.
+// Last modified: 2026-10-17
+
+// Distances are CSS pixels, independent of the phone's screen density.
+const SWIPE_MIN_DISTANCE = 80;
+const SWIPE_HORIZONTAL_RATIO = 2;
+const SWIPE_SCROLL_LOCK_DISTANCE = 12;
 
 var initialX = null;
 var initialY = null;
@@ -10,19 +19,32 @@ const container = document.querySelector(".container");
 
 if (container != null) {
     container.addEventListener("touchstart", startTouch, false);
-    container.addEventListener("touchmove", moveTouch, false);
+    container.addEventListener("touchmove", moveTouch, { passive: false });
+    container.addEventListener("touchend", resetTouch, false);
+    container.addEventListener("touchcancel", resetTouch, false);
 }
 
 function startTouch(e) {
+    // Pinching or any other multi-finger gesture must not change pages.
+    if (e.touches.length !== 1) {
+        resetTouch();
+        return;
+    }
     initialX = e.touches[0].clientX;
     initialY = e.touches[0].clientY;
 };
 
+function resetTouch() {
+    initialX = null;
+    initialY = null;
+};
+
 function moveTouch(e) {
-    if (initialX === null) {
+    if (e.touches.length !== 1) {
+        resetTouch();
         return;
     }
-    if (initialY === null) {
+    if (initialX === null || initialY === null) {
         return;
     }
 
@@ -31,34 +53,26 @@ function moveTouch(e) {
 
     var diffX = initialX - currentX;
     var diffY = initialY - currentY;
+    var distanceX = Math.abs(diffX);
+    var distanceY = Math.abs(diffY);
 
-  // Swipe Up / Down / Left / Right
-  if (Math.abs(diffX) > Math.abs(diffY)) {
-    // sliding horizontally
-    if (diffX < 0) {
-      // swiped left
-      // console.log("swiped left");
-      handleChange( 'Previous' );
-    } else {
-      // swiped right
-      // console.log("swiped right");
-      handleChange( 'Next' );
+    // Once vertical or diagonal scrolling starts, ignore sideways drift until the next touch.
+    if (distanceY >= SWIPE_SCROLL_LOCK_DISTANCE && distanceX < distanceY * SWIPE_HORIZONTAL_RATIO) {
+        resetTouch();
+        return;
     }
-  // } else {
-  //   // sliding vertically
-  //   if (diffY > 0) {
-  //     // swiped up
-  //     console.log("swiped up");
-  //   } else {
-  //     // swiped down
-  //     console.log("swiped down");
-  //   }
-  }
 
-  initialX = null;
-  initialY = null;
+    // Keep measuring small movements, but allow the browser to scroll normally.
+    if (distanceX < SWIPE_MIN_DISTANCE || distanceX < distanceY * SWIPE_HORIZONTAL_RATIO) {
+        return;
+    }
 
-  e.preventDefault();
+    // A rightward swipe goes back; a leftward swipe goes forward. Only once per touch.
+    resetTouch();
+    if (e.cancelable) {
+        e.preventDefault();
+    }
+    handleChange( diffX < 0 ? 'Previous' : 'Next' );
 };
 
 // Keep track of clicked keys
@@ -126,11 +140,3 @@ document.onkeyup = (keyUpEvent) => {
     // Track key release
     isKeyPressed[keyUpEvent.key] = false;
 };
-
-// window.onload = function() {
-//     // var userImage = document.getElementById('imageOtherUser');
-//     var hangoutButton = document.getElementById("hangoutButtonId");
-//     // userImage.onclick = function() {
-//     //    hangoutButton.click(); // this will trigger the click event
-//     // };
-// };

@@ -68,6 +68,8 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-08 Updated to handle additional Speakers column in our sentenceImportance DB
     2026-10-16 Extract BibleMapper index preloading so forked page workers can inherit the cache.
+    2026-10-21 Validate source manifests for the ten persistently substituted editions.
+                Recover genuine USFM sources when BOS filename guessing selects a pickle.
 """
 from datetime import datetime
 import os, os.path
@@ -78,6 +80,7 @@ from xml.etree.ElementTree import ElementTree, ParseError
 import shutil
 from collections import defaultdict
 import pickle
+from substitutedVersions import SUBSTITUTED_VERSIONS, sourceManifest, prepareSubstitutedVersions
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
@@ -119,6 +122,47 @@ BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
 BIBLE_IMAGES_PATH = Path( '../copiedBibles/images/' )
 NEWLINE = '\n'
 
+
+
+class SourceManifestMismatch(ValueError):
+    """An original Bible pickle predates its source manifest or has stale sources."""
+
+
+def repairUSFMSourceFilenames(bible, manifest):
+    """Never let filename guessing treat an OBD pickle as a Bible source.
+
+    BOS can guess EST from a subset-pickle filename and overwrite its correct
+    USFM discovery. Resolve such collisions using the actual source id fields.
+    """
+    badBooks = {BBB for BBB, filename in bible.maximumPossibleFilenameTuples
+                if filename.endswith('.pickle')}
+    if not badBooks:
+        return
+    replacements = {}
+    for filename, _mtime, _size in manifest:
+        path = Path(filename)
+        try:
+            with path.open(encoding='utf-8-sig') as source:
+                for _ in range(8):
+                    line = source.readline(4096)
+                    if not line:
+                        break
+                    if line.startswith('\\id '):
+                        BBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code(line.split()[1])
+                        if BBB in badBooks:
+                            if BBB in replacements:
+                                raise ValueError(f'{bible.abbreviation} has multiple source files for {BBB}')
+                            replacements[BBB] = str(path.relative_to(Path(bible.sourceFolder).resolve()))
+                        break
+        except UnicodeError:
+            continue # Non-text auxiliary file, never a USFM book.
+    if badBooks != replacements.keys():
+        raise ValueError(f'{bible.abbreviation}: cannot find real sources for {sorted(badBooks - replacements.keys())}')
+    bible.maximumPossibleFilenameTuples = [(BBB, replacements.get(BBB, filename))
+                                          for BBB, filename in bible.maximumPossibleFilenameTuples]
+    bible.possibleFilenameDict.update(replacements)
+    logging.warning('%s: replaced mistaken pickle sources with real USFM files: %s',
+                    bible.abbreviation, replacements)
 
 
 def preloadVersions( state:State ) -> int:
@@ -217,6 +261,14 @@ def preloadVersions( state:State ) -> int:
                                 continue
                             else: # for Bibles
                                 newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
+                                if (versionAbbreviation in SUBSTITUTED_VERSIONS
+                                    and getattr(newBibleObj, '_OBDSourceManifest', None)
+                                        != sourceManifest(folderOrFileLocationPath)):
+                                    raise SourceManifestMismatch(f'{versionAbbreviation} source manifest changed or is missing')
+                                if (versionAbbreviation in SUBSTITUTED_VERSIONS
+                                    and any(filename.endswith('.pickle') for filename in
+                                            getattr(newBibleObj, 'possibleFilenameDict', {}).values())):
+                                    raise SourceManifestMismatch(f'{versionAbbreviation} pickle contains mistaken source filenames')
                                 configureBibleVersification( newBibleObj, versionAbbreviation, state )
                                 # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
                                 # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
@@ -225,6 +277,8 @@ def preloadVersions( state:State ) -> int:
                                 assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
                                 state.preloadedBibles[versionAbbreviation] = newBibleObj
                                 continue
+                        except SourceManifestMismatch as e:
+                            vPrint('Normal', DEBUGGING_THIS_MODULE, f'Reloading Bible sources: {e}')
                         except pickle.UnpicklingError as e:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got UnpicklingError from {pickleFilename} in {pickleFolderPath}: {e}")
                         except TypeError as e:
@@ -298,6 +352,10 @@ def preloadVersions( state:State ) -> int:
             logging.critical( f"createPages preloadVersions() has no folder location to find ‘{versionAbbreviation}’" )
             assert 'OET' not in versionAbbreviation
             state.BibleVersions.remove( versionAbbreviation )
+    # Reinitialise on every preload, including repeated builds in one process.
+    if 'substitutedVersions' in vars(state):
+        delattr(state, 'substitutedVersions')
+    prepareSubstitutedVersions(state)
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
 
@@ -311,6 +369,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( ‘{versionAbbreviation}’, '{folderOrFileLocation}', … ){' in TEST mode' if state.TEST_MODE_FLAG else ''}" )
     versionName = state.BibleNames[versionAbbreviation]
+    originalSourceManifest = (sourceManifest(folderOrFileLocation)
+                              if versionAbbreviation in SUBSTITUTED_VERSIONS else None)
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
@@ -566,12 +626,16 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
+        if originalSourceManifest is not None:
+            thisBible.preload()
+            repairUSFMSourceFilenames(thisBible, originalSourceManifest)
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
             # We assume that we can load all books, even for OT and NT
             #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
             thisBible.loadBooks() # So we can iterate through them all later
         else: # only load the specific books as we need them
-            thisBible.preload()
+            if not thisBible.preloadDone:
+                thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
     if isinstance(thisBible, Bible):
@@ -604,6 +668,10 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         if len(thisBible): # makeSectionIndex fails in DEBUG mode if no books were actually loaded
             thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
 
+        if originalSourceManifest is not None:
+            if sourceManifest(folderOrFileLocation) != originalSourceManifest:
+                raise RuntimeError(f'{versionAbbreviation} sources changed while loading; rerun the build')
+            thisBible._OBDSourceManifest = originalSourceManifest
         if WRITE_PICKLES_FLAG:
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
                                 if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \

@@ -31,6 +31,9 @@
  * The three data-par-* attributes mirror the small ↕ / ⱦ / C buttons on the
  * parallel verse pages; see the "Parallel verse display toggles" section at
  * the bottom of this stylesheet.
+ *
+ * CHANGELOG:
+ *   2026-10-17 Hide grammatical backgrounds on links as well as spans.
  */
 
 /* ---- Site-wide colour palette (CSS custom properties) ---- */
@@ -627,16 +630,17 @@ html[data-par-translit="hide"] span.RV_mod { display: none; }
  * but dropping the background produces the polished plain look without needing
  * per-family overrides; the dark-mode text-colour override above still applies,
  * so a white background stays readable in both themes. The class list matches
- * the colours.hide_grammatical_colours() functions in Dict.js / Bible.js. */
-html[data-par-colours="hidden"] span.grkNom,
-html[data-par-colours="hidden"] span.grkAcc,
-html[data-par-colours="hidden"] span.grkGen,
-html[data-par-colours="hidden"] span.grkDat,
-html[data-par-colours="hidden"] span.grkVoc,
-html[data-par-colours="hidden"] span.grkVrb,
-html[data-par-colours="hidden"] span.grkNeg,
-html[data-par-colours="hidden"] span.hebVrb,
-html[data-par-colours="hidden"] span.hebNeg,
-html[data-par-colours="hidden"] span.hebEl,
-html[data-par-colours="hidden"] span.hebYhwh,
+ * the colours.hide_grammatical_colours() functions in Dict.js / Bible.js.
+ * Grammatical classes are used on both word links and spans. */
+html[data-par-colours="hidden"] .grkNom,
+html[data-par-colours="hidden"] .grkAcc,
+html[data-par-colours="hidden"] .grkGen,
+html[data-par-colours="hidden"] .grkDat,
+html[data-par-colours="hidden"] .grkVoc,
+html[data-par-colours="hidden"] .grkVrb,
+html[data-par-colours="hidden"] .grkNeg,
+html[data-par-colours="hidden"] .hebVrb,
+html[data-par-colours="hidden"] .hebNeg,
+html[data-par-colours="hidden"] .hebEl,
+html[data-par-colours="hidden"] .hebYhwh,
 html[data-par-colours="hidden"] span.noLinkYet { background-color: white; }

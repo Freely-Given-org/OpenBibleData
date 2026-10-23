@@ -5,9 +5,14 @@
 
 Keep this module independent of the site renderer so it can be tested with small
 USFM fixtures. BOS owns the mapping data and all decisions about correspondence.
+
+CHANGELOG:
+    2026-10-17 Keep combined-passage explanations in version-label tooltips,
+               and target version labels explicitly when adding native references.
 """
 from functools import lru_cache
 import re
+from xml.sax.saxutils import escape
 
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.Internals.InternalBiblePassages import MissingPassageBookError as MissingMappedBookError
@@ -183,7 +188,7 @@ def parallelVersePassage(version, bible, reference, state, chapterCache):
 
 
 def versePortionHtml(html, version, nativeRef, pageRef, portionNumber, combinedLabel=''):
-    """Label changed addresses and isolate ids/callers in additional portions."""
+    """Annotate version labels and isolate ids/callers in additional portions."""
     # Native footnote return addresses need a real anchor on this English page.
     BBB, C, V = nativeRef
     html = html.replace(f'href="#C{C}V{V}"', f'href="#{version}"')
@@ -194,8 +199,20 @@ def versePortionHtml(html, version, nativeRef, pageRef, portionNumber, combinedL
             html = html.replace(f'id="{original}"', f'id="{replacement}"')
             html = html.replace(f'href="#{original}"', f'href="#{replacement}"')
     if combinedLabel or (tuple(nativeRef) != tuple(pageRef) and nativeRef[1] != '-1'):
-        BBB, C, V = nativeRef
-        label = combinedLabel or f'<small class="versificationRef">({BBB} {C}:{V})</small>'
-        # Immediately after the version label, before the verse's own markup.
-        html = html.replace('</a></span>', f'</a></span> {label}', 1)
+        # OET's version label includes a nested <small>(<a>OET-RV</a>)</small>.
+        # A bare </a></span> search can match a scripture word link instead.
+        heading = re.search(r'<span\b[^>]*\bclass="wrkName[^"]*"[^>]*>.*?</span>', html, re.DOTALL)
+        if heading:
+            label = heading.group()
+            if combinedLabel:
+                explanation = escape(re.sub(r'<[^>]+>', '', combinedLabel).strip(), {'"': '&quot;'})
+                # Links have their own titles, which override a parent tooltip.
+                label, count = re.subn(r' title="([^"]*)"',
+                    lambda match: f' title="{match[1]} {explanation}"', label)
+                if not count:
+                    label = label.replace('<span ', f'<span title="{explanation}" ', 1)
+            else:
+                BBB, C, V = nativeRef
+                label += f' <small class="versificationRef">({BBB} {C}:{V})</small>'
+            html = html[:heading.start()] + label + html[heading.end():]
     return html

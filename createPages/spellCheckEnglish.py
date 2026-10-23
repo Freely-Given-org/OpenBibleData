@@ -28,6 +28,8 @@
 Script to spell check English Bible verses.
 
 CHANGELOG:
+    2026-10-23 Accept combined OET formatting titles and LV addition descriptions
+    2026-10-23 Accept house(hold) in OET-LV after trailing punctuation cleanup
     2024-03-13 Added check for duplicated words
     2025-03-10 Added support for a few more internal USFM markers
     2025-04-16 Added support for removing some technical English words, but which aren't used in Bibles and so should be spelling errors
@@ -42,6 +44,10 @@ CHANGELOG:
     2026-09-25 Handle tradName fields
     2026-10-11 Handle addOwner span in OET-LV
     2026-10-17 Recognise reviewed names and specialist vocabulary in Luther and Vulgate translations
+    2026-10-18 Recognise suretyship and whoremongers from modernised older English Bibles
+    2026-10-20 Check repeated words before discarding meaningful punctuation and gloss separators
+    2026-10-20 Report spelling errors separately from possible repetitions in all three languages
+    2026-10-21 Check marked -ies plurals such as furi(es) against their full plural forms
 """
 from pathlib import Path
 from csv import  DictReader
@@ -54,13 +60,19 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-23' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.73'
+PROGRAM_VERSION = '0.78'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
+# Only whitespace may separate accidental repetitions. Keep commas ("Lord, Lord"),
+# sentence boundaries, slash alternatives, hyphens and possessives meaningful.
+# The lookahead also finds both pairs in a three-word repetition.
+REPEATED_WORD_REGEX = re.compile(
+    r"(?<![\w’'/-])\b(?P<word>[^\W\d_]+(?:[’'][^\W\d_]+)*)(?=\s+(?P=word)(?![\w’'/-]))" )
 
 
 TED_DICT_FOLDERPATH = Path(__file__).parent.joinpath( '../../../Documents/RobH123/TED_Dict/sourceDicts/').resolve()
@@ -110,6 +122,10 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'maschil','maskil','michtam',
                     'non',
                     'pass-over',
+                    # Valid dictionary words absent from our word lists:
+                    # https://www.merriam-webster.com/dictionary/suretyship
+                    # https://www.merriam-webster.com/dictionary/whoremonger
+                    'suretyship','whoremongers',
                     'tashheth','tent-making',
 
                     # ALL CAPS are used in Psalm Titles by the LSV
@@ -244,6 +260,8 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             'You_all', #'You(sg)',
             #'it(f)', 'saying(ms)',
 
+            # These contractions could have all been solved with a substitution rule,
+            #   but doing it this way gives us a list of the contractions that are used in the OET-RV
             'aren’t','Aren’t',
                 'can’t','Can’t', 'couldn’t','Couldn’t',
                 'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
@@ -256,7 +274,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'she’d', 'she’ll',
                     'shouldn’t','Shouldn’t',
                 'that’ll','That’ll',
-                    'there’ll','There’ll',
+                    'there’d', 'there’ll','There’ll',
                     'they’d','They’d', 'they’ll','They’ll', 'they’re','They’re','they’ve','They’ve', '’twas',
                 'you’d','You’d', 'you’ll','You’ll', 'you’re','You’re', 'you’ve','You’ve',
                 'wasn’t','Wasn’t',
@@ -407,6 +425,8 @@ FOOTNOTE_OR_XREF_CALLER_REGEX = re.compile( '<span class="(fn|xr)Caller".+?</spa
 IMAGE_REGEX = re.compile( '<img [^<>]+?>' )
 ANCHOR_LINK_REGEX = re.compile( '<a ([^<>]+?)>' )
 RV_ADD_REGEX = re.compile( '<span class="RVadd" [^>]+?>' )
+OET_FORMATTING_SPAN_REGEX = re.compile(
+    r'<span class="(?:RVadd|add|addArticle|addCopula|addDirectObject|addExtra|addElided|addOwner|addPronoun|addReferent|addNumberChange|addPersonChange|addNegated|addTradName|addReword)(?: unsure)?"(?: title="[^"]*")?>' )
 FOOTNOTE_PARAGRAPHS_REGEX = re.compile( '<p class="fn" id="fn[1-9][0-9]?">' )
 FOOTNOTES_DIV_REGEX = re.compile( '<div id="footnotes" class="footnotes">.+?</div><!--footnotes-->' )
 CROSSREFS_DIV_REGEX = re.compile( '<div id="crossRefs" class="crossRefs">.+?</div><!--crossRefs-->' )
@@ -459,6 +479,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
             wordSet.update( (
                             'ScriptedBibleEditor', 'ScriptedOTUpdates','ScriptedVLTUpdates',
                             'LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
+                            'unsalty',
+                            'house(hold', # house(hold) after trailing punctuation cleanup
                             # 'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
         elif versionAbbreviation == 'OET-RV':
@@ -567,6 +589,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span title="Word (or format) different in MSB" class="hilite">', '' )
                     )
     elif 'OET' in versionAbbreviation:
+        cleanedTextToCheck = OET_FORMATTING_SPAN_REGEX.sub( '', cleanedTextToCheck )
         cleanedTextToCheck =  ( cleanedTextToCheck
                     # NOTE: Narrow no-break space in the following three lines has already been changed above to a regular space
                     .replace( '<span class="synonParr" title="synonymous parallelism">≈ </span>', '' )
@@ -627,7 +650,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'fn',
                         ):
         cleanedTextToCheck =  cleanedTextToCheck.replace( f'<p class="{paragraphMarker}">', '' ).replace( f'<!--{paragraphMarker}-->', '' )
-    for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject','addOwner', # TODO: Why don't these have title fields??? Coz they're in the OET-LV
+    for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject','addOwner',
                        'untr','nominaSacra',
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
@@ -678,6 +701,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     else:
         assert '<' not in cleanedTextToCheck and '>' not in cleanedTextToCheck, f"Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
 
+    # Detect repetitions before spelling cleanup removes punctuation, gloss
+    # separators and possessives. Otherwise "Lord, Lord" or "love(n)/love(v)"
+    # can become false reports of "Lord Lord" or "love love".
+    repeatedWords = [match.group('word') for match in REPEATED_WORD_REGEX.finditer(cleanedTextToCheck)
+                     if match.group('word') not in ('had','that','ad','sie')]
+
     # Now general or punctuation clean-ups
     cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '\n', ' ' ) # Treat newlines as spaces
@@ -716,7 +745,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
     # Final Bible clean-ups
     #   (Easier to remove these known-to-be-correct words here, rather than to handle them later)
-    thingsToReallyDelete = ['(s)','(es)','[s]','[es]',
+    thingsToReallyDelete = ['(s)','[s]', # Handle optional -es endings per word below.
                             '(m)', '(f)', '(ms)', '(fs)',
                             '(sg)','(pl)',
                             '(aj)', '(n)', '(v)',
@@ -752,11 +781,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
     adjWords = cleanedTextToCheck.split( ' ' )
 
-    lastLastWord = lastWord = ''
-    for ww,word in enumerate( adjWords ):
+    for word in adjWords:
         if not word: continue
-        try: nextWord = adjWords[ww+1]
-        except IndexError: nextWord = '' # at end
+
+        # Retain the printed stem for error reports and HTML marking, but check
+        # furi(es)/furi[es], loyalti(es), etc. against furies, loyalties, etc.
+        hasMarkedIesPlural = 'i(es)' in word or 'i[es]' in word
+        word = word.replace( '(es)', '' ).replace( '[es]', '' )
+        if not word: continue
 
         if word in ('◙','…','…◙','◘'): continue # Untranslated or not-yet-translated verse
         if word[0]=='v' and '.' in word and word[1].isdigit() and word[-1].isdigit(): continue # It seems to be a version number, e.g., 'v1.04'
@@ -806,7 +838,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         if versionAbbreviation == 'Luth': TOTAL_GERMAN_WORDS_CHECKED_COUNT += 1
         elif versionAbbreviation == 'ClVg': TOTAL_LATIN_WORDS_CHECKED_COUNT += 1
         else: TOTAL_ENGLISH_WORDS_CHECKED_COUNT += 1
-        if word not in wordSet and f'{word[0].lower()}{word[1:]}' not in wordSet:
+        dictionaryWord = f'{word}es' if hasMarkedIesPlural and word.endswith('i') else word
+        if dictionaryWord not in wordSet and f'{dictionaryWord[0].lower()}{dictionaryWord[1:]}' not in wordSet:
             cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
                                                             .replace('<a title="Return to text" href="#C','') \
                                                             .replace('<hr class="line-before-footnotes">','') \
@@ -897,26 +930,24 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = rreplace( checkedHTMLText, word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
             MISPELLING_VERSION_REF_DICT[versionAbbreviation].append( (word,ref) ) # We can save these to disk later
-        if word==lastWord and word not in ('had','that','ad','sie'):
-            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f'''    Possible duplicated {word=} @ {location} with "{lastLastWord} {lastWord} {word} {nextWord}"''' )
-            dupWord = f'{word} {word}'
-            if versionAbbreviation == 'Luth':
-                BAD_GERMAN_WORD_SET.add( dupWord )
-                BAD_GERMAN_WORD_LIST.append( (dupWord,location) )
-            elif versionAbbreviation == 'ClVg':
-                BAD_LATIN_WORD_SET.add( dupWord )
-                BAD_LATIN_WORD_LIST.append( (dupWord,location) )
-            else: # assume it's English
-                BAD_ENGLISH_WORD_SET.add( dupWord )
-                BAD_ENGLISH_WORD_LIST.append( (dupWord,location) )
-            if checkedHTMLText.count( word ) == 2:
-                if versionAbbreviation not in ('KJB-1611',): # We don't do yet this coz it messes up later addition of hilites
-                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
-                    checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible duplicated word" class="duplicate">{word}</span>', 2 )
-        lastLastWord = lastWord
-        lastWord = word
+    for word in repeatedWords:
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Possible duplicated {word=} @ {location}" )
+        dupWord = f'{word} {word}'
+        if versionAbbreviation == 'Luth':
+            BAD_GERMAN_WORD_SET.add( dupWord )
+            BAD_GERMAN_WORD_LIST.append( (dupWord,location) )
+        elif versionAbbreviation == 'ClVg':
+            BAD_LATIN_WORD_SET.add( dupWord )
+            BAD_LATIN_WORD_LIST.append( (dupWord,location) )
+        else: # assume it's English
+            BAD_ENGLISH_WORD_SET.add( dupWord )
+            BAD_ENGLISH_WORD_LIST.append( (dupWord,location) )
+        if checkedHTMLText.count( word ) == 2:
+            if versionAbbreviation not in ('KJB-1611',): # We don't do yet this coz it messes up later addition of hilites
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible duplicated word" class="duplicate">{word}</span>', 2 )
 
     return checkedHTMLText
 # end of spellCheckEnglish.spellCheckAndMarkHTMLText
@@ -938,24 +969,32 @@ def printSpellCheckSummary( state ) -> None:
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
 
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )
-    if TOTAL_GERMAN_WORDS_CHECKED_COUNT > 0:
+    # BAD_*_WORD_LIST/SET include possible repeated pairs as well as spelling
+    # errors. Keep that collection format for multiprocessing, but do not mix
+    # the two categories in the spelling totals, unique counts, or percentages.
+    for language, checkedCount, misspellingCount, wordCounts, reports, reportedWords in (
+            ('ENGLISH', TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT,
+             BAD_ENGLISH_COUNTS, BAD_ENGLISH_WORD_LIST, BAD_ENGLISH_WORD_SET),
+            ('GERMAN', TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT,
+             BAD_GERMAN_COUNTS, BAD_GERMAN_WORD_LIST, BAD_GERMAN_WORD_SET),
+            ('LATIN', TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT,
+             BAD_LATIN_COUNTS, BAD_LATIN_WORD_LIST, BAD_LATIN_WORD_SET)):
+        if not checkedCount:
+            continue
+        percent = misspellingCount * 100 / checkedCount
+        percentageText = '<0.01%' if 0 < percent < 0.01 else f'{percent:.2f}%'
+        orderedWords = sorted(wordCounts, key=wordCounts.get, reverse=True)
+        wordsToShow = [(word, wordCounts[word]) for word in orderedWords if word.islower()][:14 if language=='ENGLISH' else 13]
+        if language=='GERMAN' and len(wordsToShow) < 12: # Include capitals, which can be ordinary German nouns.
+            wordsToShow = [(word, wordCounts[word]) for word in orderedWords
+                          if word not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
+        repeatedCount = len(reports) - misspellingCount
+        repeatedWords = reportedWords.difference(wordCounts)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-        GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]
-        if len(GermanWordsToShow) < 12: # Show captalised words then (although they will include names / proper nouns)
-            GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True)
-                                 if k not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {GermanWordsToShow}" )
-    if TOTAL_LATIN_WORDS_CHECKED_COUNT > 0:
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL {language} WORDS CHECKED = {checkedCount:,} BAD_{language} WORDS {misspellingCount:,} = {percentageText} ({len(wordCounts):,} unique){f': {sorted(wordCounts)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD {language} WORDS = {misspellingCount:,} WORST {language} WORDS {wordsToShow}" )
+            if repeatedCount:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    POSSIBLE REPEATED {language} WORDS = {repeatedCount:,} ({len(repeatedWords):,} unique pairs){f': {sorted(repeatedWords)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
 
     # for versionAbbreviation in ('OET-RV'Hebrew words index,): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
@@ -965,8 +1004,8 @@ def printSpellCheckSummary( state ) -> None:
         for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
             badDict[word] += 1
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
-        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25)]
-        if len(displayList)<25 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:25]] # Could cause some duplicates
+        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<30)]
+        if len(displayList)<30 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:30]] # Could cause some duplicates
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 

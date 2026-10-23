@@ -6,6 +6,8 @@
 //! HTML segment.
 //!
 //! Changelog:
+//!  2026-10-18: Preserve word separation when verse numbers are hidden between
+//!              multiple basic-mode verses (including repeated source numbers).
 //!  2026-10-16: Report malformed note markers with version, book, C:V,
 //!              processed entry number/marker, and offending text.
 //!  2026-08-22: Fixed list-close ordering bugs inherited from usfm.py — an
@@ -662,6 +664,17 @@ where
                         }
                         html.push_str(&verse_html);
                     }
+                }
+                // Hidden verse numbers must still separate adjacent verse text.
+                // Wycl MAT 24:50 has two source records numbered 50; without
+                // this space their spans display as "not,and".
+                if basic_only
+                    && matches!(segment_type, "parallelVerse" | "interlinearVerse" | "simpleVerse")
+                    && !v.contains('-')
+                    && !html.is_empty()
+                    && !html.ends_with(char::is_whitespace)
+                {
+                    html.push(' ');
                 }
                 state.just_had_d = false;
                 // OET-RV images

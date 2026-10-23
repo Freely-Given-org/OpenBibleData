@@ -1,5 +1,6 @@
 // theme.js -- Site settings: colour scheme, verse-number position, text size,
 // and the colour of Jesus'-words spans.
+// CHANGELOG: 2026-10-23 Keep C controls on reference pages and use position-neutral colour tooltips.
 //
 // All settings are independent and combine freely (non-exclusive), unlike the
 // old Dropdown which forced a choice between "Left verse nums" and "Large
@@ -289,11 +290,10 @@
         }
         var cbtn = document.getElementById('coloursButton');
         if (cbtn) {
-            cbtn.title = coloursHidden ? 'Show grammatical colours above' : 'Hide grammatical colours above';
+            cbtn.title = coloursHidden ? 'Show grammatical colours' : 'Hide grammatical colours';
             cbtn.style.backgroundColor = coloursHidden ? 'orange' : null;
-            // On dictionary / word pages the colour button carries a changing
-            // label ("Hide verse colours" / "Show verse colours"); on the
-            // parallel verse pages it is just the letter "C", which we keep.
+            // Keep compact C labels on parallel and reference pages, while
+            // still supporting the longer labels on older dictionary pages.
             if (cbtn.textContent !== 'C') {
                 cbtn.textContent = coloursHidden ? 'Show verse colours' : 'Hide verse colours';
             }

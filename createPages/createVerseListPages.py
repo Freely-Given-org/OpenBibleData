@@ -25,6 +25,7 @@ main calls fullDemo()
 
 
 CHANGELOG:
+    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2026-09-16 Adapted from a copy of createParallelVersePages.py
     2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
@@ -32,6 +33,7 @@ CHANGELOG:
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
                 Import German and Latin translations from their separate BOS modules.
     2026-10-17 Skip books without navigation chapter information, including their links.
+    2026-10-21 Reuse substituted editions across page families and site builds.
 """
 from pathlib import Path
 import os
@@ -43,9 +45,7 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
-from BibleOrgSys.Reference.LutherGermanToEnglish import translateGerman
-from BibleOrgSys.Reference.VulgateLatinToEnglish import translateLatin
+from substitutedVersions import getSubstitutedText, prepareSubstitutedVersions, saveSubstitutedVersions
 from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
@@ -89,6 +89,7 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"createVerseListPages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
+    prepareSubstitutedVersions(state)
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateVerseListPages( {level}, {folder}, {state.BibleVersions} )" )
@@ -143,8 +144,10 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}verse list page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
-        for resultBool, BBB in results:
+        for resultBool, BBB, substitutions in results:
             assert resultBool is True
+            state.substitutedVersions.mergeWorkerResult(substitutions)
+    saveSubstitutedVersions(state)
 
     # Create index page
     filename = 'index.htm'
@@ -175,22 +178,21 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
 # end of createVerseListPages.createVerseListPages
 
 
-def _createVerseListPagesForBook_MP( parameters ) -> tuple[bool,str]:
+def _createVerseListPagesForBook_MP( parameters ) -> tuple[bool,str,tuple]:
     """
     Multiprocessing version! (forked children inherit our module-level state copy-on-write)
 
     Parameter is a 5-tuple containing the level, destination folder, BBB book code,
         next-book links, and the reordered list of parallel version abbreviations.
-    Returns a 5-tuple containing the True result of createVerseListPagesForBook plus the BBB,
-        this book's versesWithImages list, its possibleUnmatchedProperNames set, and its
-        collected spell-check results -- because changes that a child process makes
+    Returns the True result, BBB, and derived-edition additions -- because changes that a child process makes
         to the inherited state are lost when it exits.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_createVerseListPagesForBook_MP( {parameters[:3]}… )" )
     level, folder, BBB, BBBNextLinks, parallelVersions = parameters
+    prepareSubstitutedVersions(state).startWorker()
     resultBool = createVerseListPagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     assert resultBool is True
-    return (resultBool, BBB)
+    return (resultBool, BBB, state.substitutedVersions.workerResult())
 # end of createVerseListPages._createVerseListPagesForBook_MP
 
 
@@ -475,14 +477,14 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     # if V=='4': assert False, "We want to stop here"
                                     if versionAbbreviation == 'Wycl': # not sure why it has grave accents in it ???
                                         footnoteFreeTextHtml = footnoteFreeTextHtml.replace( '`', '' )
-                                    modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml
+                                    modernisedTextHtml = getSubstitutedText( state, versionAbbreviation, f'{sourceBBB}_{sourceC}:{sourceV}', footnoteFreeTextHtml
                                                                                     .replace('<span class="nd">L<span style="font-size:.75em;">ORDE</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'S')
                                                                                     .replace('<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s','<span class="nd">L<span style="font-size:.75em;">ORD</span></span>\'s'),
                                                                             allowOptions=True ) # Can return words like 'hateth/hates'
                                     if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                         modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                 .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
-                                                                .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                                                .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yubilee', 'Jubilee' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                     modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
 
                                     # end of removeVersePunctuationForComparison function
@@ -640,14 +642,13 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                         textHtml = f'''{textHtml}<BR>  ({modernisedTextHtml.replace('<br>','  ')})'''
                                     # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                                 elif versionAbbreviation in ('Luth','ClVg'):
-                                    translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
                                     adjustedForeignTextHtml = None
                                     if sourceC!='-1' and sourceV!='0' and textHtml:
                                         # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
                                         # assert footnoteFreeTextHtml.endswith( '</span>' )
                                         # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
                                         # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
-                                        adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
+                                        adjustedForeignTextHtml = getSubstitutedText( state, versionAbbreviation, f'{sourceBBB}_{sourceC}:{sourceV}', footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
                                     if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
                                         # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                         # assert '</p>' not in textHtml

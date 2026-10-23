@@ -7,6 +7,8 @@
 # Tests for verse_to_html Rust implementation (footnote and xref processing)
 
 """CHANGELOG:
+2026-10-23 Preserve added-word markup when modernising KJB-1611 Matthew 24:23.
+2026-10-18 Test spacing between verses whose numbers are hidden, including Wycl MAT 24:50.
 2026-10-16 Test malformed-note diagnostics and isolation from later notes.
 """
 
@@ -15,6 +17,68 @@ from types import SimpleNamespace
 from settings import State
 from openbibledata_rust import (convertVerseEntryListToHtml,
                                 process_footnotes, process_cross_references)
+from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
+from substitutedVersions import substitute
+
+
+class TestKJBAddedWordModernisation(unittest.TestCase):
+    def test_matthew_24_23_keeps_added_is_and_it(self):
+        for segment in ('parallelVerse', 'simpleVerse'):
+            with self.subTest(segment=segment):
+                source = convertVerseEntryListToHtml(
+                    2, 'KJB-1611', ('MAT', '24', '23'), segment, ['chapters', 'c'],
+                    [SimpleNamespace(marker=marker, full_text=text, clean_text='')
+                     for marker, text in (
+                         ('v', '23'),
+                         ('v~', r'Then if any man shall say vnto you, Loe, heere \add is\add* Christ, or there: beleeue \add it\add* not.'),
+                         ('¬v', '23'),
+                     )], basicOnly=True,
+                )
+                self.assertIn('heere <span class="add">is</span>', source)
+                for mode in (False, True):
+                    modern = substitute('KJB-1611', source, allowOptions=mode)
+                    self.assertIn('here <span class="add">is</span> Christ', modern)
+                    self.assertIn('believe <span class="add">it</span> not.', modern)
+                    self.assertNotIn('heere', modern)
+
+
+class TestHiddenVerseSpacing(unittest.TestCase):
+    def convert(self, entries, segment):
+        return convertVerseEntryListToHtml(
+            2, 'Wycl', ('MAT', '24', '50'), segment, ['chapters', 'c'],
+            [SimpleNamespace(marker=marker, full_text=text, clean_text='')
+             for marker, text in entries], basicOnly=True,
+        )
+
+    def test_joined_verses_keep_a_word_separator(self):
+        # The source XML repeats vnumber=50, so both chunks are retrieved.
+        # Also cover ordinary consecutive verses and all views hiding numbers.
+        for segment in ('parallelVerse', 'simpleVerse', 'interlinearVerse'):
+            for second_number in ('50', '51'):
+                with self.subTest(segment=segment, second_number=second_number):
+                    result = self.convert([
+                        ('v', '50'), ('v~', 'he knowith not,'), ('¬v', '50'),
+                        ('v', second_number), ('v~', 'and schal departe hym,'),
+                        ('¬v', second_number),
+                    ], segment)
+                    self.assertEqual(result,
+                        '<span class="Wycl_verseTextChunk">he knowith not,</span> '
+                        '<span class="Wycl_verseTextChunk">and schal departe hym,</span>')
+                    for allow_options in (False, True):
+                        modern = moderniseEnglishWords(result, allowOptions=allow_options)
+                        self.assertIn('not,</span> <span', modern)
+
+    def test_single_verse_and_inline_formatting_keep_their_spacing(self):
+        for segment in ('parallelVerse', 'simpleVerse', 'interlinearVerse'):
+            with self.subTest(segment=segment):
+                result = self.convert([
+                    ('v', '50'), ('v~', r'he knowith not,\it and\it* schal come.'),
+                    ('¬v', '50'),
+                ], segment)
+                self.assertTrue(result.startswith('<span'))
+                self.assertTrue(result.endswith('</span>'))
+                self.assertNotIn('</span> ', result)
+                self.assertIn('not,<i>and</i> schal come.', result)
 
 
 class TestProcessFootnotes(unittest.TestCase):

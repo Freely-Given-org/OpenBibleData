@@ -50,6 +50,7 @@ main calls fullDemo()
 
 
 CHANGELOG:
+    2026-10-23 Recognise small.class selectors in the Python CSS loader, matching Rust.
     2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
     2023-08-07 Handle four-letter tidyBBBs
     2023-08-16 Improve byDocument navigation
@@ -142,7 +143,7 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-23' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.12'
@@ -535,6 +536,12 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                 assert ' ' not in className and ',' not in className, f"{className=}"
                 assert elementName not in lsStyleDict[className]
                 lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'small.' ):
+                className = ssLine[6:].split( ' ', 1 )[0]
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert 'small' not in lsStyleDict[className]
+                lsStyleDict[className].append( 'small' )
                 lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'body.' ):
                 elementName = ssLine[:4]

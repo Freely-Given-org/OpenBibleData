@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Fast HTML validation checks for generated pages.
 //!
 //! Implements the same checks as `html.checkHtml()` in Python but in pure Rust,
 //! avoiding Python interpreter overhead for the inner loops that run ~500K+ times
 //! per site build.
+//!
+//! Changelog:
+//!   2026-10-23: Allow OET formatting prefixes in addition to word-title limits.
 
 use pyo3::prelude::*;
 use once_cell::sync::Lazy;
@@ -580,6 +584,7 @@ pub fn check_html(html: &str, where_: &str, segment_only: bool) -> HtmlCheckResu
                 } else {
                     150
                 };
+            let max_title_len = max_title_len + crate::oet_html::formatting_prefix_len(title_guts);
             if title_guts.len() > max_title_len {
                 return Err(format!(
                     "{where_}={} {} title is too long ({}) title_guts='{}'",

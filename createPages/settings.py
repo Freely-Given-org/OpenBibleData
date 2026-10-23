@@ -16,6 +16,7 @@
 Module handling settings functions.
 
 CHANGELOG:
+    2026-10-22 Declare the reviewed OET source profiles; navigation remains English.
     2024-01-11 Load all OET-LV NT books
     2024-04-05 Add more acknowledgements for the OT part
     2024-04-18 Added AICNT (have emailed permission)
@@ -37,8 +38,9 @@ CHANGELOG:
     2026-09-04 Added a separate program version number string in State (to make it easier to increment)
     2026-09-24 Added RV-only and LV-only warnings
     2026-10-01 Added GHT
-    2026-10-12 Declare source and navigation versifications for parallel pages.
-    2026-10-16 Use the BOS Luther mapping verified against LUTH1545STR.
+    2026-10-12 Declare source and navigation versifications for parallel pages
+    2026-10-16 Use the BOS Luther mapping verified against LUTH1545STR
+    2026-10-21 Configure persistent substituted editions independently of page output
 """
 from pathlib import Path
 
@@ -46,10 +48,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-21' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.2.0'
+PROGRAM_VERSION = '1.3.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -63,17 +65,18 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.0.3' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.88' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.2.0' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.90' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
-    LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
+    LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Also controls loading substituted editions
+    CACHE_SUBSTITUTED_VERSIONS_FLAG = True # False bypasses both reading and writing derived editions (including translations from Latin, German, and old-English)
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
@@ -84,6 +87,8 @@ class State:
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
     OET_RV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN']
+
+    SUBSTITUTED_VERSIONS_FOLDER = Path(__file__).resolve().parent.parent / '.cache' / 'substitutedVersions'
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -223,7 +228,7 @@ class State:
         'TOSN','TTN','SOTN','UTN',
     ), 'eng')
     BibleVersifications.update({
-        'OET-LV': 'org', 'SR-GNT': 'org', 'SBL-GNT': 'org',
+        'OET-RV': 'OET-RV', 'OET-LV': 'OET-LV', 'SR-GNT': 'org', 'SBL-GNT': 'org',
         'RP-GNT': 'org', 'TC-GNT': 'org', 'JPS': 'org',
         'BrLXX': 'lxx', 'BrTr': 'lxx',
         'ClVg': 'vul', 'DRA': 'vul', 'Luth': 'Luther',

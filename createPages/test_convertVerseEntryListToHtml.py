@@ -1,5 +1,6 @@
 #!/usr/bin/env -S uv run
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # test_convertVerseEntryListToHtml.py
 #
@@ -7,6 +8,7 @@
 # verifying that the Rust implementation works correctly end-to-end.
 #
 # CHANGELOG:
+#   2026-10-23 Cover section lookup across replaced, short-lived section lists.
 #   2026-09-15 Added TestFusedLiveningEquivalence: the fused livenWordLinks=True
 #                path inside convertVerseEntryListToHtml must produce byte-identical
 #                HTML to the old two-step livenOETWordLinks/livenOETCompatibleBereanWordLinks
@@ -418,6 +420,25 @@ class TestIORLinksInConvert(unittest.TestCase):
             r'<span class="ior"><a title="Jump to chapter page with reference" data-vref="mapped" href="../../OET/byC/MRK_C1.htm#C1V1">1:1-13</a></span>',
             result,
         )
+
+    def test_ior_section_lookup_follows_replaced_lists(self):
+        """A previous render's section data must not leak into a new build state."""
+        for index in range(64):
+            with self.subTest(index=index):
+                # Release the previous dict before constructing its replacement,
+                # as happens when successive test/build states are discarded.
+                del self.state.sectionsListsForSections
+                sections = [(0, '1', '1', '16', '20', 'MRK 1', 's1', [], [], 'MRK_S0.htm')] if index % 2 else []
+                self.state.sectionsListsForSections = {}
+                self.state.sectionsListsForSections['OET-RV'] = {'MRK': sections}
+                result = convertVerseEntryListToHtml(
+                    level=2, versionAbbreviation='OET-RV',
+                    refTuple=('MRK', '1', '1'), segmentType='section',
+                    contextList=['chapters'], verseEntryList=_io_ior_entries(),
+                    basicOnly=False, state=self.state,
+                )
+                expected = 'MRK_S0.htm#C1V1' if sections else '../byC/MRK_C1.htm#C1V1'
+                self.assertIn(f'href="{expected}"', result)
 
     def test_ior_related_passage_segment(self):
         """Parallel passage pages: IOR links must prefix '../{bbb}/' so that

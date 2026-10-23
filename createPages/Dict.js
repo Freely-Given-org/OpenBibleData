@@ -1,3 +1,4 @@
+// CHANGELOG: 2026-10-23 Keep compact colour controls and their keys in sync with verse visibility.
 function hide_show_words() {
     classes_to_adjust = ['wordLine','lemmaLine','vRef'];
     other_classes_to_adjust = ['LVVerseText','RVVerseText'];
@@ -45,6 +46,7 @@ function hide_show_verses() {
     classes_to_adjust = ['LVVerseText','RVVerseText'];
     let btn = document.getElementById('versesButton');
     let cbtn = document.getElementById('coloursButton');
+    let colourControl = document.getElementById('ColourKey') || cbtn;
     if (btn.textContent === 'Hide verses') {
         for (let cl of classes_to_adjust) {
             let elements_to_adjust = document.getElementsByClassName(cl);
@@ -54,7 +56,7 @@ function hide_show_verses() {
         }
         btn.textContent = 'Show verses';
         btn.style.backgroundColor = 'orange';
-        cbtn.style.display = 'none';
+        if (colourControl) colourControl.style.display = 'none';
     } else {
         for (let cl of classes_to_adjust) {
             let elements_to_adjust = document.getElementsByClassName(cl);
@@ -64,7 +66,7 @@ function hide_show_verses() {
         }
         btn.textContent = 'Hide verses';
         btn.style.backgroundColor = null; // Seems to make it use the CSS again
-        cbtn.style.display = 'revert';
+        if (colourControl) colourControl.style.display = 'revert';
     }
 }
 
@@ -102,15 +104,19 @@ function colours_hidden() {
     return !!(btn && btn.style.backgroundColor === 'orange');
 }
 
-function hide_grammatical_colours() {
+function update_colour_button(hidden) {
     var btn = document.getElementById('coloursButton');
+    if (!btn) return;
+    btn.style.backgroundColor = hidden ? 'orange' : null;
+    btn.title = hidden ? 'Show grammatical colours' : 'Hide grammatical colours';
+    if (btn.textContent !== 'C') btn.textContent = hidden ? 'Show verse colours' : 'Hide verse colours';
+}
+
+function hide_grammatical_colours() {
+    update_colour_button(true);
     if (window.OBDSettings) {
         // theme.js + common.css handle the spans via data-par-colours; here we
         // just mirror the state onto the button as before.
-        if (btn) {
-            btn.style.backgroundColor = 'orange';
-            btn.textContent = 'Show verse colours';
-        }
         return;
     }
     var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
@@ -121,21 +127,13 @@ function hide_grammatical_colours() {
             if (cl==='.noLinkYet') elements[i].style.color = 'black';
         }
     }
-    if (btn) {
-        btn.style.backgroundColor = 'orange';
-        btn.textContent = 'Show verse colours';
-    }
 }
 
 function show_grammatical_colours() {
-    var btn = document.getElementById('coloursButton');
+    update_colour_button(false);
     if (window.OBDSettings) {
         // Removes the orange button highlight; the CSS data-par-colours
         // attribute is cleared by theme.js, restoring the backgrounds.
-        if (btn) {
-            btn.style.backgroundColor = null;
-            btn.textContent = 'Hide verse colours';
-        }
         return;
     }
     var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
@@ -145,10 +143,6 @@ function show_grammatical_colours() {
             elements[i].style.backgroundColor = null; // Seems to make it use the CSS again
             if (cl==='.noLinkYet') elements[i].style.color = null; // Back to the CSS rule (dark-mode aware)
         }
-    }
-    if (btn) {
-        btn.style.backgroundColor = null;
-        btn.textContent = 'Hide verse colours';
     }
 }
 

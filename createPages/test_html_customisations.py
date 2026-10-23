@@ -1,14 +1,18 @@
 #!/usr/bin/env -S uv run
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Tests of shared version-specific HTML processing.
+
+CHANGELOG:
+    2026-10-23 Cover combined OET titles and preservation of LV URLs/notes
+"""
 #
 # test_html_customisations.py
 #
 # Tests for the html.py customisation functions.
 #
-# do_OET_RV_*, do_OET_LV_*, do_LSV_* and do_T4T_* now delegate to byte-identical
-# Rust ports (createPages/Rust/src/html_customisations.rs); the expected outputs
-# below were captured from the Python originals, with LSV updated for the
-# deliberate 2026-09-19 change to place source newlines before <br>.
+# The functions delegate to Rust. Historical fixtures retain the original
+# formatting, with deliberate updates for sentence breaks and OET research titles.
 
 import unittest
 
@@ -120,9 +124,9 @@ class TestOETRVHTMLcustomisations(unittest.TestCase):
         input_html = ('<span class="add">?><span class="add">><span class="add">?+'
                       '<span class="add">+</span></span></span></span>')
         expected = ('<span class="addExtra unsure" title="added implied info (less certain)">'
-                    '<span class="addExtra" title="added implied info">'
-                    '<span class="addArticle unsure" title="added article (less certain)">'
-                    '<span class="addArticle" title="added article"></span></span></span></span>')
+                    '<span class="addExtra" title="added implied info (less certain); added implied info">'
+                    '<span class="addArticle unsure" title="added implied info (less certain); added implied info; added article (less certain)">'
+                    '<span class="addArticle" title="added implied info (less certain); added implied info; added article (less certain); added article"></span></span></span></span>')
         self.assertEqual(do_OET_RV_HTMLcustomisations('test', input_html), expected)
 
     def test_parallelism_markers(self):
@@ -132,10 +136,10 @@ class TestOETRVHTMLcustomisations(unittest.TestCase):
         self.assertIn(f'<span class="antiParr" title="antithetic parallelism">^{nnbs}</span>', out)
         self.assertIn(f'<span class="synthParr" title="synthetic parallelism">→{nnbs}</span>', out)
 
-    def test_preexisting_rvadd_left_untouched(self):
+    def test_preexisting_rvadd_receives_description(self):
         self.assertEqual(
             do_OET_RV_HTMLcustomisations('test', '<span class="RVadd"><span class="wj">w</span></span>'),
-            '<span class="RVadd"><span class="wj">w</span></span>')
+            '<span class="RVadd" title="added info"><span class="wj">w</span></span>')
 
 
 class TestOETLVHTMLcustomisations(unittest.TestCase):
@@ -154,11 +158,79 @@ class TestOETLVHTMLcustomisations(unittest.TestCase):
         input_html = ('<span class="add">+art</span><span class="add">=cop</span>'
                       '<span class="add"><a title="x">deep</a></span><span class="add"><x></span>'
                       '<span class="add">>extra</span><span class="add">&own</span>')
-        expected = ('<span class="addArticle">art</span><span class="addCopula">cop</span>'
-                    '<span class="add"><a title="x">deep</a></span>'
-                    '<span class="addDirectObject">x></span>'
-                    '<span class="addExtra">extra</span><span class="addOwner">own</span>')
+        expected = ('<span class="addArticle" title="added article">art</span><span class="addCopula" title="added copula">cop</span>'
+                    '<span class="add" title="added info"><a title="x">deep</a></span>'
+                    '<span class="addDirectObject" title="added direct object">x></span>'
+                    '<span class="addExtra" title="added implied info">extra</span><span class="addOwner" title="added ‘owner’">own</span>')
         self.assertEqual(do_OET_LV_HTMLcustomisations('test', input_html), expected)
+
+
+class TestOETResearchMarkup(StrictCheckMixin, unittest.TestCase):
+    """Exercise the public shared functions used by all OET page families."""
+
+    def test_jeremiah_rv_rewording_and_source_word_share_title(self):
+        source = ('<span class="add">≈is able to '
+                  '<a title="יַעֲמֹד (yaˊₐmod, Vqi3ms)" '
+                  'href="../../ref/HebWrd/JERc50v44w26.htm#Top" class="hebVrb">resist</a></span>')
+        result = do_OET_RV_HTMLcustomisations('ParallelVerseTxt=JER_50:44', source)
+        self.assertEqual(result,
+            '<span class="addReword" title="reworded">is able to '
+            '<a title="reworded; יַעֲמֹד (yaˊₐmod, Vqi3ms)" '
+            'href="../../ref/HebWrd/JERc50v44w26.htm#Top" class="hebVrb">resist</a></span>')
+
+    def test_lv_linked_and_unlinked_additions_receive_titles(self):
+        source = ('<span class="add">+the</span> '
+                  '<span class="add"><a title="אֵיתָן (ʼēytān, Aamsa)" '
+                  'href="../../ref/HebWrd/JERc50v44w8.htm#Top">stream</a></span>')
+        result = do_OET_LV_HTMLcustomisations('Chapter=JER_50', source)
+        self.assertIn('<span class="addArticle" title="added article">the</span>', result)
+        self.assertIn('<span class="add" title="added info"><a title="added info; אֵיתָן (ʼēytān, Aamsa)"', result)
+
+    def test_lv_jeremiah_footnote_metadata_and_backlink_remain_intact(self):
+        note = ('<div id="footnotesOET-LV" class="footnotes">'
+                '<p class="fn" id="fnOET-LV1"><span class="fnRef">'
+                '<a title="Return to text" data-vref="mapped" '
+                'href="../../OET/byC/JER_C50.htm#C50V44">50:44</a></span> '
+                '<span class="fnText"><span class="ft">OSHB variant note: ארוצ/ם: '
+                '(x-qere) ’אֲרִיצֵ/ם֙’: lemma=7323 n=1.1.0 morph=HVhi1cs/Sp3mp '
+                'id=24eYS source_name=a_b. What?! <i>More: metadata.</i></span></span>'
+                '</p><!--fn--></div><!--footnotes-->')
+        self.assertEqual(do_OET_LV_HTMLcustomisations('ParallelVerseFN=JER_50:44', note), note)
+        result = do_OET_LV_HTMLcustomisations('Book=JER', 'word_word.\n' + note + ' next=word.')
+        self.assertIn(note, result)
+        self.assertIn('word<span class="ul">_</span>word.', result)
+        self.assertIn('next<span class="ul">_</span>word.', result)
+
+    def test_lv_attributes_and_comments_survive_text_formatting(self):
+        start = ('<!-- Leave a_b=c.?! intact -->'
+                 '<span id="part_a" class="OET-LV_verseTextChunk">'
+                 '<a title="word: a_b=c.?! &quot;quoted&quot; &gt;" '
+                 'data-value="a_b=c" href="../../OET/byC/JER_C50.htm?q=a_b&amp;x=y#C50V44">')
+        source = start + 'he=will÷stand</a></span>'
+        expected = start + 'he<span class="ul">_</span>will<span class="ul">_</span>stand</a></span>'
+        self.assertEqual(do_OET_LV_HTMLcustomisations('Interlinear=JER_50:44', source), expected)
+
+    def test_lv_legacy_popup_placeholders_restore_after_protection(self):
+        source = ('<span class="fnCaller">[<a title="OSHB note--fnCOLON-- '
+                  'lemma--fnEQUAL--7323 n--fnEQUAL--1--fnPERIOD--1--fnPERIOD--0 '
+                  'a--fnUNDERLINE--b" href="#fn1">fn</a>]</span>')
+        expected = ('<span class="fnCaller">[<a title="OSHB note: '
+                    'lemma=7323 n=1.1.0 a_b" href="#fn1">fn</a>]</span>')
+        self.assertEqual(do_OET_LV_HTMLcustomisations('ParallelVerseTxt=JER_50:44', source), expected)
+
+    def test_nested_formats_inside_a_word_link_include_source_information(self):
+        source = ('<span class="add">≈<a title="source (untranslated)" href="../ref/GrkWrd/word.htm">'
+                  '<span class="add">?#words</span></a></span>')
+        result = do_OET_RV_HTMLcustomisations('DictVerse=MRK_1:1', source)
+        self.assertIn('title="reworded; source (untranslated)"', result)
+        self.assertIn('title="reworded; changed number (less certain); source (untranslated)"', result)
+
+    def test_long_word_title_still_valid_with_formatting_prefix(self):
+        setStrictCheckingFlag(True)
+        source = ('<span class="add">?≈<a title="' + 'א' * 74 + '" '
+                  'href="../ref/HebWrd/test.htm">word</a></span>')
+        result = do_OET_RV_HTMLcustomisations('Chapter=GEN_1', source)
+        self.assertIn('title="reworded (less certain); ' + 'א' * 74 + '"', result)
 
 
 class TestLSVHTMLcustomisations(unittest.TestCase):

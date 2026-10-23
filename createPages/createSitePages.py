@@ -101,10 +101,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-21' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.3'
+PROGRAM_VERSION = '1.4.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -1009,6 +1009,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
+<li><b>2026-Oct-17</b>: We fixed the annoying tendency of detecting a left/right (previous/next page) scroll when trying to do a vertical (up/down) scroll on a page.</li>
 <li><b>2026-Oct-1</b>: We added <em>Garth’s Hyper-literal Translation</em> as a helpful tool to look into the New Testament Greek.</li>
 <li><b>2026-Sep-19</b>: We added a more concise <a href="{'../'*level}lst/MRK/C1V1.htm#Top">‘simple verse list’</a> mode to display a list of verses with less formatting and whitespace, for easier comparisons of renderings (and probably easier copying/pasting as well).</li>
 <li><b>2026-Sep-5</b>: We added a pop-up settings panel to these pages, that now includes a DARK mode, plus LARGE-PRINT and other options, with more options & improvements likely to come as well.</li>
@@ -1279,6 +1280,7 @@ if __name__ == '__main__':
     # Configure basic Bible Organisational System (BOS) set-up
     parser = BibleOrgSysGlobals.setup( SHORT_PROGRAM_NAME, PROGRAM_VERSION, LAST_MODIFIED_DATE )
     BibleOrgSysGlobals.addStandardOptionsAndProcess( parser )
+    # BibleOrgSysGlobals.maxProcesses = min(BibleOrgSysGlobals.maxProcesses, 20) # If we have memory or system overload problems
 
     fullDemo()
 

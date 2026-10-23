@@ -1,9 +1,13 @@
+#!/usr/bin/env -S uv run
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """OBD URLs and rendered links across Bible versifications.
 
 BOS decides correspondence. This module chooses site destinations and retains
 native labels, source word filenames, and edition-specific storage identities.
 
 CHANGELOG:
+    2026-10-23 Preserve RV-native destinations in combined OET section pages.
     2026-10-17 Exclude books without navigation chapter counts from links and page jobs.
 """
 import logging
@@ -135,6 +139,10 @@ def mapHtmlLinks(html, sourceVersion, level, state, *, segmentType='', reference
             _, target, _, BBB, C, section, anchor = m.groups()
             if target not in state.BibleVersifications:
                 return match[0]
+            if not versionBar and sourceVersion == 'OET-RV' and target == 'OET' and m[3] == 'Sec':
+                # Combined OET sections use the RV section files and native RV
+                # anchors. Their addresses are not the OET/eng chapter system.
+                return f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'
             ref = _pageReference(BBB,C,section,anchor,sourceVersion,state)
             view = 'byDoc' if m[3] == 'Doc' else 'byC'
             # Section IDs are edition-specific, even with identical numbering.
