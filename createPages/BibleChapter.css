@@ -238,6 +238,7 @@ div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrText {}
 span.xt {}
+span.xta { font-style:italic; } /* Used for adjusted xrefs in KJB-1611 */
 span.xo {} /* NET ISA C43 Why ??? */
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }

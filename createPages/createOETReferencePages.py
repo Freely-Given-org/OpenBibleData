@@ -46,7 +46,6 @@ CHANGELOG:
     2023-12-31 Appended a key to word and lemma pages with roles and morphology abbreviations
     2024-01-03 Added other Greek lemmas with similar glosses
     2024-02-06 Remove some of the unnecessary static text on word and lemma pages
-    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2024-03-22 Add OT Hebrew word and lemma pages
     2024-04-23 Use ref for Heb and Grk word page filenames (instead of row number)
     2024-05-27 Try adding word connections for Hebrew roots
@@ -54,12 +53,6 @@ CHANGELOG:
     2024-06-19 Remove notes and segs from Hebrew words indexes
     2024-09-30 Started adding some Bible stats
     2025-01-13 Tried but failed at multi-processing (state was too large to pickle)
-    2026-08-22 Revived Hebrew word page multiprocessing using an explicit 'fork' context
-                (Python 3.14 changed the default start method to forkserver, which can't inherit
-                our huge module-level state; forked children share it copy-on-write instead).
-                Workers now return used Strongs numbers / lemmas so the parent can merge them
-                into state (child mutations would be lost); broken small_state hack and the
-                stale-variable results loop removed.
     2025-01-15 Handle revised NT morphology fields with middle dots instead of periods
     2025-02-06 Put "Aramaic" on Hebrew word pages (instead of just 'A') and improve rowTypeField for others as well
     2025-02-16 Handle changed characters for glossHelper (was /word/ now ˓word˒)
@@ -76,6 +69,13 @@ CHANGELOG:
     2026-04-13 Added frequency counts for glosses in word pages and NT lemma pages
     2026-06-24 Don't exclude the current verse from Hebrew & Greek word & lemma page example & verse lines
     2026-08-10 Added UHG and UGG
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-22 Revived Hebrew word page multiprocessing using an explicit 'fork' context
+                (Python 3.14 changed the default start method to forkserver, which can't inherit
+                our huge module-level state; forked children share it copy-on-write instead).
+                Workers now return used Strongs numbers / lemmas so the parent can merge them
+                into state (child mutations would be lost); broken small_state hack and the
+                stale-variable results loop removed.
     2026-08-23 Extended the fork-context multiprocessing to Hebrew lemma pages (the slowest
                 reference-page family): the per-lemma loop body was extracted into a standalone
                 create_Hebrew_lemma_page() (with the makeHebrewLemmaHTML closure hoisted to a

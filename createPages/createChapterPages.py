@@ -41,6 +41,7 @@ CHANGELOG:
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-16 Preload the BibleMapper index in the parent before forking chapter-page workers.
+    2026-10-24 Use traditional book abbreviations on other versions' chapter pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -52,7 +53,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
-from navigation import mapHtmlLinks
+from navigation import mapHtmlLinks, bookAbbreviation
 from settings import State, state, CNTR_BOOK_ID_MAP
 from oetPassages import renderOETSideBySideChunks, oetLVSourceLink
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -61,7 +62,7 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages, preloadBibleMapperInd
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.89'
@@ -411,7 +412,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for {thisBible.abbreviation} {BBB}…" )
         NT = bos_books_codes_py.is_new_testament_nr( BBB )
-        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBB = bookAbbreviation( BBB, thisBible.abbreviation )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 

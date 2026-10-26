@@ -9,27 +9,13 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# License: See gpl-3.0.txt
-#
-#   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# This source code is marked with CC0 1.0 Universal.
+#    To view a copy of this license, visit http://creativecommons.org
 
 """
 Script to spell check English Bible verses.
 
 CHANGELOG:
-    2026-10-23 Accept combined OET formatting titles and LV addition descriptions
-    2026-10-23 Accept house(hold) in OET-LV after trailing punctuation cleanup
     2024-03-13 Added check for duplicated words
     2025-03-10 Added support for a few more internal USFM markers
     2025-04-16 Added support for removing some technical English words, but which aren't used in Bibles and so should be spelling errors
@@ -48,6 +34,8 @@ CHANGELOG:
     2026-10-20 Check repeated words before discarding meaningful punctuation and gloss separators
     2026-10-20 Report spelling errors separately from possible repetitions in all three languages
     2026-10-21 Check marked -ies plurals such as furi(es) against their full plural forms
+    2026-10-23 Accept combined OET formatting titles and LV addition descriptions
+    2026-10-26 Check LSV all-capitals words and possessives against normal dictionary forms
 """
 from pathlib import Path
 from csv import  DictReader
@@ -60,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-23' # by RJH
+LAST_MODIFIED_DATE = '2026-10-26' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.78'
+PROGRAM_VERSION = '0.79'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -230,7 +218,7 @@ assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w 
 # AMERICAN_SPELLINGS = ['baptized','baptizing','baptize','favors','favor','honors','honor','marvelous','neighbors','neighbor','realize','splendor','worshiped','worshiping']
 # BRITISH_SPELLINGS = ['baptised','baptising','baptise','favours','favour','honours','honour','marvellous','neighbours','neighbour','realise','splendour','worshipped','worshipping']
 
-PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORD', # Delete ALL CAPS versions
+PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions, longest first (including LORDS)
 
             # Hyphenated names (would have been split up down below)
             'Almon-diblathaim','Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
@@ -261,7 +249,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             #'it(f)', 'saying(ms)',
 
             # These contractions could have all been solved with a substitution rule,
-            #   but doing it this way gives us a list of the contractions that are used in the OET-RV
+            #   but doing it this way gives us a list of the contractions that are used in the OET
             'aren’t','Aren’t',
                 'can’t','Can’t', 'couldn’t','Couldn’t',
                 'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
@@ -279,7 +267,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'you’d','You’d', 'you’ll','You’ll', 'you’re','You’re', 'you’ve','You’ve',
                 'wasn’t','Wasn’t',
                     'We’d','we’d', 'we’ll','We’ll', 'we’re','We’re', 'weren’t','Weren’t', 'we’ve','We’ve',
-                    'what’ll', 'who’d', 'who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
+                    'what’ll', 'who’d', 'who’ll','Who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
 
             # Other
             'EDOMITE','EDOM','DOM', # Gotta do that one first
@@ -480,7 +468,6 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             'ScriptedBibleEditor', 'ScriptedOTUpdates','ScriptedVLTUpdates',
                             'LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
                             'unsalty',
-                            'house(hold', # house(hold) after trailing punctuation cleanup
                             # 'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
         elif versionAbbreviation == 'OET-RV':
@@ -489,14 +476,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( ('unfoldingWord®','unfoldingWord','tc','en',) )
     elif versionAbbreviation == 'NET':
         wordSet.update( ('CAP',) )
-    elif versionAbbreviation == 'LSV': # Allow their UPPER CASE Psalm headings
-        wordSet.update( ('A','AN','ABIMELECH','ALL','AND','ASCENTS','AWAY','BEHAVIOR','BET','BY',
-                         'CHANGING','DEDICATION','DAY','DOE','DRIVES',
-                         'ENEMIES',
-                         'HAS','HOUSE','INSTRUCTION','MIKTAM','MORNING','INSTRUMENTS',
-                         'ON','OVERSEER','PRAYER','PSALM','SAUL','SAYS','SET','SPOKEN',
-                         'GOES','ALEPH-BET','YAH','ALEPH','BETH',
-                        ) )
+    elif versionAbbreviation == 'LSV': # Ordinary ALL CAPS words/names use the dictionary below.
+        wordSet.update( ('SHIGGAION',) ) # Psalm 7 heading: specialist term missing from our dictionaries
     elif versionAbbreviation == 'KJB-1611': # Allow their U P P E R C A S E Book headings
         wordSet.update( ('B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') )
     # elif versionAbbreviation in ('RV','AST',): # Handle long UPPER CASE titles
@@ -723,6 +704,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedTextToCheck =  ( cleanedTextToCheck
                         .replace( '˓', '' ).replace( '˒', '' ) # Around gloss-helpers
                         )
+    elif versionAbbreviation == 'LSV':
+        # Let the existing possessive cleanup also handle ALL CAPS headings.
+        cleanedTextToCheck = cleanedTextToCheck.replace( '’S', "'s" ).replace( "'S", "'s" )
     elif versionAbbreviation == 'LEB':
         cleanedTextToCheck =  ( cleanedTextToCheck
                         .replace( '⌊', '' ).replace( '⌋', '' ) # Floor brackets ('idioms' from LEB)
@@ -839,7 +823,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         elif versionAbbreviation == 'ClVg': TOTAL_LATIN_WORDS_CHECKED_COUNT += 1
         else: TOTAL_ENGLISH_WORDS_CHECKED_COUNT += 1
         dictionaryWord = f'{word}es' if hasMarkedIesPlural and word.endswith('i') else word
-        if dictionaryWord not in wordSet and f'{dictionaryWord[0].lower()}{dictionaryWord[1:]}' not in wordSet:
+        # LSV capitalises whole headings and inscriptions. Validate their spelling
+        # as ordinary words or proper names, retaining the original for reports/HTML.
+        if dictionaryWord not in wordSet and f'{dictionaryWord[0].lower()}{dictionaryWord[1:]}' not in wordSet \
+        and not (versionAbbreviation == 'LSV' and dictionaryWord.isupper()
+                 and (dictionaryWord.lower() in wordSet or dictionaryWord.capitalize() in wordSet)):
             cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
                                                             .replace('<a title="Return to text" href="#C','') \
                                                             .replace('<hr class="line-before-footnotes">','') \

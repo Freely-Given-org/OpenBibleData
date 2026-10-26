@@ -11,15 +11,15 @@
 # (loaded from the cached pickles) as well as small stubs for edge cases.
 #
 # CHANGELOG:
-# 2026-09-14: livenOETWordLinks and livenOETCompatibleBereanWordLinks now share
-#     one Rust implementation in lib.rs; the UnboundLocalError quirk for
-#     non-OT/NT books was dropped (FRT now passes through unchanged).
 # 2026-09-10: wordlinks are now livented natively in a single pass
 #     (oet_handlers::liven_esfm_word_links), so the §«OrigWord»§ / ►NNNN◄
 #     placeholder round-trip and the Berean loadESFMWordFile-on-demand
 #     plumbing are gone; test_bereanLoadsTablesOnDemand was rewritten as
 #     test_bereanTablesComeFromState to assert no table loading happens
 #     (rows come from state.OETRefData['word_tables']).
+# 2026-09-14: livenOETWordLinks and livenOETCompatibleBereanWordLinks now share
+#     one Rust implementation in lib.rs; the UnboundLocalError quirk for
+#     non-OT/NT books was dropped (FRT now passes through unchanged).
 
 import logging
 import unittest

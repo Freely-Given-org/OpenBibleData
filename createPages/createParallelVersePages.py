@@ -32,8 +32,6 @@ main calls fullDemo()
 
 
 CHANGELOG:
-    2026-10-17 Log SR-GNT word-number mismatches as ERROR instead of CRITICAL.
-    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2023-10-23 Move SR-GNT up so it's under OET-LV
     2023-10-25 Add word numbers to SR-GNT words
     2023-12-15 Improve SR-GNT colorisation and add colourisation for other GNTs that differ
@@ -45,8 +43,6 @@ CHANGELOG:
     2024-02-19 Add verse selection bar
     2024-04-30 In state.TEST_MODE_FLAG, only make parallel verse pages for the actual state.TEST_BOOK_LIST
     2024-06-05 Allow footnotes (but not cross-references) on these pages
-    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
-                which includes moving transliteration spans to be placed BEFORE any footnotes
     2024-06-25 Started work on adding maps from BibleMapper.com
     2024-09-20 Split out language data tables
     2024-09-23 Link to actual verse in version chapter pages (rather than #Top)
@@ -72,6 +68,8 @@ CHANGELOG:
     2026-05-26 Reducing some logging verbosity
     2026-07-05 Added OpenBibleImages
     2026-08-16 If second paired version is the same as the first, combine them (BSB/MSB & WEBBE/WMBB)
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+                which includes moving transliteration spans to be placed BEFORE any footnotes
     2026-08-24 Use multiprocessing for creating the per-book parallel verse pages
                 (children return their collected versesWithImages, possibleUnmatchedProperNames,
                     and spell-check results for merging back into the parent state)
@@ -80,8 +78,8 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
     2026-09-01 Fixed bad links on the second book index page
-    2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
     2026-09-04 Don't display PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
+    2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the parallel-verse hot path have been removed.
     2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
@@ -90,10 +88,17 @@ CHANGELOG:
     2026-10-15 Hide complete secondary lines, including their parentheses and line breaks.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-16 Import German and Latin translations from their separate BOS modules.
+    2026-10-17 Log SR-GNT word-number mismatches as ERROR instead of CRITICAL.
+    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2026-10-17 Report books omitted from navigation and skip them before creating folders.
     2026-10-21 Share version-level substituted pickles and merge forked workers' additions.
     2026-10-21 Include OET colours in Hebrew keys when UHB alignment fails; handle standalone paragraph markers.
     2026-10-23 Share grammatical colour-key definitions with word and lemma pages.
+    2026-10-24 Keep traditional abbreviations alongside OET names for the selected book.
+    2026-10-26 Include Psalm headings in verse/chapter navigation and selector lists.
+    2026-10-26 Avoid duplicate newlines when introductions have no verse metadata/text.
+    2026-10-26 Add explained pages for alternate verse addresses after all ordinary pages finish.
+    2026-10-26 Pass the navigation profile when retrieving original-numbered verse metadata.
 """
 from pathlib import Path
 import os
@@ -114,7 +119,8 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from oetWords import matchedHebrewWordRows
 from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
-from navigation import navigationBookList
+from navigation import navigationBookList, verseNavigationFirstVerses
+from alternateVersePages import createAlternateVersePages
 from versification import (navigationVersification, parallelVersePassage,
                             versePortionHtml, MissingMappedBookError)
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
@@ -132,7 +138,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-21'
+LAST_MODIFIED_DATE = '2026-10-26'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.12'
@@ -232,7 +238,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             load_dict_sources()
             load_OET_LV_names()
             load_OET_RV_names()
-        getVerseMetaInfoHtml( 'GEN', '1', '1' ) # Pre-load the sentenceImportance table in the parent before forking (so the workers inherit it copy-on-write too, and it's only loaded + reported once)
+        getVerseMetaInfoHtml( 'GEN', '1', '1', state.navigationVersification ) # Pre-load before forking so workers inherit the table.
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
@@ -251,6 +257,11 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             state.possibleUnmatchedProperNames.update( possibleUnmatchedProperNamesSet )
             mergeSpellCheckResults( spellCheckResults )
             state.substitutedVersions.mergeWorkerResult(substitutions)
+    # Some source addresses (e.g. OET-LV MAL 3:19) lie outside English page
+    # numbering. Wait for every worker: a mapped target can be in another book.
+    alternateBooks = [book for book in state.allBBBs
+        if not state.TEST_MODE_FLAG or book in state.TEST_BOOK_LIST]
+    createAlternateVersePages(folder, alternateBooks, state, 'parallel')
     saveSubstitutedVersions(state)
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
@@ -341,19 +352,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    # adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'ParallelVerse', state ) \
-    #         .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
-    BBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'ParallelVerse', state )
-    # Handle <a title="Yonah/(Jonah)" href="../JNA/C1V1.htm#chLst"><span title="Yonah (which is closer to the Hebrew hhh/Yōnāh)">YNA</span> (JNA)</a>
-    # was BBBLinksHtml.replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/C1V1.htm#chLst">{ourTidyBBB}</a>''', ourTidyBBB )
-    adjBBBLinksHtml = re.sub( f'<a title="[^"]+?" href="../{BBB}/C1V1.htm#chLst">.+?</a>', ourTidyBBB, BBBLinksHtml ) \
-                                    .replace( f'<span class="OT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="DC">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="NT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
-    assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
+    adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'ParallelVerse', state, currentBBB=BBB )
 
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
+    firstVerses = verseNavigationFirstVerses(BBB, numChapters, parallelVersions, state)
 
     vLinksList = []
     detailsLink = f''' <a title="Show details about these works" href="{'../'*(BBBLevel)}AllDetails.htm#Top">©</a>'''
@@ -366,14 +368,15 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
 
-            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
+            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{firstVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
                     f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
 
             introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
-            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
-            rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
-                    else f' <a title="Next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
+            firstVerse = firstVerses.get(c, 1)
+            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{firstVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
+            rightCLink = f' <a title="Go to first chapter" href="C1V{firstVerses[1]}.htm#__ID__">►</a>' if c==-1 \
+                    else f' <a title="Next chapter" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters \
                     else ''
             numVerses = 0 if c == -1 else referenceSystem.getNumVerses(BBB, C)
             if numVerses is None: # something unusual
@@ -385,20 +388,21 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 parRef = f'{BBB}_{C}:{V}'
                 # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
-                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
+                                for vv in ([0] if firstVerse==0 else []) + list(range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1)) if vv!=v] )}</p><!--vsLst-->'''
                 doneHideablesDiv = False
                 greekWords = {}; greekVersionKeysHtmlSet = set()
                 textHtmlBSB = textHtmlWEB = footnotesHtmlSaved = ''
 
                 # The following all have a __ID__ string than needs to be replaced
                 if v > 3:
-                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V1.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
-                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
+                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V{firstVerse}.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
+                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>firstVerse \
                         else f'<a title="Previous chapter (last verse)" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''
                 # NOTE below: C1V0 may not exist in the version but usually there's uW TNs for 1:0
                 rightVLink = f' <a title="Next page is first chapter intro" href="C1V0.htm#__ID__">→</a>' if c==-1 \
                         else f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
+                        else f' <a title="Next chapter (first verse)" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">→</a>' if c<numChapters \
                         else ''
                 verseListLink = f''' <a title="Simple verse list view" href="{'../'*BBBLevel}lst/{BBB}/C{C}V{V}.htm#Top">≡</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
@@ -408,7 +412,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 debugKJBCompareBit = False #parRef == 'PSA_68:6'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
-                parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
+                parallelHtml = getVerseMetaInfoHtml( BBB, C, V, state.navigationVersification )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
@@ -428,7 +432,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 
                     if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'GHT', 'ULT','UST', 'NET', 'BSB','MSB','BLB'):
                         assert not parallelHtml.endswith( '\n' )
-                        parallelHtml = f'{parallelHtml}\n<div class="hideables">\n<hr style="width:60%;margin-left:0;margin-top: 0.3em">'
+                        # Introductions can have neither metadata nor preceding Bible text.
+                        parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<div class="hideables">\n<hr style="width:60%;margin-left:0;margin-top: 0.3em">'
                         doneHideablesDiv = True
 
                     thisBible = state.preloadedBibles[versionAbbreviation]
@@ -440,7 +445,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         result = error.result
                         logging.warning(f'{versionAbbreviation} {parRef}: {error}')
                         warningText = f'Verse alignment unavailable ({result.status.value}).'
-                        parallelHtml += f'\n<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
+                        parallelHtml += f'{NEWLINE if parallelHtml else ""}<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
                         continue
                     except KeyError as error:
                         if versionAbbreviation in state.selectedVersesOnlyVersions or c == -1 or v == 0:
@@ -450,7 +455,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         missingWhat = 'book' if isinstance(error, MissingMappedBookError) else 'verse'
                         warningText = f'No {versionAbbreviation} {nativeReferences} {missingWhat} available'
                         logging.warning(warningText)
-                        parallelHtml += f'\n<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
+                        parallelHtml += f'{NEWLINE if parallelHtml else ""}<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noVerse"><small>{warningText}</small></span></p>'
                         continue
                     for portionNumber, (nativeReference, verseEntryList, contextList) in enumerate(versePortions):
                         sourceBBB, sourceC, sourceV = nativeReference
@@ -1170,35 +1175,35 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     plblHtml = f'''See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_Overview_{C}">analysis overview</a>.
 <br>  <small>See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_{C}_Verse-by-Verse#v._{V}">analysis for this verse</a> (but that link requires making an account there)</small>.'''
                     plblHtml = f'''<div id="PLBL" class="parallelPLBL"><a title="Go to PLBL copyright page" href="{'../'*BBBLevel}PLBL/details.htm#Top">PLBL</a> <b>Psalms Layer-by-Layer</b>: {plblHtml}</div><!--end of PLBL-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
 
                 if isOT and c>=1: # Provide a link to Hebrew accents and phrasing pages
                     hapBkName = bos_books_codes_py.get_english_name_list_nr( BBB )[0]
                     hapBkAbbrev = hapBkName[:3]
                     hapHtml = f'''See Allan Johnson's <a href="https://Freely-Given.org/BibleOriginals/Hebrew/AccentsPhrasing/Files/{hapBkName}.html#{hapBkAbbrev}{C}:{V}">Hebrew accents and phrasing analysis</a>.'''
                     hapHtml = f'''<div id="HAP" class="parallelHAP"><a title="Go to HAP copyright page" href="{'../'*BBBLevel}HAP/details.htm#Top">HAP</a> <b>Hebrew accents and phrasing</b>: {hapHtml}</div><!--end of HAP-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{hapHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{hapHtml}'
 
                 # Handle Tyndale open study notes and theme notes
                 if tsnHtml := formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TOSN copyright page" href="{'../'*BBBLevel}TOSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{tsnHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{tsnHtml}'
                 if ttnHtml := formatTyndaleNotes( 'TTN', BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->'''
                     parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{ttnHtml}"
                 # Handle SIL open translation notes 'UTN'
                 if sotnHtml := getFormattedSILOpenTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     sotnHtml = f'''<div id="SOTN" class="parallelSOTN"><a title="Go to SOTN copyright page" href="{'../'*BBBLevel}SOTN/details.htm#Top">SOTN</a> <b>SIL Open Translator’s Notes</b>: {sotnHtml}</div><!--end of SOTN-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{sotnHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{sotnHtml}'
                 # Handle uW translation notes 'UTN'
                 if utnHtml := formatUnfoldingWordTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*BBBLevel}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{utnHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{utnHtml}'
 
                 # Handle BibleMapper maps and notes
                 if bmmHtml := getBibleMapperMaps( BBBLevel, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state ):
                     bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*BBBLevel}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
-                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
 
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'
                 # filenames.append( filename )
@@ -1214,8 +1219,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 {vLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
-{parallelHtml}
-{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
+{parallelHtml}{NEWLINE if parallelHtml else ''}{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, None, 'parallelVerse' )}'''
                 assert checkHtml( f'Parallel {parRef}', parallelHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything

@@ -32,6 +32,7 @@ CHANGELOG:
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-24 Use traditional book abbreviations on other versions' document pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -45,13 +46,14 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
 from settings import State, state, CNTR_BOOK_ID_MAP
+from navigation import bookAbbreviation
 from oetPassages import renderOETSideBySideChunks
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.73'
@@ -310,7 +312,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBB = bookAbbreviation( BBB, thisBible.abbreviation )
         NT = bos_books_codes_py.is_new_testament_nr( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )

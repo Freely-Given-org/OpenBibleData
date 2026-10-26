@@ -44,6 +44,8 @@ CHANGELOG:
     2026-04-22 Section indexes are now made BEFORE pickling
     2026-06-17 Added prev/next links on section index pages
     2026-06-29 Improved handling of ms1 fields in conjunction with new BibleOrgSys (Rust) code
+    2026-07-06 Added OBI images to OET-RV
+    2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-22 livenSectionReferences() deleted -- dead code since the convert.py deletion
                 (the Rust convertVerseEntryListToHtml now livens \r fields itself,
@@ -51,8 +53,6 @@ CHANGELOG:
     2026-08-24 Flatten \add exegesis markers (e.g., '#Rest Days' in the Psalm 92 title)
                 to plain text in section names/lists -- that specialised formatting
                 isn't relevant in the section lists displayed on the index pages
-    2026-07-06 Added OBI images to OET-RV
-    2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
     2026-08-25 findSectionNumber() converted to Rust (openbibledata_rust.findSectionNumber,
                 see Rust/src/section_numbers.rs) -- the Python function is now a thin wrapper
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
@@ -65,6 +65,7 @@ CHANGELOG:
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls have been removed. (Section lists now store un-livened entries; livening happens once, at the page-creation convert — the old code livened twice, at list-build and again (no-op) at page-build.)
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
+    2026-10-24 Use traditional book abbreviations on other versions' section pages and controls.
 """
 from pathlib import Path
 import os
@@ -78,7 +79,7 @@ from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
-from navigation import mapHtmlLinks
+from navigation import mapHtmlLinks, bookAbbreviation
 from settings import State
 from oetPassages import renderOETLVPassage, oetLVSourceLink
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -87,7 +88,7 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-10-12' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.96'
@@ -682,7 +683,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
     # Now, make the actual pages
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         NT = bos_books_codes_py.is_new_testament_nr( BBB )
-        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBB = bookAbbreviation( BBB, thisBible.abbreviation )
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
         # if thisBible.abbreviation=='OET-LV' \
@@ -826,8 +827,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
         # Now make the section index file for this book
         BBBindex = availableBBBs.index( BBB )
-        leftLink = f'<a title="Previous book: {getOETTidyBBB(availableBBBs[BBBindex-1])}" href="{availableBBBs[BBBindex-1]}.htm#Top">←</a> ' if BBBindex>0 else ''
-        rightLink = f' <a title="Next book: {getOETTidyBBB(availableBBBs[BBBindex+1])}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
+        leftLink = f'<a title="Previous book: {bookAbbreviation(availableBBBs[BBBindex-1], thisBible.abbreviation)}" href="{availableBBBs[BBBindex-1]}.htm#Top">←</a> ' if BBBindex>0 else ''
+        rightLink = f' <a title="Next book: {bookAbbreviation(availableBBBs[BBBindex+1], thisBible.abbreviation)}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
         indexFilename = f'{BBB}.htm'
         indexFilepath = folder.joinpath( indexFilename )
         top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{indexFilename}', state ) \

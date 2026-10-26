@@ -1,0 +1,2609 @@
+{
+  "output_versification": "org",
+  "reference_version": "1-draft",
+  "mapping_data_revision": "519af776ab65d89a51e37f750779250f940459ef+bos-supplement-3.d1f0914e6bd4ee61f9ecd3202409377e1128e407b3ead2574bc1de5bc52a9da0+bos-profiles.29014417bf465afeef7c3738c76873473671d5defb8be44c3810370c9402914e",
+  "mapping_policy_version": "3",
+  "source_profiles": {
+    "curated": "eng",
+    "quotations": "eng, with QUOTE_PROFILES overrides",
+    "UHB": "eng",
+    "OET-LV OT": "OET-LV",
+    "NET": "eng OT/Acts; org other NT",
+    "CNTR": "VLT",
+    "speakers": "OET-RV; OET-LV title and tagged-speech evidence"
+  },
+  "speaker_evidence": {
+    "PSA 3 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David when he fled from his son Avshalom !(Absalom) .",
+      "OET-LV": "A song of Dāvid when fled he from face/in front of ʼAⱱīshālōm his/its son .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 4 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be accompanied by stringed instruments .",
+      "OET-LV": "To choirmaster with stringed instruments a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 5 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be accompanied by flutes .",
+      "OET-LV": "To choirmaster to the flutes a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 6 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David for the singing director to be accompanied by the ? eight- stringed instrument .",
+      "OET-LV": "To choirmaster with stringed instruments on the shəmīnīt a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 7 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David which he sang to Yahweh concerning the Benyamite, Kush .",
+      "OET-LV": "A shiggaion of Dāvid which he sang to/for YHWH on the words/messages of Kūsh/(Cush) a Ben- of jaminite .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 8 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be accompanied by a stringed instrument.",
+      "OET-LV": "To choirmaster on the Gittith a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 9 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : David's song about the death of the son",
+      "OET-LV": "To choirmaster alumoth of labben a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 11 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 12 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David ? to be played on the eight-stringed instrument .",
+      "OET-LV": "To choirmaster on the shəmīnīt a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 13 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 14 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 15 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A song of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 16 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A miktam of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 17 author": {
+      "speaker": "David",
+      "OET-RV": "A prayer by David .",
+      "OET-LV": "A prayer of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 18 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by Yahweh's servant David , when he sang the words of this song to Yahweh on the day that Yahweh rescued him from Shaul !(King Saul ) and all his other enemies .",
+      "OET-LV": "To choirmaster of the servant of of YHWH of Dāvid who he spoke to/for YHWH DOM the words/messages of the song (the) this in/on day YHWH when he delivered him from the palm of all of enemies of his and from the hand of Shāʼūl/(Saul) .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 19 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 20 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 21 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 22 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to the tune ‘The doe of the dawn ’.",
+      "OET-LV": "To choirmaster on the doe of the dawn a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 23 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A song of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 24 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid a song",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 25 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 26 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 27 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 28 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 29 author": {
+      "speaker": "David",
+      "OET-RV": "A praise song by David .",
+      "OET-LV": "A song of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 30 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David for the temple dedication .",
+      "OET-LV": "A song the song of the dedication of the house of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 31 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 32 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid a poem",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 34 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David who pretended to be insane in front of King Avimelek , causing the king to send him away .",
+      "OET-LV": "Of Dāvid when changed he DOM sense of his to (the) face of/in front of/before ʼAⱱīmelek and he drove him away and he went .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 35 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 36 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by Yahweh's servant David .",
+      "OET-LV": "To choirmaster of the servant of of YHWH of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 37 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 38 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David for the memorial offering.",
+      "OET-LV": "A song of Dāvid to make remembrance .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 39 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : A song by David for Yedutun .",
+      "OET-LV": "To choirmaster mmm a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 40 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster of Dāvid a song .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 41 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 42 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants .",
+      "OET-LV": "To choirmaster a poem of the sons of of Qoraḩ .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 44 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants .",
+      "OET-LV": "To choirmaster of the sons of of Qoraḩ a poem .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 45 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants . A love song to be sung to the tune of ‘Lilies’.",
+      "OET-LV": "To choirmaster on Shoshannim of the sons of of Qoraḩ a poem a song of love(s) .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 46 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants . To be sung by soprano voices.",
+      "OET-LV": "To choirmaster of the sons of of Qoraḩ on alamoth a song .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 47 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants .",
+      "OET-LV": "To choirmaster of the sons of of Qoraḩ a song .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 48 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "A song by Korah's descendants .",
+      "OET-LV": "A song a song of the sons of of Qoraḩ .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 49 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants .",
+      "OET-LV": "To choirmaster of the sons of of Qoraḩ a song .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 50 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A song of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 51 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David from when the prophet Natan had gone to him after @David had committed adultery with Bat-Sheva.",
+      "OET-LV": "To choirmaster a song of Dāvid . When came to him/it Nātān the prophet when when he had gone into Bath- sheba .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 52 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David written when Doeg the Edomite reported to King Shaul that, “David went there to Ahimilik.”",
+      "OET-LV": "To choirmaster a poem of Dāvid . When came Doʼēg the ʼEdōmite and he told to Shāʼūl/(Saul) and he/it said to him/it Dāvid he has gone to the house of ʼAḩīmelek .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 53 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be sung to the tune of ‘Mahalat’.",
+      "OET-LV": "To choirmaster on machalath a poem of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 54 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David written when some people from Zif went to King Shaul and told him that David was hiding in %their area . To be accompanied by stringed instruments .",
+      "OET-LV": "To choirmaster with stringed instruments a poem of Dāvid . When the Ziphites came and they said to Shāʼūl/(Saul) not is Dāvid hiding himself with us .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 55 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be accompanied by stringed instruments .",
+      "OET-LV": "To choirmaster with stringed instruments a poem of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 56 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David , written when the Philistines captured him at Gat. To be sung to the tune of “A dove on distant oak trees”.",
+      "OET-LV": "To choirmaster on yonath- of elem- rechokim of Dāvid a miktam when the Fəlishtiy seized DOM him/it in Gath .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 57 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David written when he was fleeing from Shaul and hid in a cave . To be sung to the tune of ‘Don't destroy’.",
+      "OET-LV": "To choirmaster al- tashcheth of Dāvid a miktam when fled he from face/in front of Shāʼūl/(Saul) in cave .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 58 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David . To be sung to the tune of ‘Don't destroy’.",
+      "OET-LV": "To choirmaster al- tashcheth of Dāvid a miktam .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 59 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David written when King Shaul !(Saul ) had sent men to watch David's house in order to kill him . To be sung to the tune of ‘Don't destroy’.",
+      "OET-LV": "To choirmaster al- tashcheth of Dāvid a miktam when Shāʼūl/(Saul) sent and people watched DOM the house to kill him .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 60 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David for teaching written when he fought with Aram -Naharayim and with Aram -Tsovah , and Yoav returned and killed twelve thousand Edomites in the Salt Valley . To be sung to the tune of ‘The Lily of Testimony’.",
+      "OET-LV": "To choirmaster on shushan- of eduth a miktam of Dāvid to teach . When struggled he with ʼArām Nahₐrayim and DOM ʼArām Tsōⱱāh/(Zobah) and Yōʼāⱱ/(Joab) he turned back and he struck down DOM ʼEdōm in the Valley of Salt two plus ten thousand .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 61 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be accompanied by stringed #instruments .",
+      "OET-LV": "To choirmaster on a stringed instrument of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 62 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David Hidutun.",
+      "OET-LV": "To choirmaster on Yədūtūn/(Jeduthun) a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 63 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David when he was in the Yehudah wilderness .",
+      "OET-LV": "A song of Dāvid when was he in the wilderness of Yəhūdāh/(Judah) .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 64 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 65 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster a song of Dāvid a song .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 68 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David .",
+      "OET-LV": "To choirmaster of Dāvid a song a song .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 69 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David to be sung to the tune of ‘Lilies’.",
+      "OET-LV": "To choirmaster on Shoshannim of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 70 author": {
+      "speaker": "David",
+      "OET-RV": "For the musical director : a song by David for the memorial offering.",
+      "OET-LV": "To choirmaster of Dāvid to make remembrance .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 72 author": {
+      "speaker": "Shelomoh",
+      "OET-RV": "A song by Shelomoh !(Solomon ) .",
+      "OET-LV": "Of Shəlomoh/(Solomon)",
+      "LV_author": "Shelomoh",
+      "mixed_title_and_body": true
+    },
+    "PSA 73 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A song of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 74 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A poem of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 75 author": {
+      "speaker": "Asaf",
+      "OET-RV": "For the musical director : a song by Asaf to be sung to the tune of ‘Don't destroy’.",
+      "OET-LV": "To choirmaster al- tashcheth a song of ʼĀşāf a song .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 76 author": {
+      "speaker": "Asaf",
+      "OET-RV": "For the musical director : a song by Asaf to be accompanied by stringed instruments .",
+      "OET-LV": "To choirmaster with stringed instruments a song of ʼĀşāf a song .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 77 author": {
+      "speaker": "Asaf",
+      "OET-RV": "For the musical director : a song for Yedutun by Asaf .",
+      "OET-LV": "To choirmaster on Yədūtūn/(Jeduthun) of ʼĀşāf a song .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 78 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A poem of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 79 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A song of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 80 author": {
+      "speaker": "Asaf",
+      "OET-RV": "For the musical director : a song by Asaf to be sung to the tune of ‘Lilies of Agreement.’",
+      "OET-LV": "To choirmaster to Shoshannim eduth of ʼĀşāf a song .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 81 author": {
+      "speaker": "Asaf",
+      "OET-RV": "For the musical director : a song by Asaf to be accompanied by stringed instruments.",
+      "OET-LV": "To choirmaster on the Gittith of ʼĀşāf .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 82 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A song of ʼĀşāf",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": true
+    },
+    "PSA 83 author": {
+      "speaker": "Asaf",
+      "OET-RV": "A song by Asaf .",
+      "OET-LV": "A song a song of ʼĀşāf .",
+      "LV_author": "Asaf",
+      "mixed_title_and_body": false
+    },
+    "PSA 84 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants to be accompanied by stringed instruments.",
+      "OET-LV": "To choirmaster on the Gittith of the sons of of Qoraḩ a song .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 85 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "For the musical director : a song by Korah's descendants .",
+      "OET-LV": "To choirmaster of the sons of of Qoraḩ a song .",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": false
+    },
+    "PSA 86 author": {
+      "speaker": "David",
+      "OET-RV": "A prayer of David's .",
+      "OET-LV": "A prayer of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 87 author": {
+      "speaker": "Korah's descendants",
+      "OET-RV": "A song by Korah's descendants .",
+      "OET-LV": "Of the sons of Qoraḩ a song a song",
+      "LV_author": "Korah's descendants",
+      "mixed_title_and_body": true
+    },
+    "PSA 88 author": {
+      "speaker": "Korah's descendants,Heyman",
+      "OET-RV": "For the musical director : a song by Korah's descendants. To be sung to the tune of ‘Mahalat-Le'annot’ a song by Heyman , one of Ezra's descendants .",
+      "OET-LV": "A song a song of the sons of of Qoraḩ to choirmaster on machalath- leannoth a poem of Hēymān the Ezrachite .",
+      "LV_author": "Korah's descendants,Heyman",
+      "mixed_title_and_body": false
+    },
+    "PSA 89 author": {
+      "speaker": "Eytan",
+      "OET-RV": "A song of Eytan , one of Ezra's descendants .",
+      "OET-LV": "A poem of ʼĒytān the Ezrachite .",
+      "LV_author": "Eytan",
+      "mixed_title_and_body": false
+    },
+    "PSA 90 author": {
+      "speaker": "Mosheh",
+      "OET-RV": "A prayer by God's man Mosheh !(Moses ) .",
+      "OET-LV": "A prayer of Mosheh the man of the ʼElohīm",
+      "LV_author": "Mosheh",
+      "mixed_title_and_body": true
+    },
+    "PSA 101 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid a song",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 103 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 108 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A song a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 109 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David for the choir director .",
+      "OET-LV": "To choirmaster of Dāvid a song",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 110 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid a song",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 122 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 124 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 127 author": {
+      "speaker": "Shelomoh",
+      "OET-RV": "A song by Solomon while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents of Shəlomoh/(Solomon)",
+      "LV_author": "Shelomoh",
+      "mixed_title_and_body": true
+    },
+    "PSA 131 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 132 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents",
+      "LV_author": null,
+      "mixed_title_and_body": true
+    },
+    "PSA 133 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David while walking uphill to Yerushalem .",
+      "OET-LV": "The song of the ascents of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 138 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 139 author": {
+      "speaker": "David",
+      "OET-RV": "One of David's #songs for the choir director .",
+      "OET-LV": "To choirmaster of Dāvid a song",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 140 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David for the choir director .",
+      "OET-LV": "To choirmaster a song of Dāvid .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 141 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A song of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 142 author": {
+      "speaker": "David",
+      "OET-RV": "A song and prayer of David when he was hiding in a cave .",
+      "OET-LV": "A poem of Dāvid when was he in cave a prayer .",
+      "LV_author": "David",
+      "mixed_title_and_body": false
+    },
+    "PSA 143 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "A song of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 144 author": {
+      "speaker": "David",
+      "OET-RV": "A song by David .",
+      "OET-LV": "Of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "PSA 145 author": {
+      "speaker": "David",
+      "OET-RV": "A praise song by David .",
+      "OET-LV": "Praise of Dāvid",
+      "LV_author": "David",
+      "mixed_title_and_body": true
+    },
+    "MAT_2:8": {
+      "speaker": "@,Herod",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_2:8w6: ˱he˲ said; Y-4;TWise_Men_Visit_Herod;R575;PHerod"
+      ]
+    },
+    "MAT_3:7": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_3:7w13: ˱he˲ said; Y26;TJohn_the_Baptist_Begins_Ministry;R1033;PJohn"
+      ]
+    },
+    "MAT_3:9": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_3:9w11: ˱I˲ ˓am˒ saying; Y26;TJohn_the_Baptist_Begins_Ministry;R1033;PJohn"
+      ]
+    },
+    "MAT_8:32": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_8:32w2: ˱he˲ said; Y31;TGadarene_Demoniacs;R4527;PJesus"
+      ]
+    },
+    "MAT_9:6": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_9:6w21: ˱he˲ ˓is˒ saying; Y31;THealing_the_Man_with_Palsy;R4847;PJesus"
+      ]
+    },
+    "MAT_9:9": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_9:9w18: ˱he˲ ˓is˒ saying; Y31;TJesus_Calls_Matthew;R4944;PJesus"
+      ]
+    },
+    "MAT_9:24": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_9:24w2: ˱he˲ ˓was˒ saying; Y31;TCapernaum_Miracles;R5285;PJesus"
+      ]
+    },
+    "MAT_9:37": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_9:37w2: ˱he˲ ˓is˒ saying; Y31;T3rd_Tour_of_Galilee;R5483;PJesus"
+      ]
+    },
+    "MAT_16:12": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_16:12w5: ˱he˲ said; Y32;R10819;PJesus"
+      ]
+    },
+    "MAT_20:17": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_20:17w21: ˱he˲ said; Y33;R13687;PJesus"
+      ]
+    },
+    "MAT_26:1": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_26:1w16: ˱he˲ said; Y33;R18491;PJesus"
+      ]
+    },
+    "MAT_26:36": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_26:36w14: ˱he˲ ˓is˒ saying; Y33;R19132;PJesus"
+      ]
+    },
+    "MAT_26:49": {
+      "speaker": "@,Judas",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_26:49w8: ˱he˲ said; Y33;R19384;PJudas"
+      ]
+    },
+    "MAT_27:43": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_27:43w14: ˱he˲ said; Y33;R20429;PJesus"
+      ]
+    },
+    "MAT_28:6": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MAT_28:6w7: ˱he˲ said; Y33;R21279;PJesus"
+      ]
+    },
+    "MRK_1:30": {
+      "speaker": "@,Simon,Andrew,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_1:30w11: ˱they˲ ˓are˒ speaking; Y27;TPeter's_Mother-in-law_and_Others_Healed;R21979;PSimon;R21981;PAndrew;R22029;R22034;PJohn2"
+      ]
+    },
+    "MRK_1:37": {
+      "speaker": "@,Simon",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_1:37w7: ˱they˲ ˓are˒ saying; Y27;TJesus'_1st_Tour_of_Galilee;R22418;PSimon;R22420"
+      ]
+    },
+    "MRK_2:2": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_2:2w14: ˱he˲ ˓was˒ speaking; Y31;THealing_the_Man_with_Palsy;R22152;PJesus"
+      ]
+    },
+    "MRK_4:33": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_4:33w6: ˱he˲ ˓was˒ speaking; Y31;TSeaside_Parables_and_Miracle;R23532;PJesus"
+      ]
+    },
+    "MRK_4:34": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_4:34w6: ˱he˲ ˓was˒ speaking; Y31;TSeaside_Parables_and_Miracle;R23532;PJesus"
+      ]
+    },
+    "MRK_5:19": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_5:19w10: ˱he˲ ˓is˒ saying; Y31;TGadarene_Demoniacs;R25492;PJesus"
+      ]
+    },
+    "MRK_5:43": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_5:43w10: ˱he˲ said; Y31;TCapernaum_Miracles;R25932;PJesus"
+      ]
+    },
+    "MRK_6:31": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_6:31w3: ˱he˲ ˓is˒ saying; Y28;R26835;PJesus"
+      ]
+    },
+    "MRK_8:1": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_8:1w23: ˱he˲ ˓is˒ saying; Y32;R26835;PJesus"
+      ]
+    },
+    "MRK_8:32": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_8:32w5: ˱he˲ ˓was˒ speaking; Y32;R28892;PJesus"
+      ]
+    },
+    "MRK_9:36": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_9:36w17: ˱he˲ said; Y32;R29844;PJesus"
+      ]
+    },
+    "MRK_11:31": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_11:31w16: ˱he˲ ˓will_be˒ saying; Y33;R32302;PJesus"
+      ]
+    },
+    "MRK_14:16": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_14:16w21: ˱he˲ said; Y33;R34420;PJesus"
+      ]
+    },
+    "MRK_14:32": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_14:32w12: ˱he˲ ˓is˒ saying; Y33;R34939;PJesus"
+      ]
+    },
+    "MRK_14:45": {
+      "speaker": "@,Judas",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_14:45w7: ˱he˲ ˓is˒ saying; Y33;R35255;PJudas"
+      ]
+    },
+    "MRK_16:3": {
+      "speaker": "@,Mary,Salome",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_16:3w2: ˱they˲ ˓were˒ saying; Y33;R36781;PMary6;PMary3;R36785;R36790;PSalome"
+      ]
+    },
+    "MRK_16:7": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_16:7w24: ˱he˲ said; Y33;R36671;PJesus"
+      ]
+    },
+    "MRK_16:15": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "MRK_16:15w3: ˱he˲ said; Y33;R36671;PJesus"
+      ]
+    },
+    "LUK_2:49": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_2:49w2: ˱he˲ said; Y8;TJesus_as_a_child_in_the_Temple;R39474;PJesus"
+      ]
+    },
+    "LUK_3:7": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_3:7w1: ˱he˲ ˓was˒ saying; Y26;TJohn_the_Baptist_Begins_Ministry;R39726;PJohn"
+      ]
+    },
+    "LUK_3:8": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_3:8w21: ˱I˲ ˓am˒ saying; Y26;TJohn_the_Baptist_Begins_Ministry;R39726;PJohn"
+      ]
+    },
+    "LUK_3:11": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_3:11w5: ˱he˲ ˓was˒ saying; Y26;TJohn_the_Baptist_Begins_Ministry;R39726;PJohn"
+      ]
+    },
+    "LUK_5:20": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_5:20w9: ˱he˲ said; Y31;THealing_the_Man_with_Palsy;R41948;PJesus"
+      ]
+    },
+    "LUK_8:22": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_8:22w22: ˱he˲ said; Y31;TSeaside_Parables_and_Miracle;R44623;PJesus"
+      ]
+    },
+    "LUK_9:11": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_9:11w12: ˱he˲ ˓was˒ speaking; Y32;R46147;PJesus"
+      ]
+    },
+    "LUK_9:43": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_9:43w21: ˱he˲ said; Y32;R47279;PJesus"
+      ]
+    },
+    "LUK_14:7": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_14:7w1: ˱he˲ ˓was˒ speaking; Y33;R52357;PJesus"
+      ]
+    },
+    "LUK_14:25": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_14:25w8: ˱he˲ said; Y33;R52357;PJesus"
+      ]
+    },
+    "LUK_15:3": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_15:3w1: ˱he˲ said; Y33;R52357;PJesus"
+      ]
+    },
+    "LUK_18:1": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_18:1w1: ˱he˲ ˓was˒ speaking; Y33;R54852;PJesus"
+      ]
+    },
+    "LUK_19:11": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_19:11w6: ˱he˲ said; Y33;R56240;PJesus"
+      ]
+    },
+    "LUK_19:32": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_19:32w8: ˱he˲ said; Y33;R56240;PJesus"
+      ]
+    },
+    "LUK_20:5": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_20:5w14: ˱he˲ ˓will_be˒ saying; Y33;R56765;PJesus"
+      ]
+    },
+    "LUK_20:23": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_20:23w8: ˱he˲ said; Y33;R57200;PJesus"
+      ]
+    },
+    "LUK_20:45": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_20:45w6: ˱he˲ said; Y33;R57734;PJesus"
+      ]
+    },
+    "LUK_21:5": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_21:5w17: ˱he˲ said; Y33;R57734;PJesus"
+      ]
+    },
+    "LUK_22:13": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_22:13w5: ˱he˲ ˓had˒ said; Y33;R57734;PJesus"
+      ]
+    },
+    "LUK_24:32": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "LUK_24:32w19: ˱he˲ ˓was˒ speaking; Y33;R61568;PJesus"
+      ]
+    },
+    "JHN_1:15": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_1:15w6: ˱he˲ ˓has˒ cried_out; Y5;TJohn's_Witness;R62543;PJohn",
+        "JHN_1:15w12: ˱I˲ said; Y5;TJohn's_Witness;R62543;PJohn"
+      ]
+    },
+    "JHN_1:21": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_1:21w17: ˱he˲ ˓is˒ saying; Y5;TJohn's_Witness;R62627;PJohn"
+      ]
+    },
+    "JHN_1:36": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_1:36w6: ˱he˲ ˓is˒ saying; Y5;TFirst_Disciples_Gathered;R62969;PJohn"
+      ]
+    },
+    "JHN_2:5": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_2:5w12: ˱he˲ ˓may_be˒ saying; Y-4;TWater_to_Wine;R63391;PJesus"
+      ]
+    },
+    "JHN_4:25": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_4:25w16: ˱he˲ ˓will_be˒ declaring; Y30;TThe_Samaritan_Woman;R65109;PJesus"
+      ]
+    },
+    "JHN_4:27": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_4:27w16: ˱he˲ ˓was˒ speaking; Y30;TThe_Samaritan_Woman;R65125;PJesus"
+      ]
+    },
+    "JHN_6:6": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:6w4: ˱he˲ ˓was˒ saying; Y32;R66835;PJesus"
+      ]
+    },
+    "JHN_6:12": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:12w4: ˱he˲ ˓is˒ saying; Y32;R66958;PJesus"
+      ]
+    },
+    "JHN_6:41": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:41w9: ˱he˲ said; Y32;R67528;PJesus"
+      ]
+    },
+    "JHN_6:42": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:42w27: ˱he˲ ˓is˒ saying; Y32;R67528;PJesus"
+      ]
+    },
+    "JHN_6:59": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:59w2: ˱he˲ said; Y32;R67943;PJesus"
+      ]
+    },
+    "JHN_6:71": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_6:71w1: ˱he˲ ˓was˒ speaking; Y32;R68375;PJesus"
+      ]
+    },
+    "JHN_7:26": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_7:26w4: ˱he˲ ˓is˒ speaking; Y33;R68803;PJesus"
+      ]
+    },
+    "JHN_7:39": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_7:39w3: ˱he˲ said; Y33;R69174;PJesus"
+      ]
+    },
+    "JHN_8:7": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_8:7w9: ˱he˲ said; Y33;R69596;PJesus"
+      ]
+    },
+    "JHN_8:22": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_8:22w10: ˱he˲ ˓is˒ saying; Y33;R69905;PJesus"
+      ]
+    },
+    "JHN_8:27": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_8:27w8: ˱he˲ ˓was˒ speaking; Y33;R70064;PJesus"
+      ]
+    },
+    "JHN_9:7": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_9:7w2: ˱he˲ said; Y33;R70868;PJesus"
+      ]
+    },
+    "JHN_11:13": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_11:13w20: ˱he˲ ˓is˒ speaking; Y33;R72827;PJesus"
+      ]
+    },
+    "JHN_11:42": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_11:42w14: ˱I˲ said ‹it›; Y33;R73370;PJesus"
+      ]
+    },
+    "JHN_12:6": {
+      "speaker": "@,Judas",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_12:6w1: ˱he˲ said; Y33;R73832;PJudas"
+      ]
+    },
+    "JHN_12:38": {
+      "speaker": "@,Isaiah",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_12:38w9: ˱he˲ said; Y33;R74565;PIsaiah"
+      ]
+    },
+    "JHN_13:6": {
+      "speaker": "@,Simon",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_13:6w9: ˱he˲ ˓is˒ saying; Y33;R74964;PSimon"
+      ]
+    },
+    "JHN_13:22": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_13:22w15: ˱he˲ ˓is˒ speaking; Y33;R75283;PJesus"
+      ]
+    },
+    "JHN_13:24": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_13:24w23: ˱he˲ ˓is˒ speaking; Y33;R75337;PJesus;F75377;F75386"
+      ]
+    },
+    "JHN_13:28": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_13:28w9: ˱he˲ said; Y33;R75428;PJesus"
+      ]
+    },
+    "JHN_18:6": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_18:6w3: ˱he˲ said; Y33;R78399;PJesus"
+      ]
+    },
+    "JHN_18:9": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_18:9w6: ˱he˲ said; Y33;R78471;PJesus"
+      ]
+    },
+    "JHN_21:3": {
+      "speaker": "@,Thomas,Nathanael",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "JHN_21:3w8: ˱they˲ ˓are˒ saying; Y33;R80988;PThomas;R80993;PNathanael;R81002;R81015"
+      ]
+    },
+    "ACT_4:31": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_4:31w21: ˱they˲ ˓were˒ speaking; Y33;EBelievers_pray_for_boldness;TBelievers_pray_for_boldness;R84662;PJohn2"
+      ]
+    },
+    "ACT_6:10": {
+      "speaker": "@,Stephen",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_6:10w18: ˱he˲ ˓was˒ speaking; Y33;EStephen_is_seized;TStephen_is_seized;R86044;PStephen"
+      ]
+    },
+    "ACT_7:3": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_7:3w2: ˱he˲ said; Y33;EStephen_addresses_the_council;TStephen_addresses_the_council;R86216;PGod"
+      ]
+    },
+    "ACT_7:60": {
+      "speaker": "@,Stephen",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_7:60w5: ˱he˲ cried_out; Y33;EStephen_is_stoned;TStephen_is_stoned;R87544;PStephen"
+      ]
+    },
+    "ACT_9:17": {
+      "speaker": "@,Ananias",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_9:17w18: ˱he˲ said; Y35;ESaul_is_converted;TSaul_is_converted;R88769;PAnanias"
+      ]
+    },
+    "ACT_13:25": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_13:25w9: ˱he˲ ˓was˒ saying; Y45;EMission_to_Antioch_in_Pisidia;TMission_to_Antioch_in_Pisidia,First_Missionary_Journey;R92332;PJohn"
+      ]
+    },
+    "ACT_14:27": {
+      "speaker": "@,Barnabas,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_14:27w7: ˱they˲ ˓were˒ declaring; Y46;EReturn_to_Antioch_in_Syria;TReturn_to_Antioch_in_Syria,First_Missionary_Journey;R93536;PBarnabas;R93503;PPaul"
+      ]
+    },
+    "ACT_15:4": {
+      "speaker": "@,Paul,Barnabas",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_15:4w21: ˱they˲ declared; Y51;EJerusalem_Council;TJerusalem_Council,Second_Missionary_Journey;R93752;PPaul;R93755;PBarnabas;R93760"
+      ]
+    },
+    "ACT_16:13": {
+      "speaker": "@,Paul,Silas",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_16:13w25: ˱we˲ ˓were˒ speaking; Y53;ELydia's_Conversion;TLydia's_Conversion,Second_Missionary_Journey;R94856;PPaul;R94634;PSilas;R94681"
+      ]
+    },
+    "ACT_18:6": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_18:6w21: ˱he˲ said; Y54;EMission_to_Corinth,_1&2_Thess_Written;T\"Mission_to_Corinth,_1&2_Thess_Written\",Second_Missionary_Journey;R96701;PPaul"
+      ]
+    },
+    "ACT_19:3": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_19:3w3: ˱he˲ said; Y58;EMission_to_Ephesus/1_Cor_Written;TMission_to_Ephesus/1_Cor_Written,Third_Missionary_Journey;R97330;PPaul"
+      ]
+    },
+    "ACT_20:18": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_20:18w10: ˱he˲ said; Y60;EPaul_speaks_to_Ephesian_Elders;TPaul_speaks_to_Ephesian_Elders;R98722;PPaul"
+      ]
+    },
+    "ACT_20:38": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_20:38w8: ˱he˲ ˓had˒ spoken; Y60;EPaul_speaks_to_Ephesian_Elders;TPaul_speaks_to_Ephesian_Elders;R99238;PPaul"
+      ]
+    },
+    "ACT_22:2": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_22:2w14: ˱he˲ ˓is˒ saying; Y60;EPaul_gives_his_testimony;TPaul_gives_his_testimony;R100255;PPaul"
+      ]
+    },
+    "ACT_22:10": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_22:10w1: ˱I˲ said; Y60;EPaul_gives_his_testimony;TPaul_gives_his_testimony;R100255;PPaul"
+      ]
+    },
+    "ACT_26:31": {
+      "speaker": "@,Bernice",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_26:31w3: ˱they˲ ˓were˒ speaking; Y62;EPaul_goes_before_Agrippa;TPaul_goes_before_Agrippa;R103538;R103541;R103544;PBernice;R103547"
+      ]
+    },
+    "ACT_28:17": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ACT_28:17w19: ˱he˲ ˓was˒ saying; Y62;EPaul's_First_Roman_imprisonment;TPaul's_First_Roman_imprisonment,Paul's_Journey_to_Rome;R104751;PPaul"
+      ]
+    },
+    "ROM_3:5": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_3:5w10: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R106164;R105362",
+        "ROM_3:5w22: ˱I˲ ˓am˒ speaking; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_4:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_4:1w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R105362;R106164"
+      ]
+    },
+    "ROM_4:9": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_4:9w14: ˱we˲ ˓are˒ saying; Y60;R105120;PPaul;R105362;R106164"
+      ]
+    },
+    "ROM_6:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_6:1w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R105362;R107036"
+      ]
+    },
+    "ROM_6:19": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_6:19w2: ˱I˲ ˓am˒ speaking; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_7:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_7:1w7: ˱I˲ ˓am˒ speaking; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_7:7": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_7:7w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R107979;R107548"
+      ]
+    },
+    "ROM_8:31": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_8:31w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R108619;R108474"
+      ]
+    },
+    "ROM_9:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_9:1w2: ˱I˲ ˓am˒ speaking; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_9:14": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_9:14w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R108619;R108474"
+      ]
+    },
+    "ROM_9:15": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_9:15w5: ˱he˲ ˓is˒ saying; Y60;R109342;PGod"
+      ]
+    },
+    "ROM_9:25": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_9:25w6: ˱he˲ ˓is˒ saying; Y60;R109479;PGod"
+      ]
+    },
+    "ROM_9:30": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_9:30w3: ˱we˲ ˓will_be˒ saying; Y60;R105120;PPaul;R108619;R108474"
+      ]
+    },
+    "ROM_11:13": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_11:13w5: ˱I˲ ˓am˒ speaking; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_12:3": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_12:3w1: ˱I˲ ˓am˒ saying; Y60;R105120;PPaul"
+      ]
+    },
+    "ROM_15:8": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "ROM_15:8w1: ˱I˲ ˓am˒ saying; Y60;R105120;PPaul"
+      ]
+    },
+    "CO1_1:12": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_1:12w1: ˱I˲ ˓am˒ saying; Y59;R113002;PPaul"
+      ]
+    },
+    "CO1_2:6": {
+      "speaker": "@,Paul,Sosthenes",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_2:6w3: ˱we˲ ˓are˒ speaking; Y59;R113253;PPaul;R113012;PSosthenes"
+      ]
+    },
+    "CO1_2:7": {
+      "speaker": "@,Paul,Sosthenes",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_2:7w2: ˱we˲ ˓are˒ speaking; Y59;R113253;PPaul;R113012;PSosthenes"
+      ]
+    },
+    "CO1_6:5": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_6:5w5: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_7:6": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_7:6w3: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_7:8": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_7:8w1: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_7:29": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_7:29w3: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_7:35": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_7:35w9: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_9:8": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_9:8w5: ˱I˲ ˓am˒ speaking; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_9:10": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_9:10w5: ˱he˲ ˓is˒ speaking; Y59;R116411;PGod"
+      ]
+    },
+    "CO1_10:15": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_10:15w3: ˱I˲ ˓am˒ speaking; Y59;R114224;PPaul",
+        "CO1_10:15w8: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_10:19": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_10:19w3: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_10:29": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_10:29w3: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_11:22": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_11:22w24: ˱I˲ ˓may˒ say; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_13:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_13:1w6: ˱I˲ ˓may_be˒ speaking; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_13:11": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_13:11w6: ˱I˲ ˓was˒ speaking; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_14:6": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_14:6w17: ˱I˲ ˓may˒ speak; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_14:18": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_14:18w11: ˱I˲ ˓am˒ speaking; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_15:34": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_15:34w14: ˱I˲ ˓am˒ speaking; Y59;R114224;PPaul"
+      ]
+    },
+    "CO1_15:50": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO1_15:50w3: ˱I˲ ˓am˒ saying; Y59;R114224;PPaul"
+      ]
+    },
+    "CO2_2:17": {
+      "speaker": "@,Paul,Titus",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_2:17w27: ˱we˲ ˓are˒ speaking; Y60;R120621;PPaul;R121076;R121078;R121382;PTitus"
+      ]
+    },
+    "CO2_4:13": {
+      "speaker": "@,Paul,Titus",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_4:13w20: ˱we˲ ˓are˒ speaking; Y60;R122033;PPaul;PTitus"
+      ]
+    },
+    "CO2_6:2": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_6:2w1: ˱he˲ ˓is˒ saying; Y60;R122561;PGod"
+      ]
+    },
+    "CO2_6:13": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_6:13w7: ˱I˲ ˓am˒ speaking; Y60;R120621;PPaul"
+      ]
+    },
+    "CO2_7:3": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_7:3w5: ˱I˲ ˓am˒ speaking; Y60;R120621;PPaul"
+      ]
+    },
+    "CO2_8:8": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_8:8w4: ˱I˲ ˓am˒ speaking; Y60;R120621;PPaul"
+      ]
+    },
+    "CO2_9:3": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_9:3w21: ˱I˲ ˓was˒ saying; Y60;R120621;PPaul"
+      ]
+    },
+    "CO2_9:4": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_9:4w17: ˱we˲ ˓may_be˒ saying; Y60;R120621;PPaul;R121078;R121076"
+      ]
+    },
+    "CO2_11:16": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_11:16w2: ˱I˲ ˓am˒ saying; Y60;R123972;PPaul"
+      ]
+    },
+    "CO2_11:17": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_11:17w2: ˱I˲ ˓am˒ speaking; Y60;R123972;PPaul",
+        "CO2_11:17w7: ˱I˲ ˓am˒ speaking; Y60;R123972;PPaul"
+      ]
+    },
+    "CO2_11:21": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_11:21w3: ˱I˲ ˓am˒ saying; Y60;R123972;PPaul",
+        "CO2_11:21w17: ˱I˲ ˓am˒ speaking; Y60;R123972;PPaul"
+      ]
+    },
+    "CO2_11:23": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_11:23w5: ˱I˲ ˓am˒ speaking; Y60;R123972;PPaul"
+      ]
+    },
+    "CO2_12:6": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "CO2_12:6w12: ˱I˲ ˓will_be˒ speaking; Y60;R123972;PPaul"
+      ]
+    },
+    "GAL_1:9": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_1:9w7: ˱I˲ ˓am˒ saying; Y58;R125554;PPaul"
+      ]
+    },
+    "GAL_2:14": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_2:14w12: ˱I˲ said; Y52;R125554;PPaul"
+      ]
+    },
+    "GAL_3:15": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_3:15w4: ˱I˲ ˓am˒ speaking; Y58;R125554;PPaul"
+      ]
+    },
+    "GAL_3:17": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_3:17w3: ˱I˲ ˓am˒ saying; Y58;TSojourn_in_Canaan_and_Egypt;R125554;PPaul"
+      ]
+    },
+    "GAL_4:1": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_4:1w1: ˱I˲ ˓am˒ saying; Y58;R125554;PPaul"
+      ]
+    },
+    "GAL_5:16": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "GAL_5:16w1: ˱I˲ ˓am˒ saying; Y58;R127369;PPaul"
+      ]
+    },
+    "PHP_4:4": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "PHP_4:4w6: ˱I˲ ˓will_be˒ saying; Y64;R130717;PPaul"
+      ]
+    },
+    "PHP_4:11": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "PHP_4:11w5: ˱I˲ ˓am˒ speaking; Y64;R130717;PPaul"
+      ]
+    },
+    "COL_2:4": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "COL_2:4w3: ˱I˲ ˓am˒ saying; Y64;R132987;PPaul"
+      ]
+    },
+    "TH1_2:4": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "TH1_2:4w11: ˱we˲ ˓are˒ speaking; Y54;R134294;PPaul;R134296;R134298"
+      ]
+    },
+    "TH1_4:15": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "TH1_4:15w4: ˱we˲ ˓are˒ saying; Y54;R134296;R135078;R134935;PPaul"
+      ]
+    },
+    "TH2_2:5": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "TH2_2:5w10: ˱I˲ ˓was˒ saying; Y54;R135943;PPaul"
+      ]
+    },
+    "TI1_2:7": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "TI1_2:7w10: ˱I˲ ˓am˒ speaking; Y65;R136835;PPaul"
+      ]
+    },
+    "TI2_2:7": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "TI2_2:7w4: ˱I˲ ˓am˒ saying; Y66;R138540;PPaul"
+      ]
+    },
+    "PHM_1:19": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "PHM_1:19w11: ˱I˲ ˓may_be˒ saying; Y64;R140870;PPaul"
+      ]
+    },
+    "PHM_1:21": {
+      "speaker": "@,Paul",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "PHM_1:21w13: ˱I˲ ˓am˒ saying; Y64;R140870;PPaul"
+      ]
+    },
+    "HEB_1:7": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_1:7w6: ˱he˲ ˓is˒ saying; Y64;R141085;PGod"
+      ]
+    },
+    "HEB_1:13": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_1:13w6: ˱he˲ ˓has˒ said; Y64;R141140;PGod"
+      ]
+    },
+    "HEB_3:10": {
+      "speaker": "@,Holy Spirit",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_3:10w10: ˱I˲ said; Y64;R141689;PHoly_Spirit"
+      ]
+    },
+    "HEB_4:3": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_4:3w11: ˱he˲ ˓has˒ said; Y64;R141783;PGod"
+      ]
+    },
+    "HEB_4:4": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_4:4w1: ˱he˲ ˓has˒ spoken; Y64;R141783;PGod"
+      ]
+    },
+    "HEB_4:8": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_4:8w11: ˱he˲ ˓was˒ speaking; Y64;R141972;PGod"
+      ]
+    },
+    "HEB_5:6": {
+      "speaker": "@,God",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_5:6w5: ˱he˲ ˓is˒ saying; Y64;R142287;PGod"
+      ]
+    },
+    "HEB_10:5": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_10:5w6: ˱he˲ ˓is˒ saying; Y64;R144137;PJesus"
+      ]
+    },
+    "HEB_10:7": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_10:7w2: ˱I˲ said; Y64;R144137;PJesus"
+      ]
+    },
+    "HEB_10:9": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "HEB_10:9w2: ˱he˲ ˓has˒ said; Y64;R144137;PJesus"
+      ]
+    },
+    "REV_2:24": {
+      "speaker": "@,Yeshua",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "REV_2:24w3: ˱I˲ ˓am˒ saying; Y96;R156382;PJesus"
+      ]
+    },
+    "REV_7:14": {
+      "speaker": "@,Yohan",
+      "source_profile": "OET-LV",
+      "word_evidence": [
+        "REV_7:14w2: ˱I˲ ˓have˒ said; Y96;R155558;PJohn2"
+      ]
+    }
+  },
+  "speaker_editorial_splits": {
+    "JOB_32:6": {
+      "source": "JOB_32:6",
+      "speakers": [
+        "@",
+        "Elihu"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_11:1": {
+      "source": "PSA_11:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_14:1": {
+      "source": "PSA_14:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_15:1": {
+      "source": "PSA_15:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_16:1": {
+      "source": "PSA_16:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_17:1": {
+      "source": "PSA_17:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_23:1": {
+      "source": "PSA_23:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_24:1": {
+      "source": "PSA_24:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_25:1": {
+      "source": "PSA_25:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_26:1": {
+      "source": "PSA_26:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_27:1": {
+      "source": "PSA_27:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_28:1": {
+      "source": "PSA_28:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_29:1": {
+      "source": "PSA_29:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_32:1": {
+      "source": "PSA_32:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_35:1": {
+      "source": "PSA_35:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_37:1": {
+      "source": "PSA_37:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_50:1": {
+      "source": "PSA_50:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_72:1": {
+      "source": "PSA_72:1",
+      "speakers": [
+        "@",
+        "Shelomoh"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_73:1": {
+      "source": "PSA_73:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_74:1": {
+      "source": "PSA_74:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_78:1": {
+      "source": "PSA_78:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_79:1": {
+      "source": "PSA_79:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_82:1": {
+      "source": "PSA_82:1",
+      "speakers": [
+        "@",
+        "Asaf"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_86:1": {
+      "source": "PSA_86:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_87:1": {
+      "source": "PSA_87:1",
+      "speakers": [
+        "@",
+        "Korah's descendants"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_90:1": {
+      "source": "PSA_90:1",
+      "speakers": [
+        "@",
+        "Mosheh"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_101:1": {
+      "source": "PSA_101:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_103:1": {
+      "source": "PSA_103:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_109:1": {
+      "source": "PSA_109:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_110:1": {
+      "source": "PSA_110:1",
+      "speakers": [
+        "@",
+        "David,Yahweh"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_122:1": {
+      "source": "PSA_122:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_124:1": {
+      "source": "PSA_124:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_127:1": {
+      "source": "PSA_127:1",
+      "speakers": [
+        "@",
+        "Shelomoh"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_131:1": {
+      "source": "PSA_131:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_132:1": {
+      "source": "PSA_132:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_133:1": {
+      "source": "PSA_133:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_138:1": {
+      "source": "PSA_138:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_139:1": {
+      "source": "PSA_139:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_141:1": {
+      "source": "PSA_141:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_143:1": {
+      "source": "PSA_143:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_144:1": {
+      "source": "PSA_144:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PSA_145:1": {
+      "source": "PSA_145:1",
+      "speakers": [
+        "@",
+        "David"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PRO_10:1": {
+      "source": "PRO_10:1",
+      "speakers": [
+        "@",
+        "Shelomoh"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "PRO_24:23": {
+      "source": "PRO_24:23",
+      "speakers": [
+        "@",
+        "The wise"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "SNG_5:1": {
+      "source": "SNG_5:1",
+      "speakers": [
+        "The groom",
+        "Yerushalem's young women"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "SNG_5:2": {
+      "source": "SNG_5:2",
+      "speakers": [
+        "The bride",
+        "The groom"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "SNG_7:1": {
+      "source": "SNG_6:13",
+      "speakers": [
+        "Yerushalem's young women",
+        "The bride"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    },
+    "SNG_8:5": {
+      "source": "SNG_8:5",
+      "speakers": [
+        "Yerushalem's young women",
+        "The bride"
+      ],
+      "reason": "two explicit text runs (heading/body or speaker change)"
+    }
+  },
+  "speaker_unsplit_boundaries": {},
+  "seed_removed": [
+    "ESG_10:14",
+    "ESG_8:40",
+    "ESG_8:41"
+  ],
+  "seed_added": [
+    "ESG_4:6",
+    "ESG_9:30",
+    "ESG_9:5"
+  ],
+  "omitted_source_annotations": [
+    "Curated importance: eng NEH_7:68: no org counterpart",
+    "OET-RV speakers: OET-RV NEH_7:68: no org counterpart"
+  ],
+  "unnumbered_OET_RV_headings_without_title_coordinate": [
+    "HAB_3:0"
+  ],
+  "temporary_source_repairs": [
+    "NET USX source repair: restored explicit Jonah 1:17 marker from printed 1:17 (2:1) label"
+  ],
+  "NET_omitted_verses_with_TC_note": {
+    "ACT_15:34": "ACT_15:33",
+    "ACT_24:7": "ACT_24:6",
+    "ACT_28:29": "ACT_28:28",
+    "ACT_8:37": "ACT_8:36",
+    "JHN_5:4": "JHN_5:3",
+    "LUK_17:36": "LUK_17:35",
+    "LUK_23:17": "LUK_23:16",
+    "MAT_17:21": "MAT_17:20",
+    "MAT_18:11": "MAT_18:10",
+    "MAT_23:14": "MAT_23:13",
+    "MRK_11:26": "MRK_11:25",
+    "MRK_15:28": "MRK_15:27",
+    "MRK_7:16": "MRK_7:15",
+    "MRK_9:44": "MRK_9:43",
+    "MRK_9:46": "MRK_9:43",
+    "ROM_16:24": "ROM_16:23"
+  },
+  "input_sha256": {
+    "/srv/FreelyGiven/CNTR-GNT/sourceExports/collation.v13.2026-02-09_08:34.edited.csv": "71d42f66ce93738ef51cfb2a7d4e903b52ffd5721adee161aac47e3e3f856ee7",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/001GEN.usx": "a05226edff4348216e1cafe75ab18ca555ac0615c5b59fafc6e74b1909e0df5d",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/002EXO.usx": "f4b0ae5eac6d28137602a41791cb7af795fbf77c4738687a79f6d1173ba40c96",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/003LEV.usx": "fc347ce2b7bb692bb0522b94612cae8df51ae7ff9b262a0563311257155056fd",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/004NUM.usx": "4a969adfe3875a8bf3085ca2536a953e40a01d2d899b1015daeebb6cf7bd9ffb",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/005DEU.usx": "9ba400477a15edd9f5447f269b89c38ead91494c2106753b1dad073c0c79e8b8",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/006JOS.usx": "dc0105443795f89d8188ca4a666e8dc636e2647b4254c998f9bc99cd28913561",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/007JDG.usx": "1c408fdcb95b14de8e56e0ce2551c8da63a764d9656bc95a3cf72edacf108078",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/008RUT.usx": "45467af3f96918f5cf5146a4f9a7be9e005b3d1d3a29a7864c0042bf7b651fb8",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0091SA.usx": "3fd7fb22e92a8af5b7f5b3945879360b97830df1405a62e633c928a564d72c1e",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0102SA.usx": "19ea195adcaa23689aafb8b3cc413b5ec0c9e97d553e2835a06a2631b6be7888",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0111KI.usx": "71784cb0fc24f19898fd9da89e6286be531181f65803fa5dd4cdec658a336a36",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0122KI.usx": "7933a97607b5054b904da81b9ae3b007d8fe2d2a49d623ab199e185a1e9c229c",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0131CH.usx": "98e53935fdb6aa23cde21bbb5dee8e0c9779293f462e1e6142014c644705b799",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0142CH.usx": "fd1fb6ca27bf13218e46d666cd40761b9a536aed846074d7eb94cbe4dfb5a87c",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/015EZR.usx": "c3dc7d207d1da56ed43f3b958acbf538c2b3f1a1420c38d213036b0a2dcaf86b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/016NEH.usx": "5651fdbc69954fb753a272e9543d504413672c7a36a6ec2e727a7feac35d8c2b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/017EST.usx": "afb271961c710bace20d9b904ece9d3d710b4552b40a211956b8328c64dc2701",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/018JOB.usx": "cc603b0337ab973c68a286daec29a9f4d612f75384e820295bff5dbf025d304b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/019PSA.usx": "5f56d2d010f3c6c055aae8d8b8a482329b5144f76a636f5d2764f3ff687dd207",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/020PRO.usx": "da66a11b1d1ba09931ba7e7db0828e2a0190e237853c91fde0928ab19a5ee3ed",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/021ECC.usx": "a0fcb92a035829827fc4e6bd588bc55ab28503187f33c00d9a6e9ae791adda2b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/022SNG.usx": "29512e6a30cd8577544cf5d4bb969c235054bc9d3a1248455992775d71e38f68",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/023ISA.usx": "2b61a0e6ba42d097e3a26bbf855ca052cdcd951184532dbf9c44430a0df8d64a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/024JER.usx": "c41f65f153e4a2df4409b87cc517b3b83d53d9a86dca8df966ad0add38ef2ae8",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/025LAM.usx": "8d7c179884833d5038b082f9194028a0a5604ff7e470aef843424a44aafdd23d",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/026EZK.usx": "4bd87defb1a3eda58c4fc502d7c13b64392b6f852c968a77886c55e3c9768753",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/027DAN.usx": "dbd6b81ff12602852ddced4d755beafbb3140ddd7bfa319e8fa8ab78ea3d6289",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/028HOS.usx": "09821d2adb98682026c40e0e62650fc364bdd3545236aef30db94ebf583ee72e",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/029JOL.usx": "4b473f6a7343b24f61ac7d88443a5f5748e32663a99b0d45856709106a560281",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/030AMO.usx": "f52d2f93d2e99349e27208d6e3caf7528bc78789d8701d297c0b469bf4e13ec6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/031OBA.usx": "62194555ac5912acc209469babf58cbe7701281b509c8e6601671e73c61f571a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/032JON.usx": "b3949a29259444e33af88720b2bafe29744feea9aaaedaaeb96e5206d805ec45",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/033MIC.usx": "f8731eb7748e3fdedac2dd448492339881cb857e15ea828fd77b648d7adda552",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/034NAM.usx": "8b48e36684035b360f1d8151b8ef4349a9f376e145bc700d8828667e174ce930",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/035HAB.usx": "b2030d17dc48c12edf716e222b084f242d72e23893793366bd3a4e0fe605671b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/036ZEP.usx": "ec97e30c350bfb78f7435ccaf2248d4ba9ca521b8e0c2aede88615d2a1f606ba",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/037HAG.usx": "efaa8d86dd3918d3e0a4ad4f3370ad3680d1d8599bbadb7703950dc966b43e5b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/038ZEC.usx": "d3ebb9493a21449790745fb615c2d40b8812e608548834132bfee31c22bddbe7",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/039MAL.usx": "b7de960ff38ee7907fa2364d29fbfc822d7073777f87a112700a8a73ac013c8c",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/040MAT.usx": "e063f7fbd3ea85728d488edf8d90759ae2026f3734b089e86420de997b443e22",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/041MRK.usx": "05929d4d1d9aa5caea9ccb63eae0495847791a89ea577f1483835715b34c5baa",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/042LUK.usx": "385d37ad30400a40e891593a856195317e89949a3433be05c81ca5406cc51b3a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/043JHN.usx": "e0c52ca79d6fa4cdc2d9b70e9eaa73153a66e09f7742468596ef941bb0995910",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/044ACT.usx": "97e0bc2361f978d90b743b1c70b8f065bc4fc185312370b88bb60f679bea9d93",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/045ROM.usx": "cd9915f28b0dbabf23c7b01465d265f87710f88b174edf16542dd95ae7ee084f",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0461CO.usx": "a9175379a290681c2bcc0e5a4ad42018aad3a841acdbbcf9af3b4a39db429315",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0472CO.usx": "4a2f1993aa145b39edf507e9bcbb242fa597b46ca2e188ef096eed88a732a008",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/048GAL.usx": "7a8f6b9b8b8e762160e1b1676a3f123af717188b816f24c1e218d597692553f1",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/049EPH.usx": "2dd10552834f9d5fd75df8e8380ab19db64a61bafaa831ef1de5c5b2074431c2",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/050PHP.usx": "24bd12ebe6ebf541b7cbed6923b410e7da10d74f5ed280087fe28bb2fe67c890",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/051COL.usx": "9e65fbc4bc7e78e95277493ffaf601bb83839a2905c8e58da4fb0845d4478501",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0521TH.usx": "399de7dcd67cc5a92648de8639183f5a985d9d6c579784638e8bcbf96f2ad406",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0532TH.usx": "590ff23ae9b293b1a59fa4008bb9811f6672cbc7f80ac66f40dc57565ff84c69",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0541TI.usx": "6f9c521679670ca19294529490ea65ebced3776c0a6530db65bebc524e12663a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0552TI.usx": "1975eb963b02ea47d82356bc114129f507c193acf7171568b0e81af760471bc6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/056TIT.usx": "6e1c501b745f3c114eac533debbdcdc144f1c5e8cf7b884708cfc1f73006f000",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/057PHM.usx": "9c8781ae9953186e530513c86250b98283787d660a6c7dadc78f2c672fb3e63a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/058HEB.usx": "7f4ffbe2dfdec91442b82f8a144b12f4d34c4176ba2428578c8529a85b68fe71",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/059JAS.usx": "f762d3e07658a829f6096dcb465dae824b19f761359d780b0b4cd2f65fbf6664",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0601PE.usx": "505f42272437cf4e18543048278d6aa1cf1c6566ec7953ca14bcfaa6394199b8",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0612PE.usx": "793a5547be1c77566a3c154d2f97bdade3bca67fe2b153a88bfc31cf0f91f8aa",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0621JN.usx": "7e6548dd14b80940ff82bd82ab521522df35c2a025ef84bdd4490dfc027c726f",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0632JN.usx": "ed4a90c5340125e04ee9afb71c7b16945a430bb96f03d9a5a360c6fd810f1756",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/0643JN.usx": "6a0e2455b82237f99cbaddf18eae295d387bc8294d3f48ca871b3ddfca49bb76",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/065JUD.usx": "b07f709a6437a0f315fc24f2242b688cce8b7deb95bffeaaea8529da79086bae",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/066REV.usx": "3f6a2eda676459de7d53dc6bf45fc1144215e90d3f02e4995d6d6d4466a07240",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/093XXA.usx": "e1ffcc65135112be66421e34ab5854fbbc612116d102dc7ea17fcdd7cb19de3b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/English/NET/101BAK.usx": "197ffeca1d9a8122d7fa82185255a322eb2077832376abd4cb7ca315199ce78a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/01-GEN.usfm": "a42795d6004a932d7f86b440bc7c7172efb977561293f0736da5420cdeba603d",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/02-EXO.usfm": "792bc691f011bfb51e00dfc9f1cba15cd3f46c2149443bc359a443299c715991",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/03-LEV.usfm": "13558ba47ca1245ce753f3c1ad2c63f91db9a74ab609a11763913fece2a0d238",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/04-NUM.usfm": "dc5d37212cf8b46b63bad6f266298cff0ac3b55d929f9b04712a78cdc19affee",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/05-DEU.usfm": "6bea1d4c3cf8d099296c49e564d827e4d7073d616ccd1ea695932bb9f4edf087",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/06-JOS.usfm": "9bcdfe4f909c59977ff0f1814d7997f5249ac38c00dc7e8d3d82906e0475746a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/07-JDG.usfm": "56ef6af4dfedf0802f10d6f3b739ed8e0ba69be1bc98ac13fcda7ea0119b8747",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/08-RUT.usfm": "ed66979d6b127ece16ebaad791f01e5a85bbd9d62cbbfef8dfa8cdd45eeb643a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/09-1SA.usfm": "9e8e6b5374976a2145a410c7c7ba823e52cc9bf452af014e80f20ca19f0f4211",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/10-2SA.usfm": "d17673c304ff3ca7655eb15f6704847035e781e60ad3109b8d182cb24f6b7667",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/11-1KI.usfm": "c30a7bb359d862e7eae656861370b9538f1f45b5b28f7f2f4b791ec9cc2dda73",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/12-2KI.usfm": "1bdb4fead367bc18c027388ba604f4f159fb4a3686ee10d8ff79dfdcb899089a",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/13-1CH.usfm": "4e82a81cbab52f8e78f4bfe366a1c852a557933ff8ddf1b414ca39550b0494f5",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/14-2CH.usfm": "b293da69d7eebfac5a7f16f5fa6f71e9e2ec4506a270cfa8aa7a4cb493fe10c0",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/15-EZR.usfm": "5a61c7d34bae6d3757179b757332760a9f05338cd12ebd0f8c59921f983f011c",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/16-NEH.usfm": "7366942c478130bc3ee6e78d69b8be2d1e28e4217755f2084a377364a65b5735",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/17-EST.usfm": "30cbcf2bb8923372d0c241e21709291afcb31e3b77e5130b111b4ed66ef66860",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/18-JOB.usfm": "8a1427099a22b33fb6921cc4c7cd00c871ed289014d1400c0389ee8ef901f9fa",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/19-PSA.usfm": "a47d4861ecdd6b6995cdc7c3f019d4cf5978e6d9c9a900dfee0456fc8f2038e6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/20-PRO.usfm": "05c903ee85df9c42df5d2459c834bb5bf70fa486c76e4539428d2ee2afaf503b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/21-ECC.usfm": "09b2e0a78af65f0ea0be6a455545e64201c4585a3f1f8e59bc68cb3e754ee1c5",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/22-SNG.usfm": "8b82a9fc29f34f771896ca34b089eaeced3f5df5526a3a204690579bc21a59ce",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/23-ISA.usfm": "4144b2555da34564ad85ec83e5c550c2ff188652d632408e654379e1bae426d6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/24-JER.usfm": "a0e4e421260e5d7e22abb75716f239470fb25a922501780ce2877042e3ac7224",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/25-LAM.usfm": "0f4cd16ea09ea8bf77f13d5df70c50ba4d60494a71531011d020bc19af12d996",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/26-EZK.usfm": "edd6e41b6f3b64fd1423f5ac45e1107bc724af88dd46e137da88ddafd07221a6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/27-DAN.usfm": "1b407e3cd265bcfc54397029c4c8d85c99092679086509f8f4d252b39b9bf50e",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/28-HOS.usfm": "93e10113b2d8e665a8c342bb2bc7bca1957009aaceb97780f16e8f7a12ede0dc",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/29-JOL.usfm": "82fa4cf71f0857151de44d9094e426fd966a8fbe81b850686ce32dee2679e049",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/30-AMO.usfm": "974b07b5b36750e8b4a37cde8bdde229f60cca52876bef646107794d68785d79",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/31-OBA.usfm": "72a0f85ce0b50046adbdea4c109bc45d75758bc329e67ff29f98b123fa20f4ed",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/32-JON.usfm": "55a36ef7ab573305e6281d5ae28223fe525e478f7e12e946b64099f6b646ca7b",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/33-MIC.usfm": "7fe2e4a59495996ddc45e9f7ce978899ac10b29995914f9f9218b89f1d82b9e0",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/34-NAM.usfm": "cadf2b479549f4e84d89f7d23a31eb62359278a3cf0b7066e435447792dc01d6",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/35-HAB.usfm": "506eb08d26d1ecbdb9f2c8cc701c5bd3bfe3ce3367854e20c1a47242766aa4df",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/36-ZEP.usfm": "4a4fe7933e5c5a94aeaddea14c207871c9707b4a0e044fae3e652565599a4ede",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/37-HAG.usfm": "00a781e80615b027d9bde6daaedf20584725b6ee7ae98b47b4538495a8422818",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/38-ZEC.usfm": "3c83d4ddb26ec42bc3e9687fddd136ffdcd788ba848774c48e16cdfd3041a974",
+    "/srv/FreelyGiven/OpenBibleData/copiedBibles/Original/unfoldingWord.org/UHB/39-MAL.usfm": "8deb41e02987d94ba55958efd9359e850e9149d855a2927dc2d33775a68a87e6",
+    "/srv/FreelyGiven/OpenBibleData/datasets/crossTestamentQuotes/crossTestamentQuotes.tsv": "b2fb8f5076c045b5669e54902475b48ea6a3bd8111adc24462cafaaeb5100366",
+    "/srv/FreelyGiven/OpenBibleData/datasets/sentenceImportance/initalise.py": "4b21cba038fa3e3cd6c6d4ca59a7913a766db0a566bee15d97ce773cbccdef42",
+    "/srv/FreelyGiven/OpenBibleData/datasets/sentenceImportance/sentenceImportance.tsv.init": "a7575f550dd2260cf707f98c909a551f5b1ef9c0b52e1e3ccce96df1f2dba845",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_AMO.ESFM": "b4fbed145d8dc2091bdf6f4a91d4d176642e16aca20e48724697b3509913d653",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_CH1.ESFM": "27e2da08c8935d80c5a9f8378050772bd856a38985fbe5a6af315f2e3ef34bb5",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_CH2.ESFM": "7b40b8336590be6b7fd368f8d819a7c437f26654eda9537f199876242990e368",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_DAN.ESFM": "0474be1ef5a89c9728f72d48a7c99b5ff54dec90b0cbc13261baed786790152c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_DEU.ESFM": "71aa4b7c4f8012f68adcbb7c209e55714b9482f0578189f06343d5d1d8e860e3",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_ECC.ESFM": "a7f40db3a8dd5e313037da4de368256d12a09a7661682566cfc08d262de41ea8",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_EST.ESFM": "c74f20a9cdf6f77440e497bdf0287059f47831b86f523d3e93392c7b2d97f46c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_EXO.ESFM": "747a08523e5c62e3ab2c742765d26d5c2fe93360e0d574e08d0c69d8f2c0e24f",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_EZE.ESFM": "7659aa3f396393711c51055cd6e50d10e9073f8fc65aa629742efdea04ad0de8",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_EZR.ESFM": "af275843aaab788d5d2c857e64489d6a965573a063e2713cef2b00861915d4d1",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_GEN.ESFM": "d13ffd8c8a835517deb54f3e92d4e441b2616aaeef8355db3c291c923c934bec",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_HAB.ESFM": "6dbf324941c69278505ba9dfe51689f88d6d1cbfbd732fdc3e3a87fed77fd7e6",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_HAG.ESFM": "3245ace09cb089497733fd9e35f19403934424aeaba058e3806f2a1832aa821a",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_HOS.ESFM": "a0918871502e6ccecb24966dd28c5db561db15f43085cecc5e94e4b2c2f4e216",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_ISA.ESFM": "c82ed9676a7fe75af3926c05f8e0bfb06773028084d226c197df589fffb43dfc",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JDG.ESFM": "324b352bca5b0e4e91e3743b79993bcc480b0fa91daff99763410ec6c178102a",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JER.ESFM": "cf8f49d4a4d78b8c7db13cc228dfc6ab48dc047d3046857a8d5df0dec90e4307",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JNA.ESFM": "7ddcccddc1d0966079cb7ef81a5ccefeb57c41cc4b84e3f2096ae8e073e868d5",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JOB.ESFM": "6082e40eea05a4a81fd555cd20a57b17d0767372a779782017fa7888e927ee45",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JOL.ESFM": "64b533cb242fb5bde71abd4637b26b26440e3b792034eca1b934b18ba8699149",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_JOS.ESFM": "12e509f0bdf660e7693883492573477fce931a450b76f10512b5216340c49d0e",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_KI1.ESFM": "63fc50f34d0b1ffe10aaddd3b6a198ff7716079a115fdafe4e390294fbbbc7c1",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_KI2.ESFM": "3d86569f933353c5c17f8794f75c2a4c6e5cb773674d0353d6a942df176d0742",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_LAM.ESFM": "255f071d694657af2fec0922f464f4cf210092d50fc332e6dfa5a5488cfe8f2d",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_LEV.ESFM": "f2d2f05f551e34e480b36d6ba752e6cdf2c2487f7cb7e2c555242be22536df1c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_MAL.ESFM": "c97c6d9c2f8e283d16b736811ac1502e9a004cec24b36ddc908f476c78922077",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_MIC.ESFM": "7b8aa76c6ba34e994f757ef53952a3ca13756fb3fec021d99691ee7b986b3e60",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_NAH.ESFM": "885e4bb7ddb35ad6f6f7363e76ec9cf00971ced5cce5fab63d8e5880f2c9fabe",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_NEH.ESFM": "75eac22e2798be4ded12cf4b3b39e66f0e7850b07edb6d7fc98a407ff5685866",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_NUM.ESFM": "5a3b97dff20b5cd20da7d7cb48d91d052923752b6c73a4ed157c04896e55553e",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_OBA.ESFM": "9d0a0d9b390f48a3f8c7f505c24b4a2867cd025357ebf6930bdaaeb6f746c864",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_PRO.ESFM": "31c85a98103a54005a042ef612126eac4dddbb025d7716233b23ac0897f7909a",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_PSA.ESFM": "9901c37d566e44ec4d5d390e9e0bf12f1d79d9c5ceef33b4457e6bd179d0e991",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_RUT.ESFM": "270f13aad494da5c330c11d2d70ec616a403f879ba31c94fcc797379be646935",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_SA1.ESFM": "7c4f0610331a04d7321865e930e1f7bef5b56b6ff31eecc9cb1c8e18100e0ffb",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_SA2.ESFM": "35c4f588c352c7212c3450d247d43a2e77df4aad51929a2a9e295d8ddc5fec90",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_SNG.ESFM": "5e9ef894487e1c8c863307b442bb492bbff26afb07352abfc5b9b77faed66924",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_ZEC.ESFM": "1fae75e9e39c92cbf5ace185c83adf3e54998a5116e2998ae782f82c470d7636",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/OET-LV_ZEP.ESFM": "a69c735b8bf60ed3507929fc9870a7bde2c70779c430125a3049b3b5b429dd91",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/derivedTexts/auto_edited_VLT_ESFM/OET-LV_NT_word_table.tsv": "57d6698b53113c69ef5b7ad7e1526115dc08414bf88c0bdf7982f2616b91219f",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ACT.ESFM": "65a01d63dc2801031f55af4a55009c29047b16240cb522a61a5817577bb7e57f",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_AMO.ESFM": "0abd3afd5402eca22cde846a2084c83f83f7311cd432aa9e021be9f42e2b7097",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_CH1.ESFM": "aba308fc8f09127b7fdfa7ff7250d544784b0d5f7cd0fea896f8f398ffe1f43c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_CH2.ESFM": "4c165ad5fc4e559b1c1291d5976ba3223c7cb0133e9224d22266618fb1ba367e",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_CO1.ESFM": "56254911ef95578564e381d0ba4e580470d922111919eb097f9ffa023b1812b4",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_CO2.ESFM": "da07de714d2ffd435f833c26d90a7f79f57f7786ecca3aa9603dfdb23f40cdd9",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_COL.ESFM": "aa744d2f9be1615ce08d231627f3ed847a84672b42fc865192b39cb749d26dac",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_DAN.ESFM": "483fd1c9d3d82bbe3a1cc5664ae49ec330343da2447363486370cd1c86b8bde6",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_DEU.ESFM": "e45073b08d31d86f8faa3c68a1bc67094a40487a7fdcaed4705f00a3f298550d",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ECC.ESFM": "fe790cdab47b2bbb48aa92f5daa95d6a1b335f63c1384b1d135f81aadfb189dc",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_EPH.ESFM": "90b196023b5682333266da14b8de48bd908c150be28f6921f4a259a8a4ab80fb",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_EST.ESFM": "3a447fb507cd9bd7dd7c5b8406949dfeb5a98bd6ee2ed0d056a770c5a9ac864d",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_EXO.ESFM": "e150762316c8880ad18642cefa9e60d478d6e733670eb049aa95afc301db1440",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_EZE.ESFM": "cc3f3867e726a26d1c9e04e7a06fac79c9e7d1573ab0882abf73942430f90ed3",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_EZR.ESFM": "19768bed74cc4b206c7be750670dbe96d73d16a5525603d258f2e2aade4b47d5",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_GAL.ESFM": "9c991e9eb4e5ab96c1380f697fbecc387a05d7c0dbb1dfb8031354707677c64b",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_GEN.ESFM": "dfdb1f53566e57248566dc9b54da7dacb8f09c6798a37d92d66820731f078509",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_HAB.ESFM": "9610ebde6c63844b465f6cad4869f7a020903e5cc4ed9cca7fa8de33b143b465",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_HAG.ESFM": "0f157323b474e3c20509179af4f6679efa5a70e0532e17c85e1d0a11698b5e0a",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_HEB.ESFM": "eff1d6d28e991d39bd82ca9423629e077ea39cd30aa5f850db94e4e7ae0865ab",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_HOS.ESFM": "fe7ddaa3757b4ca24c18fe745fbf260e9aaf85c6d9ed3440a8babd8424320b6d",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ISA.ESFM": "15553ea6c53561fe0d412668092285961259bc58d01f383c171bf7861e239b6c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JAM.ESFM": "8b72e1b7d332010cc281374dd13154eaef682c13f707860ae49b9afbf293667b",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JDE.ESFM": "8f167da06d3aff963bdf7790b864e8dfc71194dd7f39a38c7347d273662c3f8f",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JDG.ESFM": "201b02c3b2a374d5b592103af63b4a24c95e04dc80cddb1094aaca0c7ee9da4c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JER.ESFM": "d2ef0f26df506bde47a1286daf0f348a6ed13c838007094f10d28d9285f633e1",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JHN.ESFM": "910e123fe11683a9cb06f3632045a553e0aa981c3bd32d4423e97e0752328e87",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JN1.ESFM": "f8b8926b7207d4ba6ce36b4c02d10626a96e5bb4b90b645966527cc4a6c84e1a",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JN2.ESFM": "a58d6cb5dcb018260f28fab8b51d124a012522061b1a416936c5f91f14054cdf",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JN3.ESFM": "013ebe0622d896a3a6f61fcbe0c8d35a7a1d702b216a93b67327efe1bee725c2",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JNA.ESFM": "44259ccf016deae4710811955d06af6bf8f093180d880b2708158084d9ce8a4b",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JOB.ESFM": "4833058a137853f91ee6fbfd17f22dd2f04a12c11f4a0f3027dfcd1548b396c2",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JOL.ESFM": "cf05ceaeb1712b9a72b2364a706728beaa8a2612c354d30a5e9e7c080c02b857",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_JOS.ESFM": "a8609ffaefdb77c2865e0a366f9d84676da0cd65ed0718c1615897c86231f191",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_KI1.ESFM": "530b691f7597925357e0326a9e9d948372c259b55b4d19f67a9d7c49f85b50f5",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_KI2.ESFM": "799b15e1fc10f5b3766f28fd725bf654edaf8f0ad3359daa248f32db7902ea00",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_LAM.ESFM": "f56fcdb46ed15210b1aed43568d988be6b42addebda334a36f8768ca60934f10",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_LEV.ESFM": "aaa21ff4a6f91ad7897bc8b62e69c89fe57c3487920f95b513521c56d7a825e6",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_LUK.ESFM": "a8a4d10bbeb04bc469471b7fa5b03f74c6cdee7a896828b08090d58fa5bddc75",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_MAL.ESFM": "e0263f9bb0e8151b4e8a8e902876644eccdac1c7184b3189fb2055a954b8e292",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_MAT.ESFM": "175b0813bf13eb0e56871d0131f92287aebd89a122358cb5777ed318a2074076",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_MIC.ESFM": "28987f421d48ca45a7fded5ba92602d62497afca943bd1333f2c3f61394691da",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_MRK.ESFM": "cd3450022070ac3d74f9b65899ad55481c88aa1b3595750af54498e9b7f692a8",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_NAH.ESFM": "c4e2bfd56b5a3389173be775180c07eba2d8553f15b6ef259b8cbae17b3eabd6",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_NEH.ESFM": "f51063c271e6ca7a712ba03f9899a6472bf215a12f68e80108e50a7b4c062dee",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_NUM.ESFM": "53aee8933bab7a1d9013c270ee0300f096396a26ce1fa38038eec2bdca923b33",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_OBA.ESFM": "f40be929d5839f20fc23b9f1942e880c2563b13a1dfcd13056e5bdf16d8c19b3",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PE1.ESFM": "5ca16f3370b417b0469a3135c563dc295f703dfe05beee930463952ffc216c96",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PE2.ESFM": "4ab258570419c64696919b354648cdf7229cb84f0e17ea70a06fd472957da29e",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PHM.ESFM": "28b9dac9a59968c9bf9019a52c15248e03acebb703010e9041221005c73ad7da",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PHP.ESFM": "ff6f0c8e236dc1b255d9fd09af96a0ec558e00c6db5ad347dc9898ee3f8fde22",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PRO.ESFM": "5c9231ad3ac7cd3cd79d9edd81f1d686cb35e940a187bb028532c2d5f3a4ab8f",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_PSA.ESFM": "6e268e6d23d2e166251f80c23dcbecd140226a61a0f83ebb8a3e04903997e653",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_REV.ESFM": "9886d7f83a42454bce58b371255b10117f89f635cdcb358a1693172ea47ed564",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ROM.ESFM": "24428e3d28d1aa3fd62ef0d753a3d8938d9c18a9fa222a7d58a7b150f5839884",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_RUT.ESFM": "f4f10f48ef9933f394aa53200f076bb6d874f1706bee9f0dbfe8c3aedc4af510",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_SA1.ESFM": "79af50d9988136c0ffcdca6a47bc161424aed3c8af6535fea35c567852cc1fcd",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_SA2.ESFM": "cd6af9340053143e85325d443aa7da0fcf04b34b895459a82bcd10cc8933c66c",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_SNG.ESFM": "dcb2d48654b425103e0874cd9cdac060ffbc655211800f2b045db4f1ee3e58fc",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_TH1.ESFM": "b067cda6c6d249e8d5dbb692447dcb48f8ffc9570911a57bf85d8566e1efbdb0",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_TH2.ESFM": "30e51ab757569357f1f2373058050611db1cb87264bc51fbfe7800d2215d3d79",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_TI1.ESFM": "4ef8430d1f918dfa292f03441980092dc1fe915247bef4fad17b9419ab891add",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_TI2.ESFM": "02a7822a9fa737875674f76813d921360dbe780f5544ac3e98e5282414598df9",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_TIT.ESFM": "7f00859b11fa2973a1f1e0b73f5119374ef43908f589ec6f6026e72fff422c33",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ZEC.ESFM": "f8b07ba7c696477c20e3c7006376110eef11c7a8f75a7b96a12f9ef0110f7093",
+    "/srv/FreelyGiven/OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_ZEP.ESFM": "9c076da7fc48d8e59b6c8a95ff0d9b6c4959e42588693392667e2a4128fe48eb"
+  },
+  "output_sha256": "223e75efe2b7490799ec8de51e367301867075533694e20f10792a469017d7d7",
+  "data_rows": 42042,
+  "whole_verses": 41899,
+  "rows_with_group_comments": 132
+}

@@ -34,6 +34,7 @@
  *
  * CHANGELOG:
  *   2026-10-17 Hide grammatical backgrounds on links as well as spans.
+ *   2026-10-24 Add book-group palettes for both themes and smaller INT/FRT labels.
  */
 
 /* ---- Site-wide colour palette (CSS custom properties) ---- */
@@ -51,6 +52,14 @@
     --chrome-fg-viewLst: #98a9d4;
     --chrome-fg-viewLst-link: #ffffff;
     --chrome-bg-bkLst: #f9f871;
+    --book-ot: #8b4513;
+    --book-nt: #006400;
+    --book-dc: #945000;
+    --book-extra: #800080;
+    --book-pentateuch: #204ea0;
+    --book-psalms-proverbs: #006064;
+    --book-gospels-acts: #a61e3d;
+    --book-paul: #6a329f;
     --chrome-bg-chLst: palegreen;
     --chrome-bg-vsLst: mistyrose;
     --chrome-fg-cnav: #98a9d4;
@@ -69,7 +78,15 @@ html[data-theme="dark"] {
     --chrome-bg-viewLst: #5f436a;
     --chrome-fg-viewLst: #b9c4e8;
     --chrome-fg-viewLst-link: #ffffff;
-    --chrome-bg-bkLst: #7a7838;
+    --chrome-bg-bkLst: #292c1b;
+    --book-ot: #e0b18d;
+    --book-nt: #91d491;
+    --book-dc: #f0c568;
+    --book-extra: #d4a3f0;
+    --book-pentateuch: #8fb8ff;
+    --book-psalms-proverbs: #65d1cc;
+    --book-gospels-acts: #ff9dad;
+    --book-paul: #cfadff;
     --chrome-bg-chLst: #2f6b43;
     --chrome-bg-vsLst: #7a4f52;
     --chrome-fg-cnav: #b9c4e8;
@@ -115,6 +132,18 @@ p.viewLst { background-color:var(--chrome-bg-viewLst); color:var(--chrome-fg-vie
 .viewLst a { text-decoration:none; color:var(--chrome-fg-viewLst-link); }
 p.bkLst { background-color:var(--chrome-bg-bkLst); }
 .bkLst a { color:inherit; text-decoration:none; }
+/* Book-list groups share one palette across all page families. Subgroups
+   follow OT/NT so their colours win; the selected book retains its group. */
+span.XX { color:var(--book-extra); }
+span.OT { color:var(--book-ot); }
+span.NT { color:var(--book-nt); }
+span.DC { color:var(--book-dc); font-size:smaller; }
+span.frontMatter { font-size:smaller; }
+span.Pentateuch { color:var(--book-pentateuch); }
+span.PsalmsProverbs { color:var(--book-psalms-proverbs); }
+span.GospelsActs { color:var(--book-gospels-acts); }
+span.PaulLetters { color:var(--book-paul); }
+span.selectedBook { font-weight:bold; text-decoration:underline; text-underline-offset:0.18em; }
 p.chLst { background-color:var(--chrome-bg-chLst); }
 .chLst a { text-decoration:none; }
 p.vsLst { background-color:var(--chrome-bg-vsLst); }
@@ -414,7 +443,6 @@ html[data-theme="dark"] span.wj { color:#d0946e; }
 html[data-theme="dark"] span.addCopula { color:#7fc2ba; }
 html[data-theme="dark"] span.addDirectObject { color:#bf8a68; }
 html[data-theme="dark"] span.addExtra,
-html[data-theme="dark"] span.NT,
 html[data-theme="dark"] span.grk,
 html[data-theme="dark"] span.senseNum { color:#6fbe6f; }
 html[data-theme="dark"] span.addElided { color:#d6b04c; }
@@ -454,9 +482,7 @@ html[data-theme="dark"] span.xrCaller { color:#7abaff; }
 html[data-theme="dark"] span.v,
 html[data-theme="dark"] span.hilite { color:#ff7070; }
 html[data-theme="dark"] span.va { color:#ff7d92; }
-html[data-theme="dark"] span.vp,
-html[data-theme="dark"] span.XX { color:#c792ea; }
-html[data-theme="dark"] span.OT,
+html[data-theme="dark"] span.vp { color:#c792ea; }
 html[data-theme="dark"] span.d,
 html[data-theme="dark"] span.glossPost,
 html[data-theme="dark"] span.sn-excerpt,

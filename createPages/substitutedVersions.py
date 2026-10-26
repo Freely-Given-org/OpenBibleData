@@ -1,5 +1,5 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 """Persistent derived editions, shared by every consumer of substituted text.
 
 The BOS substitutions operate on HTML (including phrase and footnote markup),

@@ -28,7 +28,7 @@ makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str,
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
         It can also be the 'OET' pseudo version.
         Can return an empty string.
-makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str
+makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State, *, currentBBB:str|None=None ) -> str
 makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
 _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
 removeDuplicateCVids( html:str ) -> str
@@ -50,7 +50,6 @@ main calls fullDemo()
 
 
 CHANGELOG:
-    2026-10-23 Recognise small.class selectors in the Python CSS loader, matching Rust.
     2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
     2023-08-07 Handle four-letter tidyBBBs
     2023-08-16 Improve byDocument navigation
@@ -80,14 +79,6 @@ CHANGELOG:
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
     2026-01-19 Added link to https://OET.Bible
-    2026-08-31 Moved a verse-text chunk's closing </span> before the sentence-break
-        <br> in do_OET_LV_HTMLcustomisations so the tag is no longer left after the
-        <br> (and drop any <br> that would land directly before a newline).
-    2026-08-31 The Rust verse converter now wraps each paragraph-less verse in its
-        own <div class="verseText"> block (closed as "</div><!--verseText-->").  The
-        companion customisation moves any sentence-break <br> that lands before such
-        a block's closing tag to after it, keeping </div><!--verseText--> contiguous
-        and dropping the now-redundant trailing <br>.
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
@@ -97,13 +88,21 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-28 Added preloadCSSStyles() so stylesheet caches are built in the parent before
                     forked multiprocessing children are created (they inherit the cache copy-on-write).
-    2026-09-09 Handle two consecutive divs in common.css
-    2026-09-09 removeDuplicateCVids and removeDuplicateFNids now call the Rust openbibledata_rust ports
+    2026-08-31 Moved a verse-text chunk's closing </span> before the sentence-break
+        <br> in do_OET_LV_HTMLcustomisations so the tag is no longer left after the
+        <br> (and drop any <br> that would land directly before a newline).
+    2026-08-31 The Rust verse converter now wraps each paragraph-less verse in its
+        own <div class="verseText"> block (closed as "</div><!--verseText-->").  The
+        companion customisation moves any sentence-break <br> that lands before such
+        a block's closing tag to after it, keeping </div><!--verseText--> contiguous
+        and dropping the now-redundant trailing <br>.
      2026-09-08 Fixed spurious "CSS style not in stylesheet" errors in checkHtmlForMissingStyles:
                 merge common.css into the page's own stylesheet by unioning the element lists
                 (so e.g. span.d from BibleWord.css isn't clobbered by p.d from common.css), and
                 treat an empty-string element entry (from generic selectors like '.hebVrb {')
                 as meaning 'any element' when checking each class.
+    2026-09-09 Handle two consecutive divs in common.css
+    2026-09-09 removeDuplicateCVids and removeDuplicateFNids now call the Rust openbibledata_rust ports
     2026-09-16 do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations
                 and do_T4T_HTMLcustomisations now delegate to the Rust byte-identical ports in
                 createPages/Rust/src/html_customisations.rs; the superseded Python implementations
@@ -118,8 +117,12 @@ CHANGELOG:
                 parsing/merging and a per-line class scan); the Python classRegex helper was
                 removed. preloadCSSStyles() now also warms the Rust-side caches.
     2026-10-03 Added do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str
+    2026-10-23 Recognise small.class selectors in the Python CSS loader, matching Rust.
+    2026-10-24 Add book-list colour groups and retain each selected book's group and size.
+    2026-10-24 Apply consistent OET/traditional book navigation, retaining names for the selected book.
 """
 import logging
+import re
 from datetime import datetime
 from collections import defaultdict
 from functools import cache
@@ -130,7 +133,8 @@ import bos_books_codes_py
 import openbibledata_rust
 
 from settings import State, state
-from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
+from openbibledata_rust import checkHtml as _rustCheckHtml
+from navigation import VERSE_BOOK_NAVIGATION_VIEWS, bookNavigationOrder, bookAbbreviation, bookName
 from openbibledata_rust import (
     do_OET_RV_HTMLcustomisations as _rustDo_OET_RV_HTMLcustomisations,
     do_OET_LV_HTMLcustomisations as _rustDo_OET_LV_HTMLcustomisations,
@@ -143,7 +147,7 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-23' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.12'
@@ -221,9 +225,9 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
 # end of html.makeViewNavListParagraph
 
 
-HTML_PLUS_LIST = ['ParallelVerse','InterlinearVerse','VerseList', 'ParallelIndex','InterlinearIndex','VerseListIndex']
+HTML_PLUS_LIST = list(VERSE_BOOK_NAVIGATION_VIEWS)
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
-def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str:
+def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State, *, currentBBB:str|None=None ) -> str:
     """
     Create a 'bkLst' paragraph with the book abbreviation links
         preceded by the work abbreviation (non-link) if specified.
@@ -231,6 +235,10 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
     linksList contains links like '<a title="Generic front matter" href="FRT.htm#Top">FRT</a>', '<a title="Jonah" href="JNA.htm#Top">JNA</a>', '<a title="Mark" href="MRK.htm#Top">MARK</a>'
 
     workAbbrevPlus is where we're coming from, and can contain a version abbreviation or something like 'interlinearVerse'
+
+    Derive book identities from destinations, not the displayed names. Apply the
+    containing page's order, abbreviations and titles centrally, including the
+    optional selected (unlinked) book.
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
@@ -239,57 +247,50 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
 
     newList = (['TEST',workAbbrevPlus] if state.TEST_MODE_FLAG else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if state.TEST_MODE_FLAG else [])
+    bookLinks = {}
     for aLink in linksList:
-        # print( f"\n{aLink=}")
-        if ('>FRT<' in aLink or '>INT<' in aLink) \
-        and workAbbrevPlus in HTML_PLUS_LIST:
-            continue # Don't include this
+        hrefMatch = re.search(r'href="([^"]+)"', aLink)
+        assert hrefMatch, f'Missing book destination in {workAbbrevPlus}: {aLink}'
+        href = hrefMatch[1]
+        bookCodes = re.findall(r'(?:^|/)([A-Z0-9]{3})(?=[/._#]|$)', href)
+        assert bookCodes, f'Missing book code in {workAbbrevPlus}: {aLink}'
+        BBB = bookCodes[-1] # The version folder can itself be a three-letter code.
+        assert bos_books_codes_py.is_valid_bos_book_code(BBB), f'Bad {BBB=} in {workAbbrevPlus}: {aLink}'
+        if BBB in ('FRT','INT') and workAbbrevPlus in HTML_PLUS_LIST:
+            continue
         if workAbbrevPlus in HTML_PLUS_LIST: # they're all byVerse options
-            # Make the versionAbbreviation links go to 1:1 for the selected book
-            ixHrefStart = aLink.index( 'href="' ) + 6
-            ixHrefEnd = aLink.index( '.htm', ixHrefStart )
-            hrefTextBit, hrefEndBit = aLink[ixHrefStart:ixHrefEnd], aLink[ixHrefEnd:]
-            assert hrefEndBit.startswith( '.htm#Top">' ), f"{hrefEndBit=} {workAbbrevPlus=}" # This is set in createSitePages._createSitePages()
-            # if 'Index' in workAbbrevPlus:
-            hrefEndBit = hrefEndBit.replace( '#Top', '#chLst', 1 ) # Show them the chapter and verse choices (because we're going to plonk them in 1:1)
-            aLink = f'''{aLink[:ixHrefStart]}{hrefTextBit}/C1V1{hrefEndBit}''' \
-                    .replace( '/index/', '/' ) # Fix error in ParallelIndex
-        # TODO: This is very fragile code !!!
-        ixDisplayLinkStart = aLink.index( '>' ) + 1
-        ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
-        displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
-        # print( f"  HEREaa {aLink=} {displayText=}")
-        if not displayText: # Then we have a span inside the anchor
-            # e.g., aLink='<a title="Yonah/(Jonah)" href="../JNA/C1V1.htm#chLst"><span title="Yonah (which is closer to the Hebrew hhh/Yōnāh)">YNA</span> (JNA)</a>'
-            ixDisplayLinkStart = aLink.index( '>', ixDisplayLinkEnd ) + 1
-            ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
-            displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
-            # print( f"  HEREbb {aLink=} {displayText=}")
-        if len(displayText)==2 and displayText.endswith('\u202f'): # e.g., 1/2/3/ then NBSP for 1 Jhn etc,
-            # e.g., aLink='<a title="1 Yohan/(John)" href="../JN1/C1V1.htm#chLst">1\u202f<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (1\u202fJHN)</a>' displayText='1\u202f'
-            ixDisplayLinkStart = aLink.index( f' ({displayText[0]}', ixDisplayLinkEnd )
-            ixDisplayLinkEnd = aLink.index( ')', ixDisplayLinkStart )
-            displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
-            # print( f"  HEREcc {aLink=} {displayText=}")
-        adjDisplayText = displayText # We use this one for finding the BBB
-        if ' (' in adjDisplayText:
-            adjDisplayText = adjDisplayText.split(' (')[-1].removesuffix(')')
-            # print( f"  HEREdd {aLink=} {adjDisplayText=}")
-        assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
-        BBB = getBBBFromOETBookName( adjDisplayText, f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
-        assert bos_books_codes_py.is_valid_bos_book_code( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
-        newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
+            assert href.endswith('.htm#Top'), f'{href=} {workAbbrevPlus=}'
+            href = href.removesuffix('.htm#Top').removesuffix('/index') + '/C1V1.htm#chLst'
+        assert BBB not in bookLinks, f'Duplicate {BBB=} in {workAbbrevPlus} book navigation'
+        bookLinks[BBB] = href
+
+    assert currentBBB is None or currentBBB in bookLinks, f'Missing selected {currentBBB=} in {workAbbrevPlus} book navigation'
+    for BBB in bookNavigationOrder(bookLinks, workAbbrevPlus):
+        label = bookAbbreviation(BBB, workAbbrevPlus, addNotes=True)
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
-            newALink = f'<span class="XX">{newALink}</span>'
+            bookClasses = ['XX']
         elif BBB in BOOKLIST_OT39:
-            newALink = f'<span class="OT">{newALink}</span>'
+            bookClasses = ['OT']
         elif BBB in BOOKLIST_NT27:
-            newALink = f'<span class="NT">{newALink}</span>'
+            bookClasses = ['NT']
         else: # DC book
-            newALink = f'<span class="DC">{newALink}</span>'
-        # print( f"    {aLink=} {displayText=} {BBB=} {newALink=}")
-        assert newALink.count('(')==newALink.count(')'), f"OOPS, what happened to the parentheses in {workAbbrevPlus}\n{newALink=}\nfrom {aLink=}"
-        newList.append( newALink )
+            bookClasses = ['DC']
+        if BBB in ('INT','FRT'):
+            bookClasses.append('frontMatter')
+        elif BBB in ('GEN','EXO','LEV','NUM','DEU'):
+            bookClasses.append('Pentateuch')
+        elif BBB in ('PSA','PRO'):
+            bookClasses.append('PsalmsProverbs')
+        elif BBB in ('MAT','MRK','LUK','JHN','ACT'):
+            bookClasses.append('GospelsActs')
+        elif BBB in ('ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT','PHM'):
+            bookClasses.append('PaulLetters')
+        if BBB == currentBBB:
+            bookClasses.append('selectedBook')
+            contents = label
+        else:
+            contents = f'<a title="{bookName(BBB, workAbbrevPlus)}" href="{bookLinks[BBB]}">{label}</a>'
+        newList.append(f'<span class="{" ".join(bookClasses)}">{contents}</span>')
 
     return f'''<p class="bkLst">{' '.join( newList )}</p><!--bkLst-->'''
 # end of html.makeBookNavListParagraph

@@ -1,5 +1,5 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 
 """OBD URLs and rendered links across Bible versifications.
 
@@ -7,15 +7,80 @@ BOS decides correspondence. This module chooses site destinations and retains
 native labels, source word filenames, and edition-specific storage identities.
 
 CHANGELOG:
-    2026-10-23 Preserve RV-native destinations in combined OET section pages.
     2026-10-17 Exclude books without navigation chapter counts from links and page jobs.
+    2026-10-23 Preserve RV-native destinations in combined OET section pages.
+    2026-10-24 Centralise OET/traditional book ordering, abbreviations and names.
+    2026-10-26 Include declared titles and source Psalm headings in verse navigation.
 """
 import logging
 import re
 
 import bos_books_codes_py
-from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus
-from versification import _mapReference, _storedReferences, navigationVersification
+from openbibledata_rust import getOETTidyBBB, getOETBookName
+from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus, VersificationMappingError
+from settings import reorderBooksForOETVersions
+from versification import _mapReference, _storedReferences, navigationVersification, parallelVersePassage
+
+
+VERSE_BOOK_NAVIGATION_VIEWS = ('ParallelVerse', 'InterlinearVerse', 'VerseList',
+                             'ParallelIndex', 'InterlinearIndex', 'VerseListIndex')
+
+
+def verseNavigationFirstVerses(BBB, numChapters, versions, state):
+    """Start at zero for scripture titles, including unnumbered Psalm d headings.
+
+    BOS declares titles that participate in verse-number mappings. Other Psalm
+    headings (e.g. Psalm 11) are stored as chapter introductions; inspect their
+    mapped source entries without treating ordinary introductions as verses.
+    """
+    firstVerses = {}
+    chapterCache = {}
+    profile = state.navigationVersification
+    for c in range(1, numChapters+1):
+        reference = (BBB, str(c), '0')
+        title = _mapReference(profile, profile, (*reference, None))
+        firstVerses[c] = 0 if title.status == MappingStatus.EXACT else 1
+        if BBB != 'PSA' or firstVerses[c] == 0:
+            continue
+        for version in versions:
+            bible = state.preloadedBibles.get(version)
+            if bible is None:
+                continue
+            try:
+                portions, _label = parallelVersePassage(version, bible, reference, state, chapterCache)
+            except (KeyError, VersificationMappingError):
+                continue # This edition does not supply a heading at this address.
+            if any('\\d ' in entries if isinstance(entries, str)
+                   else any(entry.getMarker() == 'd' for entry in entries)
+                   for _ref, entries, _context in portions):
+                firstVerses[c] = 0
+                break
+    return firstVerses
+
+
+def usesOETBookNames(workAbbreviation):
+    """Shared study views follow the OET; individual editions follow their own style."""
+    return workAbbreviation in ('OET', 'OET-RV', 'OET-LV', 'Related OET-RV',
+                               *VERSE_BOOK_NAVIGATION_VIEWS)
+
+
+def bookNavigationOrder(books, workAbbreviation):
+    """Return a new list in OET order or traditional BOS print order."""
+    return (reorderBooksForOETVersions(list(books)) if usesOETBookNames(workAbbreviation)
+            else bos_books_codes_py.get_sequence_list(list(books)))
+
+
+def bookAbbreviation(BBB, workAbbreviation, *, titleCase=False, addNotes=False):
+    """Use traditional abbreviations outside OET, including numbered books."""
+    if usesOETBookNames(workAbbreviation):
+        return getOETTidyBBB(BBB, titleCase=titleCase, addNotes=addNotes)
+    return bos_books_codes_py.tidy_bbb(BBB, title_case=titleCase, insert_char='\u202f')
+
+
+def bookName(BBB, workAbbreviation):
+    """Name for a book link's hover text, matching its containing page."""
+    return (getOETBookName(BBB) if usesOETBookNames(workAbbreviation)
+            else bos_books_codes_py.get_english_name_nr(BBB))
 
 
 def navigationBookList(books, state, pageType):

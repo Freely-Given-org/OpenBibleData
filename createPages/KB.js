@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: CC0-1.0
 //
 // Adapted from https://ralzohairi.medium.com/adding-custom-keyboard-shortcuts-to-your-website-b4151fda2e7a
 //  and from https://stackoverflow.com/questions/53192433/how-to-detect-swipe-in-javascript

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: CC0-1.0
 //! Fast HTML validation checks for generated pages.
 //!
 //! Implements the same checks as `html.checkHtml()` in Python but in pure Rust,

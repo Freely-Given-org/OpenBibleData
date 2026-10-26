@@ -1,5 +1,5 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 # -*- coding: utf-8 -*-
 #
 # test_verse_to_html.py
@@ -7,9 +7,9 @@
 # Tests for verse_to_html Rust implementation (footnote and xref processing)
 
 """CHANGELOG:
-2026-10-23 Preserve added-word markup when modernising KJB-1611 Matthew 24:23.
-2026-10-18 Test spacing between verses whose numbers are hidden, including Wycl MAT 24:50.
 2026-10-16 Test malformed-note diagnostics and isolation from later notes.
+2026-10-18 Test spacing between verses whose numbers are hidden, including Wycl MAT 24:50.
+2026-10-23 Preserve added-word markup when modernising KJB-1611 Matthew 24:23.
 """
 
 import unittest

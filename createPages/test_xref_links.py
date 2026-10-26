@@ -1,5 +1,5 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 
 """Regression tests for abbreviated cross-references in the shared Rust linker.
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: CC0-1.0
 //! Logic for livening cross-reference fields in USFM/HTML text.
 //!
 //! Port of `livenXRefField` from `usfm.py`.
@@ -6,6 +6,8 @@
 //! CHANGELOG:
 //!  2026-10-23: Separate note origins from target context; retain conjunctions and
 //!              verse lists, and disambiguate KJB-1611 Psalm/Proverb shorthand.
+//!  2026-10-26: Handle KJB spaced references, dot lists, numbered-book boundaries,
+//!              historical aliases, and Unicode/worded range endings.
 
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -61,6 +63,27 @@ static KJB_1611_XREF_TABLE: LazyLock<HashMap<&'static str, &'static str>> = Lazy
 /// Matches e.g. "Gen 25:9-10", "1 Kings 1:2", "Exod 17.5"
 static BCV_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?: ?and)?( ?[1234I]?[ .]?[A-Za-z][a-z]{1,12})\.? ?([1-9][0-9]{0,2}|ver)[:.–] ?([1-9][0-9]{0,2})").unwrap()
+});
+
+/// KJB printing also uses a space or "vers." between chapter and verse.
+static KJB_BCV_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?: ?and)?( ?[1234I]?[ .]?[A-Za-z][a-z]{1,12})\.? ?([1-9][0-9]{0,2}|ver)(?:[:.,–] ?(?:vers?\.? ?)?| +)([1-9][0-9]{0,2})").unwrap()
+});
+
+static KJB_LIST_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:,\s*|\.\s*)([1-9][0-9]{0,2})\b").unwrap()
+});
+
+static KJB_NEXT_REF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r" ?(?:,\s*(?:(?:and|&)\.?\s*)?|(?:\band\b|&)\s*\.?\s*)([1-9][0-9]{0,2})(?:[:.]([1-9][0-9]{0,2}))?[abc]?\b").unwrap()
+});
+
+static NUMBERED_BOOK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[1234I][ .]?[A-Za-z][a-z]{1,12}").unwrap()
+});
+
+static KJB_WORD_RANGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^,?\s+to\s+[1-9][0-9]{0,2}\b").unwrap()
 });
 
 /// Book + Verse reference regex (single-chapter book or whole chapter).
@@ -222,6 +245,7 @@ where
     let mut last_xr_bos_book_code = bos_book_code.to_string();
     let mut last_xc = source_c.to_string();
     let mut last_was_chapter = false;
+    let mut has_linked_target = false;
 
     let loop_limit: usize = if segment_type == "book" { 599 } else { 50 };
 
@@ -233,10 +257,46 @@ where
         let slice = &xref_live_middle[re_start_ix..];
 
         // Find explicit and abbreviated references without discarding separators.
-        let cap_bcv = BCV_REF_REGEX.captures(slice);
-        let cap_bv  = BV_REF_REGEX.captures(slice);
+        let kjb = version_abbreviation == "KJB-1611";
+        let starts_numbered_book = |offset: usize| {
+            NUMBERED_BOOK_REGEX.find(&slice[offset..])
+                .is_some_and(|m| resolve_book_name(m.as_str(), version_abbreviation, bos_book_code).is_some())
+        };
+        // "2.Chron 3. 1.king. 6." names two whole chapters: the 1 is
+        // part of the following book, never verse 1 of the first chapter.
+        let cap_bcv = (if kjb { &*KJB_BCV_REF_REGEX } else { &*BCV_REF_REGEX })
+            .captures_iter(slice).find(|c| {
+                if !kjb { return true; }
+                if starts_numbered_book(c.get(3).unwrap().start()) { return false; }
+                let between = &slice[c.get(2).unwrap().end()..c.get(3).unwrap().start()];
+                if between.contains(',') {
+                    let name = c.get(1).unwrap().as_str().trim();
+                    // "wisd.16,13" and "Matth.11,14" use C,V. An
+                    // explicit verse word or a single-chapter book still
+                    // introduces a verse list: "ver.2,18", "Obad.12,13".
+                    if matches!(name.to_lowercase().as_str(), "and" | "v" | "ver" | "vers" | "verse" | "verses" | "c" | "ca" | "cha" | "chap" | "chapter") {
+                        return false;
+                    }
+                    if resolve_book_name(name, version_abbreviation, bos_book_code)
+                        .is_some_and(|book| bos_books_codes::is_single_chapter_book(&book)) {
+                        return false;
+                    }
+                }
+                true
+            });
+        let cap_bv = BV_REF_REGEX.captures_iter(slice).find(|c| {
+            // Do not recognize the c. of &c. as a chapter abbreviation.
+            let name = c.get(1).unwrap();
+            !(kjb && name.as_str().trim() == "c"
+                && slice[..name.start()].trim_end().ends_with('&'))
+        });
         let cap_cv  = CV_REF_REGEX.captures(slice);
-        let cap_v   = NEXT_V_REF_REGEX.captures(slice);
+        let cap_v = (if kjb { &*KJB_NEXT_REF_REGEX } else { &*NEXT_V_REF_REGEX })
+            .captures_iter(slice).find(|c| !kjb || !starts_numbered_book(c.get(1).unwrap().start()));
+        let cap_list = if kjb && has_linked_target {
+            KJB_LIST_REF_REGEX.captures(slice)
+                .filter(|c| !starts_numbered_book(c.get(1).unwrap().start()))
+        } else { None };
         let cap_spaced_cv = if version_abbreviation == "KJB-1611" {
             KJB_SPACED_CV_REGEX.captures(slice)
         } else {
@@ -245,7 +305,7 @@ where
 
         // Determine which match starts earliest.  Among ties prefer the longer span.
         #[derive(Clone, Copy, PartialEq, Eq)]
-        enum Kind { BCV, BV, CV, V, SpacedCV }
+        enum Kind { BCV, BV, CV, V, SpacedCV, ListV }
 
         let mut best: Option<(usize, usize, Kind)> = None; // (start_in_slice, end_in_slice, kind)
 
@@ -267,6 +327,23 @@ where
         consider!(cap_cv,  Kind::CV);
         consider!(cap_v,   Kind::V);
         consider!(cap_spaced_cv, Kind::SpacedCV);
+        // Immediately adjacent dots/commas are verse-list separators. Prefer
+        // one number at a time in "Isa.2.9.11.17" or "Iohn12.39,40.41".
+        if let Some(ref c) = cap_list {
+            // A stop followed by whitespace and a C.V pair starts another
+            // chapter, e.g. "Psal.107.1. 118.1". Tight dots remain verse lists.
+            let separated_cv = slice.starts_with(". ")
+                && cap_cv.as_ref().is_some_and(|cv| cv.get(0).unwrap().start() == c.get(1).unwrap().start());
+            // This tightly printed sequence denotes the two angelic meals
+            // (Genesis 18:8 and 19:3), not verses 19 and 3 of chapter 18.
+            // Key the ambiguity to the complete historical field, as above.
+            let reviewed_chapter_change = bos_book_code == "TOB" && xo_text == "12:19"
+                && xref_original_middle.trim() == "Gen.18.8.19.3. Iudg.13.16."
+                && c.get(1).unwrap().as_str() == "19";
+            if !separated_cv && !reviewed_chapter_change {
+                best = Some((0, c.get(0).unwrap().end(), Kind::ListV));
+            }
+        }
 
         let (best_start, best_end, kind) = match best {
             Some(t) => t,
@@ -280,6 +357,7 @@ where
             Kind::CV  => cap_cv.unwrap(),
             Kind::V   => cap_v.unwrap(),
             Kind::SpacedCV => cap_spaced_cv.unwrap(),
+            Kind::ListV => cap_list.unwrap(),
         };
 
         let first_start = best_start + re_start_ix;
@@ -300,7 +378,7 @@ where
         let mut abbreviated_number = None;
 
         match kind {
-            Kind::V => {
+            Kind::V | Kind::ListV => {
                 let number = captures.get(1).unwrap().as_str();
                 xr_bos_book_code = Some(last_xr_bos_book_code.clone());
                 if let Some(verse) = captures.get(2) {
@@ -331,8 +409,15 @@ where
                 let x_cor_v = number.to_string();
                 abbreviated_number = Some(number);
 
-                // Check for verse-like words
+                // "See 1.Chro." must leave the book number for the next
+                // match; consuming "See 1" would turn it into bare Chro.
                 let xb_lower = xb_name.to_lowercase();
+                if kjb && matches!(xb_lower.as_str(), "see" | "also" | "in") {
+                    re_start_ix = re_start_ix + captures.get(1).unwrap().end();
+                    continue;
+                }
+
+                // Check for verse-like words
                 if xb_lower == "and" {
                     xr_bos_book_code = Some(last_xr_bos_book_code.clone());
                     is_chapter = last_was_chapter;
@@ -411,6 +496,14 @@ where
             if matches!(xb_lower.as_str(), "verse" | "vers" | "ver") {
                 xr_bos_book_code = Some(bos_book_code.to_string());
                 xc = source_c.to_string();
+            }
+            // In this printing Iud. with C:V denotes Judges, while its
+            // verse-only form denotes the single-chapter epistle of Jude.
+            if xb_lower == "iud" { xr_bos_book_code = Some("JDG".to_string()); }
+            // Ecclesi. occurs for both books. Chapter 35 identifies Sirach;
+            // Ecclesiastes has only twelve chapters (e.g. Sirach 27:26's 10:8).
+            if xb_lower == "ecclesi" && xc.parse::<u32>().unwrap_or(0) > 12 {
+                xr_bos_book_code = Some("SIR".to_string());
             }
             // Special: "A&s" already replaced above
         }
@@ -502,11 +595,16 @@ where
         // --- Capture the full match text (including range tail) ---
         let mut match_inner_end = first_end;
         while match_inner_end < xref_live_middle.len() {
-            let c = xref_live_middle.as_bytes()[match_inner_end] as char;
+            let c = xref_live_middle[match_inner_end..].chars().next().unwrap();
             if is_range_char(c) {
-                match_inner_end += 1;
+                match_inner_end += c.len_utf8();
             } else {
                 break;
+            }
+        }
+        if kjb {
+            if let Some(tail) = KJB_WORD_RANGE_REGEX.find(&xref_live_middle[match_inner_end..]) {
+                match_inner_end += tail.end();
             }
         }
         let match_inner = &xref_live_middle[first_start..match_inner_end].to_string();
@@ -522,6 +620,7 @@ where
         last_xr_bos_book_code = xr_bos_book_code.clone();
         last_xc = xc.clone();
         last_was_chapter = is_chapter;
+        has_linked_target = true;
 
         // --- Build the link ---
         let title_prefix = if field_type == "x" { "cross " } else { "" };
@@ -581,6 +680,16 @@ fn resolve_book_name(name: &str, version_abbreviation: &str, current_bos_book_co
 
     // KJB-1611 specific table lookup
     if version_abbreviation == "KJB-1611" {
+        let compact: String = lower.chars().filter(|c| !c.is_whitespace() && *c != '.').collect();
+        match compact.as_str() {
+            "1chro" => return Some("CH1".into()),
+            "2chro" => return Some("CH2".into()),
+            "1king" => return Some("KI1".into()),
+            "2king" => return Some("KI2".into()),
+            "eccless" => return Some("SIR".into()),
+            "eccle" | "ecclesi" => return Some("ECC".into()),
+            _ => (),
+        }
         if let Some(&bos_book_code) = KJB_1611_XREF_TABLE.get(name) {
             return Some(bos_book_code.to_string());
         }

@@ -39,14 +39,17 @@ CHANGELOG:
     2026-02-10 Upgraded to VLT v3
     2026-04-09 Changed to use getPositiveLeadingInt
     2026-04-19 Added SOTN (SIL Open Translators Notes)
-    2026-09-09 The per-word word-splitting chains and interlinear row builder now call the Rust openbibledata_rust ports
-    2026-09-09 Use multiprocessing for the interlinear pages: per-book work is now _createOETInterlinearVersePagesForBook_MP, run by one forked worker per book
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-01 Fixed bad links on second book index page
+    2026-09-09 The per-word word-splitting chains and interlinear row builder now call the Rust openbibledata_rust ports
+    2026-09-09 Use multiprocessing for the interlinear pages: per-book work is now _createOETInterlinearVersePagesForBook_MP, run by one forked worker per book
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/addNoLinkYetSpans keyword args. The RV interlinear call explicitly passes addNoLinkYetSpans=False to replicate the old quirk where lvBible was (wrongly) passed to the liven, disabling the TEST_MODE OET-RV noLinkYet gate.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-17 Use supported OET navigation books for links and jobs; handle absent chapter counts.
+    2026-10-24 Keep traditional abbreviations alongside OET names for the selected book.
+    2026-10-26 Include all Psalm headings in interlinear pages and verse/chapter navigation.
+    2026-10-26 Add explained pages for alternate verse addresses after all ordinary pages finish.
 
 TODO:
     Add colour keys for LV and RV words
@@ -63,9 +66,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
-from versification import navigationVersification, _mapReference, combinedPassageLabel
+from versification import navigationVersification, _mapReference, combinedPassageLabel, parallelVersePassage
 from oetWords import passageWordRows
-from navigation import navigationBookList, referenceHref
+from navigation import navigationBookList, referenceHref, verseNavigationFirstVerses
+from alternateVersePages import createAlternateVersePages
 from oetPassages import _namespaceIds
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
@@ -77,7 +81,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-10-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-26'
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.70'
@@ -136,6 +140,9 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
             taskNames=[f'book {p[2]}' for p in mpBookParameters])
         assert len(results) == len(mpBookParameters)
         assert all(results)
+
+    # Add alternate-numbered addresses only once every ordinary target exists.
+    createAlternateVersePages(folder, state.booksToLoad['OET'], state, 'interlinear')
 
     # Create index page
     filename = 'index.htm'
@@ -206,17 +213,11 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    BBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'InterlinearVerse', state )
-    # was BBBLinksHtml.replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/C1V1.htm#chLst">{ourTidyBBBwithNotes}</a>''', ourTidyBBB )
-    adjBBBLinksHtml = re.sub( f'<a title="[^"]+?" href="../{BBB}/C1V1.htm#chLst">.+?</a>', ourTidyBBB, BBBLinksHtml ) \
-                                    .replace( f'<span class="OT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="DC">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="NT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
-    assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
+    adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'InterlinearVerse', state, currentBBB=BBB )
 
     chapterLinks = []
-    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
+    firstVerses = verseNavigationFirstVerses(BBB, numChapters, ('OET-LV','OET-RV'), state)
+    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V{firstVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
             f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
@@ -231,20 +232,19 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             if numVerses is None: # something unusual
                 logging.error( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
-            # Include declared English title pages so native title links resolve.
-            titleMapping = _mapReference(state.navigationVersification, state.navigationVersification, (BBB,C,'0',None))
-            firstVerse = 1 if any(d.code == 'UNDECLARED_TITLE' for d in titleMapping.diagnostics) else 0
+            firstVerse = firstVerses[c]
             for v in range(firstVerse, numVerses+1):
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to interlinear verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
-                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
+                                for vv in ([0] if firstVerse==0 else []) + list(range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1)) if vv!=v] )}</p><!--vsLst-->'''
 
                 # The following all have a __ID__ string than needs to be replaced
                 leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>firstVerse \
                         else f'<a title="Go to last verse of previous chapter" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''
-                rightVLink = f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses else ''
-                leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
-                rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
+                rightVLink = f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
+                        else f' <a title="Next chapter (first verse)" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">→</a>' if c<numChapters else ''
+                leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{firstVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
+                rightCLink = f' <a title="Go to next chapter" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top">║</a>'''
                 verseListLink = f''' <a title="Simple verse list view" href="{'../'*BBBLevel}lst/{BBB}/C{C}V{v}.htm#Top">≡</a>'''
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
@@ -290,7 +290,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
-<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
+<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V{firstVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
@@ -313,7 +313,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
-<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="PSA/C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
+<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="PSA/C{ps}V{firstVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="{BBB}/C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
@@ -361,21 +361,29 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     lvBible = state.preloadedBibles['OET-LV']
     rvBible = state.preloadedBibles['OET-RV']
     wordTable = state.OETRefData['word_tables'][wordFileName]
+    unnumberedTitle = v == 0 and any(d.code == 'UNDECLARED_TITLE' for d in
+        _mapReference(state.navigationVersification, state.navigationVersification, (BBB,C,V,None)).diagnostics)
 
     nativeWordNumbers = ()
     try:
-        lvPassage = lvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), expandGroups=True)
-        nativeWordNumbers = passageWordRows(lvPassage, state)
-        lvVerseEntryList = [entry for portion in lvPassage.portions for entry in portion.entries]
+        if unnumberedTitle:
+            lvPortions, lvPassageLabel = parallelVersePassage('OET-LV', lvBible, (BBB,C,V), state, {})
+            if not any(entry.getMarker() == 'd' for _ref, entries, _context in lvPortions for entry in entries):
+                raise KeyError((BBB,C,V)) # The LV may include the heading within numbered verse 1.
+        else:
+            lvPassage = lvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), expandGroups=True)
+            nativeWordNumbers = passageWordRows(lvPassage, state)
+            lvPortions, lvPassageLabel = lvPassage.portions, combinedPassageLabel(lvPassage)
+        lvVerseEntryList = [entry for _ref, entries, _context in lvPortions for entry in entries]
         lvParts = []
-        for partNumber, (nativeRef, entries, context) in enumerate(lvPassage.portions):
+        for partNumber, (nativeRef, entries, context) in enumerate(lvPortions):
             text = do_OET_LV_HTMLcustomisations(f'Interlinear={nativeRef}',
                 convertVerseEntryListToHtml(level, 'OET-LV', nativeRef, 'interlinearVerse', context, entries,
                     basicOnly=True, state=state, livenWordLinks=True))
             label = f'<small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small> ' if nativeRef != (BBB,C,V) else ''
             lvParts.append(label + _namespaceIds(text, f'LV{partNumber}_'))
-        lvTextHtml = combinedPassageLabel(lvPassage) + ' '.join(lvParts)
-        nativeLink = referenceHref(level, lvPassage.portions[0].reference, 'OET-LV')
+        lvTextHtml = lvPassageLabel + ' '.join(lvParts)
+        nativeLink = referenceHref(level, lvPortions[0][0], 'OET-LV')
         lvHtml = f'<div class="LV"><p class="LV"><span class="wrkName"><a title="View Literal Version passage" href="{nativeLink}">OET-LV</a></span> {lvTextHtml}</p></div><!--LV-->'
     except (KeyError, TypeError, VersificationMappingError) as error:
         warningText = (f'OET-LV alignment unavailable ({error.result.status.value})'
@@ -385,15 +393,19 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         lvVerseEntryList = []
         nativeWordNumbers = ()
     try:
-        rvPassage = rvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), combineAdjacent=True, expandGroups=True)
-        rvVerseEntryList = [entry for portion in rvPassage.portions for entry in portion.entries]
+        if unnumberedTitle:
+            rvPortions, rvPassageLabel = parallelVersePassage('OET-RV', rvBible, (BBB,C,V), state, {})
+        else:
+            rvPassage = rvBible.getMappedPassage(state.navigationVersification, ((BBB,C,V),), combineAdjacent=True, expandGroups=True)
+            rvPortions, rvPassageLabel = rvPassage.portions, combinedPassageLabel(rvPassage)
+        rvVerseEntryList = [entry for _ref, entries, _context in rvPortions for entry in entries]
         # NOTE: The old code used lvBible for the liven (a quirk), so no TEST_MODE OET-RV
         # noLinkYet highlighting/preprocessing ever ran here -- we replicate that with addNoLinkYetSpans=False.
-        rvTextHtml = ' '.join(do_OET_RV_HTMLcustomisations(f'Interlinear={portion.reference}',
-            convertVerseEntryListToHtml(level, 'OET-RV', portion.reference, 'interlinearVerse',
-                portion.context, portion.entries, basicOnly=True, state=state,
-                livenWordLinks=True, addNoLinkYetSpans=False)) for portion in rvPassage.portions)
-        rvTextHtml = combinedPassageLabel(rvPassage) + rvTextHtml
+        rvTextHtml = ' '.join(do_OET_RV_HTMLcustomisations(f'Interlinear={nativeRef}',
+            convertVerseEntryListToHtml(level, 'OET-RV', nativeRef, 'interlinearVerse',
+                context, entries, basicOnly=True, state=state,
+                livenWordLinks=True, addNoLinkYetSpans=False)) for nativeRef, entries, context in rvPortions)
+        rvTextHtml = rvPassageLabel + rvTextHtml
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError, VersificationMappingError):
@@ -405,6 +417,11 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             rvHtml = f'''<p class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.warning( warningText )
         rvVerseEntryList = []
+    if unnumberedTitle:
+        # These titles have no whole-verse mapping. Their ESFM links still
+        # identify the exact Hebrew rows, even when the LV stores them in v1.
+        nativeWordNumbers = tuple(sorted({int(n) for entry in lvVerseEntryList + rvVerseEntryList
+            if entry.getMarker() == 'd' for n in re.findall(r'¦(\d+)', entry.getOriginalText() or '')}))
     # Handle (SIL and uW) translation notes and (Tyndale) study notes
     sotnHtml = getFormattedSILOpenTranslationNotes( level, BBB, C, V, 'interlinearVerse', state )
     if sotnHtml: sotnHtml = f'<div class="SOTN"><b>SIL Open Translator’s Notes</b>: {sotnHtml}</div><!--end of SOTN-->\n'

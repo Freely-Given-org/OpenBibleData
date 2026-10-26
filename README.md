@@ -19,6 +19,34 @@ and includes almost forty Bible translations along with multiple Hebrew and Gree
 and then parallel and interlinear verse pages with two sets of notes for translators,
 related/parallel section pages, topic pages, and reference pages including two Bible dictionaries.
 
+## Local test builds and private translations
+
+From `createPages/`, copy `privateSettings.example.toml` to `privateSettings.toml`
+and configure the test destination in that local file. Git ignores this file;
+keep its real folder name, private source paths and translation metadata out of
+committed code, examples and documentation. Back up the local file separately.
+Test/debug builds require it and stop with an explanatory error if it is missing.
+Run builds from `createPages/` with `uv run createSitePages.py` as usual.
+
+The `[versions.ABBREVIATION]` tables can add private USFM/USX translations or
+replace existing sources for TEST mode. The example documents names, source
+paths, numbering profiles, ordering, book selection and copyright/licence HTML.
+Full local editions can also replace public selected-verse editions. Production
+builds do not read the local configuration; debug-only production builds use
+its destination but do not enable its private translations.
+
+Test staging lives under `.cache/privateBuild/`, separate from production's
+`buildingHtmlPages/`. Test Bible and substituted-text caches are also separate
+from public caches. Existing caches will be rebuilt on the first private run.
+Generated subfolders under `htmlPages/`, staging, caches and private settings
+are ignored by Git.
+
+A hidden folder name and Git exclusions do **not** restrict HTTP access. Protect
+the test output with web-server authentication or network access restrictions,
+and exclude it from public deployment/sync jobs. When changing its name on a
+server, move/remove the old deployed folder too; the generator does not manage
+remote server files or access controls.
+
 ## Versification alignment
 
 Parallel-page URLs, chapter counts, and verse navigation use BOS `eng` numbering,
@@ -85,6 +113,28 @@ word numbers, and word-page filenames remain unchanged. Links within standalone
 editions retain that edition's numbering, while combined OET, parallel, simple,
 and interlinear destinations use English numbering. Section switches use the
 corresponding chapter/verse, since section numbers differ between editions.
+
+Parallel and interlinear builds also create pages for otherwise missing native
+addresses, using `createPages/alternateVersePages.py` after all ordinary book
+jobs finish. For example, `par/MAL/C3V19.htm` and `ilr/MAL/C3V19.htm` contain a
+copy of their ordinary `MAL/C4V1.htm` page, with a prominent explanation of
+versification and a link to that ordinary OET-RV/English page. The copied text,
+headings and navigation retain the ordinary numbering; the alternate title
+identifies the requested reference, and a canonical link identifies the original.
+`#Top` leads to the explanation. Relative links and resources are preserved even
+when BOS maps to a different book.
+
+These extra pages use the declared profiles and available books of the loaded
+editions. They require an exact BOS passage mapping and all corresponding
+ordinary pages to exist. Complete merge groups are retained. If a passage spans
+several pages, or different profiles give different destinations for the same
+address, a short explanation links to every destination instead of choosing one.
+Unsupported mappings or targets outside the current build are logged and skipped.
+Existing pages and ordinary navigation addresses always take precedence: for
+example, an address valid in both English and Hebrew numbering keeps its normal
+English meaning. Verse-zero title/introduction pages are also reserved. These
+additional entry points do not change the ordinary verse selectors or the simpler
+verse-list pages, and appear in the website when the rebuilt output is deployed.
 
 App word JSON retains its existing native `ref` and `word_number`, and adds
 `versification`, `navigation_versification`, `navigation_mapping_status`, and

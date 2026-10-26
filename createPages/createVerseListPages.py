@@ -25,15 +25,19 @@ main calls fullDemo()
 
 
 CHANGELOG:
-    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2026-09-16 Adapted from a copy of createParallelVersePages.py
     2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
                 forked per-book workers inherit it copy-on-write and it's loaded/reported once
                 (instead of once per worker).
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
                 Import German and Latin translations from their separate BOS modules.
+    2026-10-17 Preserve Jubilee when applying the J-to-Y convention to modernised English.
     2026-10-17 Skip books without navigation chapter information, including their links.
     2026-10-21 Reuse substituted editions across page families and site builds.
+    2026-10-24 Keep traditional abbreviations alongside OET names for the selected book.
+    2026-10-24 Exclude all study/translation note collections from verse-list pages.
+    2026-10-26 Avoid an empty body line when introductions have no metadata or text.
+    2026-10-26 Pass the navigation profile when retrieving original-numbered verse metadata.
 """
 from pathlib import Path
 import os
@@ -66,7 +70,7 @@ from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSH
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-26' # by RJH
 SHORT_PROGRAM_NAME = "createVerseListPages"
 PROGRAM_NAME = "OpenBibleData createVerseListPages functions"
 PROGRAM_VERSION = '0.2.3'
@@ -96,9 +100,9 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    # Move SR-GNT and UHB and BrLXX and Brenton up after OET-RV and OET-LV
-    parallelVersions = state.BibleVersions.copy()
-    parallelVersions.remove( 'UTN' )
+    # Simple verse lists contain Bible text; notes belong on the full parallel pages.
+    parallelVersions = [version for version in state.BibleVersions
+                        if version not in ('TOSN','TTN','SOTN','UTN')]
 
     # Prepare the book links
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -131,7 +135,7 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
         # Each forked child inherits these via copy-on-write, so the lazy-load guard inside
         # spellCheckAndMarkHTMLText() (which checks len(AMERICAN_WORD_SET) < 10_000) will be
         # False in every child — avoiding redundant file I/O per book.
-        getVerseMetaInfoHtml( 'GEN', '1', '1' ) # Pre-load the sentenceImportance table in the parent before forking (so the workers inherit it copy-on-write too, and it's only loaded + reported once)
+        getVerseMetaInfoHtml( 'GEN', '1', '1', state.navigationVersification ) # Pre-load before forking so workers inherit the table.
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
@@ -231,17 +235,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    # adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'VerseList', state ) \
-    #         .replace( f'''<a title="{getOETBookName(BBB)}" href="{'../'*level}{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
-    BBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'VerseList', state )
-    # Handle <a title="Yonah/(Jonah)" href="{'../'*level}JNA/C1V1.htm#chLst"><span title="Yonah (which is closer to the Hebrew hhh/Yōnāh)">YNA</span> (JNA)</a>
-    # was BBBLinksHtml.replace( f'''<a title="{getOETBookName(BBB)}" href="{'../'*level}{BBB}/C1V1.htm#chLst">{ourTidyBBB}</a>''', ourTidyBBB )
-    adjBBBLinksHtml = re.sub( f'''<a title="[^"]+?" href="{'../'*level}{BBB}/C1V1.htm#chLst">.+?</a>''', ourTidyBBB, BBBLinksHtml ) \
-                                    .replace( f'<span class="OT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="DC">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="NT">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' ) \
-                                    .replace( f'<span class="XX">{ourTidyBBB}</span>', f'<span class="selectedBook">{ourTidyBBB}</span>' )
-    assert adjBBBLinksHtml != BBBLinksHtml, f"Should have been changed for {BBB}: {getOETBookName(BBB)=} {ourTidyBBB=}\n\n{adjBBBLinksHtml}\n\nfrom {BBBLinksHtml}\n\nfrom {BBBLinks}"
+    adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'VerseList', state, currentBBB=BBB )
 
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
 
@@ -295,7 +289,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 debugKJBCompareBit = False #parRef == 'PSA_68:6'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
-                parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
+                parallelHtml = getVerseMetaInfoHtml( BBB, C, V, state.navigationVersification )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     assert versionAbbreviation not in ('TOSN','TTN','SOTN','UTN'), f"{versionAbbreviation=}"
@@ -931,8 +925,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 {vLinksPar}
 <h1>Simple verse list for {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
-{parallelHtml}
-{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
+{parallelHtml}{NEWLINE if parallelHtml else ''}{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, None, 'simpleVerse' )}'''
                 assert checkHtml( f'VerseList {parRef}', parallelHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything

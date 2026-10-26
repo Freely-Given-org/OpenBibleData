@@ -1,14 +1,19 @@
+#!/usr/bin/env -S uv run
+# SPDX-License-Identifier: CC0-1.0
 """Small, offline BOS integration tests; no site datasets or OBD Rust renderer.
 
 From OpenBibleData:
     uv run python -m unittest discover -s createPages -p test_versification.py
 
 CHANGELOG:
-    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
     2026-10-17 Cover missing navigation books in page loops, links, and forked jobs.
     2026-10-17 Keep combined-passage notes out of verse text, including OET's nested label.
     2026-10-21 Include derived-edition lifecycle in the parent/worker navigation fixture.
+    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
+    2026-10-24 Accept selected-book options in the navigation test doubles.
+    2026-10-26 Supply shared chapter-start navigation to page-loop fixtures.
+    2026-10-26 Include the alternate-address pass in parent page-builder fixtures.
 """
 import ast
 from collections import defaultdict
@@ -35,7 +40,8 @@ from bible_organisational_system import getSmallLeadingInt
 
 from settings import State
 import versification as vf
-from navigation import navigationBookList
+from navigation import navigationBookList, verseNavigationFirstVerses
+from alternateVersePages import createAlternateVersePages
 from parallel import runParallelPages
 from substitutedVersions import prepareSubstitutedVersions, saveSubstitutedVersions
 
@@ -330,7 +336,7 @@ class ParallelPageTests(unittest.TestCase):
             rreplace=BibleOrgSysGlobals.rreplace,
             getOETTidyBBB=lambda book, **kwargs: book,
             getOETBookName=lambda book: book,
-            makeBookNavListParagraph=lambda links,*args: ''.join(links),
+            makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
             makeTop=lambda *args: '<html><head><title>__TITLE__</title></head><body>',
             makeBottom=lambda *args: '</body></html>',
             checkHtml=lambda *args,**kwargs: True,
@@ -512,7 +518,7 @@ class NavigationBookSelectionTests(unittest.TestCase):
                         navigationBookList=navigationBookList, runParallelPages=runParallelPages,
                         reorderBooksForOETVersions=lambda books: books,
                         getOETTidyBBB=lambda book, **kwargs: book, getOETBookName=lambda book: book,
-                        makeBookNavListParagraph=lambda links,*args: ''.join(links),
+                        makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
                         makeTop=lambda *args: '<html><head><title>__TITLE__</title></head><body>',
                         makeBottom=lambda *args: '</body></html>', checkHtml=lambda *args: True,
                         vPrint=lambda *args: None, fnPrint=lambda *args: None,

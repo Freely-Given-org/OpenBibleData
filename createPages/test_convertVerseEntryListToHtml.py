@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 #
 # test_convertVerseEntryListToHtml.py
 #
@@ -8,11 +8,11 @@
 # verifying that the Rust implementation works correctly end-to-end.
 #
 # CHANGELOG:
-#   2026-10-23 Cover section lookup across replaced, short-lived section lists.
 #   2026-09-15 Added TestFusedLiveningEquivalence: the fused livenWordLinks=True
 #                path inside convertVerseEntryListToHtml must produce byte-identical
 #                HTML to the old two-step livenOETWordLinks/livenOETCompatibleBereanWordLinks
 #                then convert sequence.
+#   2026-10-23 Cover section lookup across replaced, short-lived section lists.
 
 import unittest
 from BibleOrgSys.Internals.InternalBible import InternalBibleEntryList, InternalBibleEntry

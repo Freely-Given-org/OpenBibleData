@@ -1,11 +1,12 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 
 """Offline mapping tests, including the production Rust bridge when available.
 CHANGELOG:
-    2026-10-23 Distinguish shared OET/RV section links from version switching.
-    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
+    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
+    2026-10-23 Distinguish shared OET/RV section links from version switching.
+    2026-10-26 Cover unnumbered Psalm headings and their exact interlinear word rows.
 """
 import ast
 from collections import defaultdict
@@ -251,18 +252,37 @@ class WordMappingTests(unittest.TestCase):
             vPrint=lambda *a:None, dPrint=lambda *a:None, fnPrint=lambda *a:None,
             findSectionNumber=lambda *a:0, getOETTidyBBB=lambda BBB,**kw:BBB,
             referenceHref=nav.referenceHref, passageWordRows=words.passageWordRows,
-            combinedPassageLabel=vf.combinedPassageLabel,
+            combinedPassageLabel=vf.combinedPassageLabel, _mapReference=vf._mapReference,
+            parallelVersePassage=vf.parallelVersePassage,
             getGreekWordpageFilename=lambda n,s:f'{n}.htm',
             VersificationMappingError=vf.VersificationMappingError,
             getPositiveLeadingInt=lambda s:int(re.match(r'\d+',s)[0]),
             getFormattedSILOpenTranslationNotes=lambda *a:'', formatUnfoldingWordTranslationNotes=lambda *a:'',
             formatTyndaleNotes=lambda *a:'', checkHtml=lambda *a,**k:True,
             do_OET_LV_HTMLcustomisations=lambda _,s:s, do_OET_RV_HTMLcustomisations=lambda _,s:s,
-            convertVerseEntryListToHtml=lambda l,v,r,k,c,entries,**kw:' '.join(e.getCleanText() for e in entries if e.getMarker()=='v~'),
+            convertVerseEntryListToHtml=lambda l,v,r,k,c,entries,**kw:' '.join(e.getCleanText() for e in entries if e.getMarker() in ('v~','d')),
             splitOETLVInterlinearWords=rust.splitOETLVInterlinearWords,
             splitOETRVInterlinearWords=rust.splitOETRVInterlinearWords,
             buildInterlinearWordRows=rust.buildInterlinearWordRows)
         return functionFromFile('createOETInterlinearPages.py','createOETInterlinearVerseInner',namespace)
+
+    @unittest.skipIf(rust is None, 'Build the OBD Rust extension for this integration test')
+    def test_unnumbered_psalm_heading_keeps_rv_text_and_only_its_hebrew_rows(self):
+        self.bible('OET-LV','PSA','\\c 11\n\\v 1 Director¦1. David¦2. Refuge¦3.\n')
+        self.bible('OET-RV','PSA','\\c 11\n\\d Director¦1. David¦2.\n\\q1\n\\v 1 Refuge¦3.\n')
+        name = words.wordTableName('PSA')
+        self.state.OETRefData['word_tables'][name] = ['header', *[
+            f'PSA_11:1w{n}\tw\t\t\t\t\tדוד\tדוד\tDavid\tDavid\tDavid\tDavid\t\t\t\t\t1\tNcmsa\t'
+            for n in (1,2,3)]]
+        self.state.OETRefData['word_table_indexes'][name] = {'PSA_11:1':(1,3)}
+        self.state.booksToLoad = {'OET':['PSA']}
+        html = self.interlinearGenerator()(2,'PSA',11,0,self.state)
+        self.assertIn('Director¦1. David¦2.', html)
+        self.assertNotIn('Refuge¦3.', html)
+        for n in (1,2):
+            self.assertIn(f'ref/HebWrd/{n}.htm', html)
+        self.assertNotIn('ref/HebWrd/3.htm', html)
+        self.assertNotIn('No OET-RV', html)
 
     @unittest.skipIf(rust is None, 'Build the OBD Rust extension for this integration test')
     def test_combined_acts_interlinear_has_native_rows_in_both_orders(self):

@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -530,7 +530,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 oText = entry.getOriginalText()
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
-                    for _safetyCount in range( 6 ): # 5 wasn't enough for MRK
+                    for _safetyCount in range( 9 ): # 6 wasn't enough
                         try: xStartIx = oText.index( '\\x ', startIndex )
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )

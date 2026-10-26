@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -30,7 +30,7 @@ loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, enco
 
 getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:str|None=None, lastC:str|None=None ) -> tuple[str,str,InternalBibleEntryList,list[str]]
 
-getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str # html
+getVerseMetaInfoHtml( BBB:str, C:str, V:str, sourceVersification:str ) -> str # html
 
 formatVerseDetailsHtml( verseRef:str ) -> str # html
 
@@ -70,13 +70,20 @@ CHANGELOG:
     2026-10-16 Extract BibleMapper index preloading so forked page workers can inherit the cache.
     2026-10-21 Validate source manifests for the ten persistently substituted editions.
                 Recover genuine USFM sources when BOS filename guessing selects a pickle.
+    2026-10-23 Load locally configured USFM/USX editions without hardcoded private sources.
+    2026-10-26 Restore missing book section indexes when accepting cached Bibles.
+    2026-10-26 Read the sentence metadata profile and map page references to org,
+               retaining complete groups and labelling unavailable metadata.
 """
 from datetime import datetime
 import os, os.path
 from pathlib import Path
 import logging
+import json
 import re
+from functools import lru_cache
 from xml.etree.ElementTree import ElementTree, ParseError
+from xml.sax.saxutils import escape
 import shutil
 from collections import defaultdict
 import pickle
@@ -95,19 +102,22 @@ import BibleOrgSys.Formats.VPLBible as VPLBible
 import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
+from BibleOrgSys.Reference.BibleVersificationMappings import (
+    MappingStatus, VersificationMappingError, get_default_mapping_engine,
+)
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 import bos_books_codes_py
 
 from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
-from versification import configureBibleVersification
+from versification import configureBibleVersification, _referenceLabel
 from html import checkHtml
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-10-16' # by RJH
+LAST_MODIFIED_DATE = '2026-10-26' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '1.1.2'
@@ -275,6 +285,24 @@ def preloadVersions( state:State ) -> int:
                                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
                                     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
                                 assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
+                                # Some caches were saved after discovery but before section indexing.
+                                # Match fresh loads without re-reading the Bible or rebuilding valid indexes.
+                                missingSectionBooks = [BBB for BBB, book in newBibleObj.books.items()
+                                    if not getattr(book, '_indexedSectionsFlag', False)
+                                    or not hasattr(book, '_SectionIndex')]
+                                if missingSectionBooks:
+                                    logging.warning('Restoring missing section indexes for %s books %s from %s',
+                                        versionAbbreviation, ', '.join(missingSectionBooks), pickleFilePath)
+                                    for BBB in missingSectionBooks:
+                                        book = newBibleObj.books[BBB]
+                                        try:
+                                            if not book._processedFlag:
+                                                book.processLines()
+                                            book._indexedSectionsFlag = False # A ready flag alone is insufficient.
+                                            book._makeBookSectionIndex()
+                                        except Exception as error:
+                                            error.add_note(f'While restoring {versionAbbreviation} {BBB} section index from {pickleFilePath}')
+                                            raise
                                 state.preloadedBibles[versionAbbreviation] = newBibleObj
                                 continue
                         except SourceManifestMismatch as e:
@@ -371,6 +399,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     versionName = state.BibleNames[versionAbbreviation]
     originalSourceManifest = (sourceManifest(folderOrFileLocation)
                               if versionAbbreviation in SUBSTITUTED_VERSIONS else None)
+    sourceFormat = getattr(state, 'BibleSourceFormats', {}).get(versionAbbreviation)
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
@@ -378,7 +407,23 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #                                         givenAbbreviation=versionAbbreviation, encoding='iso-8859-1' )
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
-    if versionAbbreviation in ('SBL-GNT','RP-GNT') \
+    if sourceFormat in ('USFM', 'USX'):
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint('Quiet', DEBUGGING_THIS_MODULE,
+                   f"Preloading ‘{versionAbbreviation}’ {sourceFormat} Bible…")
+        bibleClass = USXXMLBible.USXXMLBible if sourceFormat == 'USX' else USFMBible.USFMBible
+        thisBible = bibleClass(folderOrFileLocation, givenName=versionName,
+                              givenAbbreviation=versionAbbreviation, encoding='utf-8')
+        thisBible.preload()
+        if sourceFormat == 'USFM' and originalSourceManifest is not None:
+            repairUSFMSourceFilenames(thisBible, originalSourceManifest)
+        if state.booksToLoad[versionAbbreviation] in (['ALL'], ['OT'], ['NT']):
+            thisBible.loadBooks()
+        else:
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary(BBB)
+
+    elif versionAbbreviation in ('SBL-GNT','RP-GNT') \
     or (versionAbbreviation in ('BSB',) and folderOrFileLocation.endswith('.tsv')): # Single (BSB) or multiple (SBL-GNT) TSV (possibly .txt) file(s)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
@@ -584,20 +629,6 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 pickle.dump( state.UBS_HEB_DATA, pickleOutputFile )
                 pickle.dump( state.UBS_HEB_ID_INDEX, pickleOutputFile )
                 pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
-
-    elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
-        thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
-                                            encoding='utf-8' )
-        if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
-            # We assume that we can load all books, even for OT and NT
-            #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
-            thisBible.loadBooks() # So we can iterate through them all later
-        else: # only load the specific books as we need them
-            thisBible.preload()
-            for BBB in state.booksToLoad[versionAbbreviation]:
-                thisBible.loadBookIfNecessary( BBB )
 
     elif versionAbbreviation in ('BSB',) and 'PTX' in folderOrFileLocation: # Paratext
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
@@ -1948,40 +1979,119 @@ def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:
 # end of Bibles.getOpenBibleImages
 
 
-VERSE_DETAILS_TABLE_FILEPATH = Path( '../datasets/sentenceImportance/sentenceImportance.tsv' )
+VERSE_DETAILS_TABLE_FILEPATH = Path('../datasets/sentenceImportance/sentenceImportance.tsv')
+VERSE_DETAILS_VERSIFICATION = 'org'
 VERSE_DETAILS_TABLE = {}
-def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
+VERSE_DETAILS_BOOKS = frozenset()
+
+
+def loadVerseDetailsTable() -> None:
+    """Read the original-numbered TSV once, validating its declared profile.
+
+    Keep native keys so workers inherit the table unchanged. Report hashes
+    describe regeneration provenance; manual value edits do not change numbering.
     """
-    Return a short string with information from our database
-        about Textual Critism, Clarity, etc., of the particular verse.
+    global VERSE_DETAILS_TABLE, VERSE_DETAILS_BOOKS
+    if VERSE_DETAILS_TABLE:
+        return
+    reportPath = VERSE_DETAILS_TABLE_FILEPATH.with_suffix('.build.json')
+    with reportPath.open(encoding='utf-8') as reportFile:
+        profile = json.load(reportFile).get('output_versification')
+    if profile != VERSE_DETAILS_VERSIFICATION:
+        raise ValueError(f'{reportPath}: expected sentence metadata in '
+                         f'{VERSE_DETAILS_VERSIFICATION!r}, got {profile!r}; regenerate the dataset')
+    table = {}
+    with VERSE_DETAILS_TABLE_FILEPATH.open(encoding='utf-8') as tableFile:
+        if tableFile.readline().rstrip('\n') != 'FGRef\tImportance\tTextualIssue\tClarity\tSpeakers\tComment':
+            raise ValueError(f'{VERSE_DETAILS_TABLE_FILEPATH}: unexpected metadata columns')
+        for lineNumber,line in enumerate(tableFile,2):
+            fields = line.rstrip('\n').split('\t')
+            if (len(fields) != 6 or fields[0] in table
+                    or not re.fullmatch(r'[A-Z][A-Z0-9]{2}_\d+:\d+[ab]?',fields[0])
+                    or fields[1] not in IMPORTANCE_TABLE or fields[2] not in TEXTUAL_ISSUE_TABLE
+                    or fields[3] not in CLARITY_TABLE or not fields[4]):
+                raise ValueError(f'{VERSE_DETAILS_TABLE_FILEPATH}:{lineNumber}: invalid/duplicate metadata row {fields!r}')
+            table[fields[0]] = tuple(fields[1:5])
+    if not table:
+        raise ValueError(f'{VERSE_DETAILS_TABLE_FILEPATH}: empty metadata table')
+    VERSE_DETAILS_BOOKS = frozenset(key.split('_',1)[0] for key in table)
+    VERSE_DETAILS_TABLE = table # Do not publish a partially loaded table on error.
+    vPrint('Quiet',DEBUGGING_THIS_MODULE,
+           f'Loaded {len(table):,} sets of verse details ({profile} versification).')
+
+
+@lru_cache(maxsize=32768)
+def _verseMetadataMapping(sourceVersification, BBB, C, V):
+    """Map complete passages; never fall back to unchanged numeric addresses."""
+    engine = get_default_mapping_engine()
+    reference = (BBB,C,V,None)
+    if V == '0':
+        title = engine.convert(sourceVersification,sourceVersification,(reference,))
+        if title.diagnostics and all(d.code == 'UNDECLARED_TITLE' for d in title.diagnostics):
+            return None # Editorial chapter introduction, not a scripture title.
+    result = engine.convert_passage(sourceVersification,VERSE_DETAILS_VERSIFICATION,(reference,))
+    if result.status != MappingStatus.EXACT:
+        if result.status == MappingStatus.INVALID or any(d.code == 'UNSUPPORTED_SYSTEM' for d in result.diagnostics):
+            raise VersificationMappingError(result)
+        # Some deuterocanonical bridges are unverified. Optional metadata must
+        # not stop scripture being shown in its native numbering. Report the
+        # absence visibly and log its cause, instead of guessing a numeric match.
+        logging.warning('Verse metadata unavailable for %s %s %s:%s -> %s: %s',
+                        sourceVersification,BBB,C,V,VERSE_DETAILS_VERSIFICATION,
+                        VersificationMappingError(result))
+    return result
+
+
+@lru_cache(maxsize=128)
+def _reportMissingMetadataBook(book):
+    logging.warning('Verse metadata unavailable: %s %s is outside the sentence metadata dataset',
+                    VERSE_DETAILS_VERSIFICATION,book)
+
+
+def getVerseMetaInfoHtml( BBB:str, C:str, V:str, sourceVersification:str ) -> str:
+    """Render original-numbered metadata for a reference in the caller's profile.
+
+    Pages pass state.navigationVersification explicitly. Native OET-LV callers
+    must pass 'OET-LV' (PHP 1:16-17 differs from org). Show every mapped row
+    separately, preserving editorial a/b halves and labelling enlarged passages.
     """
-    global VERSE_DETAILS_TABLE
+    BBB,C,V = map(str,(BBB,C,V))
+    if C == '-1':
+        return '' # Book introduction has no scripture metadata.
+    loadVerseDetailsTable()
+    mapping = _verseMetadataMapping(sourceVersification,BBB,C,V)
+    if mapping is None:
+        return ''
+    if mapping.status != MappingStatus.EXACT:
+        return '<p class="verseDetails">Verse details unavailable: no unambiguous correspondence in the original numbering.</p>'
+    outsideBooks = {ref[0] for ref in mapping.references} - VERSE_DETAILS_BOOKS
+    if outsideBooks:
+        for book in sorted(outsideBooks):
+            _reportMissingMetadataBook(book)
+        return '<p class="verseDetails">Verse details unavailable: this book is outside the metadata dataset.</p>'
 
-    if not VERSE_DETAILS_TABLE:
-        # We have to load it on the first call
-        with open( VERSE_DETAILS_TABLE_FILEPATH, 'rt', encoding='utf-8' ) as tableFilepath:
-            headerLine = tableFilepath.readline().rstrip( '\n' )
-            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity	Speakers	Comment'
-            while True:
-                dataLine = tableFilepath.readline()
-                if not dataLine: break # EOF presumably
-                dataFields = dataLine.rstrip( '\n' ).split( '\t' )
-                assert dataFields[0] not in VERSE_DETAILS_TABLE
-                VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3],dataFields[4]) # Don't bother saving the comments
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
-
-    verseDetails = ''
-    ref = f'{BBB}_{C}:{V}'
-    if ref in VERSE_DETAILS_TABLE:
-        verseDetails = formatVerseDetailsHtml( ref )
-    else: # assume the verse is divided into parts
-        for part in 'abcde': # we really only expect 'a' or 'b'
-            partRef = f'{ref}{part}'
-            if partRef in VERSE_DETAILS_TABLE:
-                verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
-
-    return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(<a title="See database" href="https://GitHub.com/Freely-Given-org/OpenBibleData/tree/main/datasets/sentenceImportance">All still tentative</a>.)</small></p>'''
+    lines = []
+    if mapping.is_expanded:
+        sourceLabel = 'English' if sourceVersification == 'eng' else sourceVersification
+        coverage = escape(f'{sourceLabel} {_referenceLabel(mapping.source_references)}')
+        lines.append(f'<small>Verse details cover {coverage} together.</small>')
+    showReferences = len(mapping.references) > 1 or mapping.references != ((BBB,C,V,None),)
+    for book,chapter,verse,suffix in mapping.references:
+        if suffix:
+            # BOS segments are not the dataset's editorial half-verse labels.
+            raise ValueError(f'Cannot use BOS segment {book} {chapter}:{verse}{suffix} as an editorial metadata half')
+        ref = f'{book}_{chapter}:{verse}'
+        keys = [ref] if ref in VERSE_DETAILS_TABLE else [ref+'a',ref+'b']
+        if any(key not in VERSE_DETAILS_TABLE for key in keys):
+            raise KeyError(f'Missing {VERSE_DETAILS_VERSIFICATION} metadata for {ref}, '
+                           f'mapped from {sourceVersification} {BBB} {C}:{V}')
+        label = f'<small>Original {escape(f"{book} {chapter}:{verse}")}</small>: ' if showReferences else ''
+        lines.extend(label + formatVerseDetailsHtml(key) for key in keys)
+    verseDetails = '<br>'.join(lines)
+    separator = '<br>' if len(lines)>1 else ' '
+    return (f'<p class="verseDetails">{verseDetails}{separator}<small style="color:grey;">'
+            '(<a title="See database" href="https://GitHub.com/Freely-Given-org/OpenBibleData/tree/main/datasets/sentenceImportance">'
+            'All still tentative</a>.)</small></p>')
 # end of Bibles.getVerseMetaInfoHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:black;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }

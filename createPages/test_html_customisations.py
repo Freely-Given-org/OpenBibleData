@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 """Tests of shared version-specific HTML processing.
 
 CHANGELOG:

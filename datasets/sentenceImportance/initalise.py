@@ -9,13 +9,15 @@
 #
 # Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal.
+# Noth this source code and the generated dataset are marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
 Module handling SentenceImportance initialisation.
 
-This bit of code is only ever intended to be run once
+Regenerate sentenceImportance.tsv from the immutable .tsv.init inventory and
+the source annotations. Paths are relative to this script, not the working
+directory; run from createPages with uv run ../datasets/sentenceImportance/initalise.py.
 
 Sets:
     Importance
@@ -36,7 +38,33 @@ Sets:
         @   Narrator (default)
         Otherwise there's a comma-separated list of names, e.g. 'Yeshua' or '@,Yahweh'
 
-TODO: Define what versification these references are in
+VERSIFICATION CONTRACT:
+    Output FGRefs use BOS's explicit 'org' profile (original Hebrew/Greek),
+    including numbered Hebrew Psalm titles. 'org' is not the legacy count-only
+    'Original' system, nor the composite 'BOSReference' mapping pivot.
+    Curated lists below and cross-testament OT quotations use 'eng', except
+    the two explicitly documented quotation corrections in QUOTE_PROFILES.
+    UHB stores English numbers (Hebrew numbers in \\va); OET-LV OT uses its
+    'OET-LV' profile; speakers use 'OET-RV' and explicit OET-LV evidence.
+    Psalm/proverb headings remain narrator; their authors supply the default
+    voice of the following body. Two explicit speaker runs may create editorial
+    a/b rows only across a one-to-one mapping; existing curated halves take
+    precedence. More complex changes retain all known speakers in one list.
+    CNTR VerseIds match 'VLT', including
+    its PHP 1:16-17 order. NET USX uses 'eng' in OT/Acts and 'org' elsewhere in NT.
+    Every join uses BOS mappings. Whole indivisible groups share annotations;
+    the strongest importance/textual issue and least clarity win. Speaker
+    sequences are concatenated in source order. Group coverage is recorded in
+    Comment. Unsupported/ambiguous mappings fail; reviewed no-counterpart
+    source verses are reported and omitted, never assigned to a neighbour.
+    NET's explicitly omitted NT verses are scored only after verifying their
+    explanatory TC notes. Its malformed printed Jonah 1:17 label is restored
+    in a temporary import copy; source files are never edited.
+    a/b are our editorial half-verse labels, NOT BOS segment declarations:
+    retain them only across an exact one-to-one whole-verse mapping, otherwise
+    fail for editorial review. Whole-verse annotations apply to both halves.
+    See README.md and sentenceImportance.build.json for source conventions,
+    seed corrections, mapping versions, diagnostics, and regeneration details.
 
 CHANGELOG:
     2024-05-22 Use SR and Translatable SR-GNT collation columns from CNTR
@@ -48,57 +76,71 @@ CHANGELOG:
     2026-03-29 Updated for latest collation DB from GreekCNTR
     2026-09-08 Added Speakers column to the output (auto-detected from OET-RV \\wj markers, \\sp speaker markers, and speech attribution patterns)
     2026-10-03 More updates to tables
+    2026-10-26 Attribute Psalm/proverb bodies, preserve within-verse speaker
+               changes and heading halves, and use LV tagged speech evidence.
+    2026-10-26 Map all annotations to org when building the TSV database
 """
 from pathlib import Path
 from csv import  DictReader
+from collections import defaultdict
+from contextlib import contextmanager
+from functools import lru_cache
+from itertools import groupby
+import hashlib
+import json
 import re
 import logging
+import shutil
+import tempfile
+import xml.etree.ElementTree as ElementTree
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.BibleOrgSysGlobals import vPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
-from BibleOrgSys.Reference.BibleOrganisationalSystems import BibleOrganisationalSystem
+from BibleOrgSys.Reference.BibleVersificationMappings import (
+    MappingStatus, VersificationMappingError, get_default_mapping_engine,
+)
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../crossTestamentQuotes/' )
-from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
-
-
-
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-26'
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.40'
+PROGRAM_VERSION = '1.0.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 
-TSV_FILENAME = 'sentenceImportance.tsv'
+DATA_FOLDER = Path(__file__).resolve().parent
+REPO_FOLDER = DATA_FOLDER.parents[1]
+TSV_FILENAME = DATA_FOLDER / 'sentenceImportance.tsv'
+SEED_FILENAME = DATA_FOLDER / 'sentenceImportance.tsv.init'
+REPORT_FILENAME = DATA_FOLDER / 'sentenceImportance.build.json'
+QUOTES_FILENAME = DATA_FOLDER.parent / 'crossTestamentQuotes/crossTestamentQuotes.tsv'
+OUTPUT_PROFILE = 'org'
+CURATED_PROFILE = 'eng'
+CNTR_PROFILE = 'VLT'
 NUM_EXPECTED_DATA_LINES = 41_899 # for initial vref.txt file with no split verses
 
-COLLATION_PATHNAME = Path( '../../../CNTR-GNT/sourceExports/collation.csv' )
-NUM_EXPECTED_COLLATION_COLUMNS = 30
+COLLATION_PATHNAME = REPO_FOLDER.parent / 'CNTR-GNT/sourceExports/collation.csv'
 BOS_BOOK_ID_MAP = {
     40: 'MAT', 41: 'MRK', 42: 'LUK', 43: 'JHN', 44: 'ACT',
     45: 'ROM', 46: 'CO1', 47: 'CO2', 48: 'GAL', 49: 'EPH', 50: 'PHP', 51: 'COL', 52: 'TH1', 53: 'TH2', 54: 'TI1', 55: 'TI2', 56: 'TIT', 57: 'PHM',
     58: 'HEB', 59: 'JAM', 60: 'PE1', 61: 'PE2', 62: 'JN1', 63: 'JN2', 64: 'JN3', 65: 'JDE', 66: 'REV', 99:None}
 
-UHB_PATHNAME = Path( '../../copiedBibles/Original/unfoldingWord.org/UHB/' )
-OET_LV_OT_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/' )
-NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
-OET_RV_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/' )
+UHB_PATHNAME = REPO_FOLDER / 'copiedBibles/Original/unfoldingWord.org/UHB'
+OET_LV_OT_PATHNAME = REPO_FOLDER.parent / 'OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM'
+OET_LV_NT_WORD_TABLE = REPO_FOLDER.parent / 'OpenEnglishTranslation--OET/derivedTexts/auto_edited_VLT_ESFM/OET-LV_NT_word_table.tsv'
+NET_PATHNAME = REPO_FOLDER / 'copiedBibles/English/NET'
+OET_RV_PATHNAME = REPO_FOLDER.parent / 'OpenEnglishTranslation--OET/translatedTexts/ReadersVersion'
 
 
-# Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
-defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
+# Defaults are M=normal importance, 0=no textual issue, C=clear, @=narrator.
 
-# Speakers column: the default '@' represents the narrator (i.e., no particular speaker).
-# Otherwise the column has names separated by commas, e.g. 'Yeshua' or '@,Yahweh'.
-speakersDefault = '@'
+# These curated input tables use common English/OET-RV versification ('eng').
+# Their references are converted to original Hebrew/Greek versification ('org') in the output TSV.
 vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'GEN_1:1-3', 'GEN_3:15', 'GEN_3:16', # Gen 3:15 is the protoevangelium
     'EXO_3:14', 'EXO_20:11', # EXO 3:14 'I AM WHO I AM' -- God's self-revelation
@@ -294,276 +336,222 @@ textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
 for ref in textualCriticismRefs:
     assert ref.count( '_' ) == 1, f"textualCriticismRefs {ref=}"
 
-allRefs, vitalImportanceRefs, importantRefs = [], [], []
-def setup():
-    """
-    Docstring for setup
-    """
-    global allRefs, vitalImportanceRefs, importantRefs, trivialImportanceRefs, textualCriticismRefs
-    genericBibleOrganisationalSystem = BibleOrganisationalSystem( 'GENERIC-KJV-ENG' )
+# These two quotation rows use Hebrew Psalm numbering, unlike the rest of
+# the quotation table: lots for clothing (22:19), and casting burdens (55:23).
+# Keep this correction local; do not silently change the shared source dataset.
+QUOTE_PROFILES = {('JHN_19:24', 'PSA_22:19'): 'org',
+                  ('PE1_5:7', 'PSA_55:23'): 'org'}
+# NET omits these numbered verses and explains each in a TC footnote at the
+# stated native verse. Validate that evidence in the actual USX before allowing
+# absent text to contribute a score; an arbitrary missing verse still fails.
+NET_OMISSION_NOTES = {
+    ('MAT','17','21'): '20', ('MAT','18','11'): '10', ('MAT','23','14'): '13',
+    ('MRK','7','16'): '15', ('MRK','9','44'): '43', ('MRK','9','46'): '43',
+    ('MRK','11','26'): '25', ('MRK','15','28'): '27',
+    ('LUK','17','36'): '35', ('LUK','23','17'): '16', ('JHN','5','4'): '3',
+    ('ACT','8','37'): '36', ('ACT','15','34'): '33', ('ACT','24','7'): '6',
+    ('ACT','28','29'): '28', ('ROM','16','24'): '23',
+}
+# The 2024 seed predates the current org Greek Esther inventory. Reconcile the
+# selected books against BOS counts (do not add other books to the dataset).
+SEED_REMOVED = {('ESG','8','40'), ('ESG','8','41'), ('ESG','10','14')}
+SEED_ADDED = {('ESG','4','6'), ('ESG','9','5'), ('ESG','9','30')}
+HEADER = 'FGRef\tImportance\tTextualIssue\tClarity\tSpeakers\tComment\n'
 
-    # Handle ranges in some lists
-    newList = []
-    for entry in vitalImportanceRefsWithRanges:
-        if '-' in entry:
-            BBB,CVV = entry.split( '_' )
-            C,VV = CVV.split( ':' )
-            V1,V2 = VV.split( '-' )
-            for newV in range( int(V1), int(V2)+1 ):
-                newList.append( f'{BBB}_{C}:{newV}' )
-        elif '–' in entry:
-            ref1,CV2 = entry.split( '–' )
-            BBB,CV1 = ref1.split( '_' )
-            C1,V1 = CV1.split( ':' )
-            assert '_' not in CV2
-            C2,V2 = CV2.split( ':' )
-            numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
-            for newV in range( int(V1), numVerses+1 ):
-                newList.append( f'{BBB}_{C1}:{newV}' )
-            intC1, intC2 = int(C1), int(C2)
-            for newC in range( intC1+1, intC2+1 ):
-                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
-                for newV in range( 1, numVerses+1 ):
-                    newList.append( f'{BBB}_{newC}:{newV}' )
-                    if newC==intC2 and newV==int(V2):
-                        break # Reached the desired verse in the final chapter
-        else: newList.append( entry )
-    vitalImportanceRefs = newList
-    newList = []
-    for entry in importantRefsWithRanges:
-        if '-' in entry:
-            BBB,CVV = entry.split( '_' )
-            C,VV = CVV.split( ':' )
-            V1,V2 = VV.split( '-' )
-            for newV in range( int(V1), int(V2)+1 ):
-                newList.append( f'{BBB}_{C}:{newV}' )
-        elif '–' in entry:
-            BBB,CVCV = entry.split( '_' )
-            CV1,CV2 = CVCV.split( '–' )
-            C1,V1 = CV1.split( ':' )
-            assert '_' not in CV2
-            C2,V2 = CV2.split( ':' )
-            numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
-            for newV in range( int(V1), numVerses+1 ):
-                newList.append( f'{BBB}_{C1}:{newV}' )
-            intC1, intC2 = int(C1), int(C2)
-            for newC in range( intC1+1, intC2+1 ):
-                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
-                for newV in range( 1, numVerses+1 ):
-                    newList.append( f'{BBB}_{newC}:{newV}' )
-                    if newC==intC2 and newV==int(V2):
-                        break # Reached the desired verse in the final chapter
-        else: newList.append( entry )
-    importantRefs = newList
 
-    # Just do some basic integrity checking
-    # Expand chapter ranges (both '–' cross-chapter and '-' in-chapter forms)
-    def _expandRanges( entries ):
-        expanded = []
+def fgref(reference):
+    BBB, C, V, *suffix = reference
+    return f'{BBB}_{C}:{V}{suffix[0] if suffix and suffix[0] else ""}'
+
+
+@lru_cache(maxsize=65536)
+def mapped_references(source, references):
+    """BOS owns correspondence, including complete indivisible groups."""
+    return get_default_mapping_engine().convert_passage(source, OUTPUT_PROFILE, references)
+
+
+class MappingAudit:
+    def __init__(self):
+        self.comments = defaultdict(set)
+        self.omitted = set()
+        self.editorial_titles = set()
+        self.source_repairs = set()
+        self.net_omissions = {}
+        self.inputs = {}
+        self.speaker_evidence = {}
+        self.speaker_splits = {}
+        self.speaker_unsplit = {}
+
+    def input_file(self, path):
+        path = Path(path).resolve()
+        self.inputs[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def convert(self, source, references, label, half=''):
+        result = mapped_references(source, tuple(references))
+        if result.status != MappingStatus.EXACT:
+            # This is a reviewed absence, not an arbitrary missing/invalid verse.
+            if result.diagnostics and all(d.code == 'NO_REFERENCE_COUNTERPART' for d in result.diagnostics):
+                message = f'{label}: {source} {", ".join(map(fgref, references))}: no org counterpart'
+                if message not in self.omitted:
+                    logging.warning(message)
+                    self.omitted.add(message)
+                return ()
+            raise ValueError(f'{label}: {source} {", ".join(map(fgref, references))}: '
+                             f'{VersificationMappingError(result)}')
+        if half and (len(result.source_references) != 1 or len(result.references) != 1
+                     or result.references[0][3] is not None):
+            raise ValueError(f'{label}: editorial half {half!r} needs review across a split/merged mapping: {result}')
+        if result.is_expanded or len(result.references) != len(result.source_references):
+            note = (f'{label}: shared annotation from {source} '
+                    f'{", ".join(map(fgref, result.source_references))} '
+                    f'to org {", ".join(map(fgref, result.references))}')
+            for ref in result.references:
+                self.comments[fgref(ref)].add(note)
+        return tuple(fgref(ref) + half for ref in result.references)
+
+
+def expand_reference(text, profile):
+    """Expand a curated/quotation range in its SOURCE numbering, never KJV counts.
+
+    Returns whole reference tuples plus an optional editorial a/b half. Handles
+    comma lists, semicolon chapter lists and en-dash cross-chapter ranges.
+    """
+    BBB, CVs = text.replace('&c', '').split('_')
+    refs = []
+    half = ''
+    for CV in CVs.split(';'):
+        C, verses = CV.strip().split(':', 1)
+        for piece in verses.split(','):
+            piece = piece.strip()
+            if '–' in piece or '-' in piece:
+                first, last = re.split('[-–]', piece)
+                endC, endV = last.split(':') if ':' in last else (C, last)
+                result = get_default_mapping_engine().convert_range(
+                    profile, profile, (BBB,C,first), (BBB,endC,endV))
+                if result.status != MappingStatus.EXACT:
+                    raise ValueError(f'{profile} range {text}: {VersificationMappingError(result)}')
+                refs.extend(result.references)
+            else:
+                match = re.fullmatch(r'(\d+)([ab]?)', piece)
+                if not match:
+                    raise ValueError(f'Invalid {profile} reference {text!r}')
+                V, suffix = match.groups()
+                if suffix:
+                    if refs or len(CVs.split(';')) != 1 or ',' in verses:
+                        raise ValueError(f'Editorial half must be a single reference: {text}')
+                    half = suffix
+                refs.append((BBB,C,V,None))
+    return tuple(dict.fromkeys(refs)), half
+
+
+def setup(audit=None):
+    """Build fresh org annotations; safe to call repeatedly (no list mutation)."""
+    audit = audit if audit is not None else MappingAudit()
+    importance, textual, clarity = {}, {}, {}
+    for entries, score, destination, label in (
+        (trivialImportanceRefs, 'T', importance, 'importance'),
+        (importantRefsWithRanges, 'I', importance, 'importance'),
+        (vitalImportanceRefsWithRanges, 'V', importance, 'importance'),
+        (unclearClarityRefs, 'U', clarity, 'clarity'),
+        (obscureClarityRefs, 'O', clarity, 'clarity'),
+        (textualCriticismRefs, '2', textual, 'textual issue'),
+    ):
         for entry in entries:
-            if '–' in entry:
-                BBB,CVCV = entry.split( '_' )
-                CV1,CV2 = CVCV.split( '–' )
-                C1,V1 = CV1.split( ':' )
-                C2,V2 = CV2.split( ':' )
-                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
-                for newV in range( int(V1), numVerses+1 ):
-                    expanded.append( f'{BBB}_{C1}:{newV}' )
-                for newC in range( int(C1)+1, int(C2)+1 ):
-                    numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
-                    for newV in range( 1, numVerses+1 ):
-                        expanded.append( f'{BBB}_{newC}:{newV}' )
-                        if newC==int(C2) and newV==int(V2):
-                            break
-            elif entry.count( '-' ) == 1:
-                BBB,CVV = entry.split( '_' )
-                C,VV = CVV.split( ':' )
-                V1,V2 = VV.split( '-' )
-                for newV in range( int(V1), int(V2)+1 ):
-                    expanded.append( f'{BBB}_{C}:{newV}' )
-            else: expanded.append( entry )
-        return expanded
-
-    trivialImportanceRefs = _expandRanges( trivialImportanceRefs )
-    textualCriticismRefs = _expandRanges( textualCriticismRefs )
-
-    importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
-    assert len( set(importanceRefs) ) == len(importanceRefs), [ref for ref in importanceRefs if importanceRefs.count(ref)>1] # Otherwise there must be a duplicate
-    clarityRefs = obscureClarityRefs + unclearClarityRefs
-    assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
-    allRefs = importanceRefs + clarityRefs + textualCriticismRefs
-    # assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
-    halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
-    # assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
-    for ref in allRefs:
-        assert 7 <= len(ref) <= 15, f"{ref=}"
-        assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
-        # Hopefully the following line is no longer required (2025-07-09)
-        # if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
+            references, half = expand_reference(entry, CURATED_PROFILE)
+            # Map each whole verse independently so an annotation is shared only
+            # across its actual atomic group, not across an entire chapter range.
+            for ref in references:
+                for key in audit.convert(CURATED_PROFILE, (ref,), f'Curated {label}', half):
+                    destination[key] = score # ordered weakest to strongest above
+    return importance, textual, clarity
 
 
+def load_original_inventory(seed_path=SEED_FILENAME):
+    """Use the immutable seed for book order; validate its numbered org domain."""
+    lines = Path(seed_path).read_text(encoding='utf-8').splitlines()
+    if len(lines) != NUM_EXPECTED_DATA_LINES:
+        raise ValueError(f'{seed_path}: expected {NUM_EXPECTED_DATA_LINES} seed verses, got {len(lines)}')
+    refs = [(bos_books_codes_py.usfm_abbrev_to_bos_book_code(BBB), *CV.split(':'))
+            for BBB,CV in (line.split() for line in lines)]
+    if len(set(refs)) != len(refs):
+        raise ValueError(f'{seed_path}: duplicate seed references')
+    books = tuple(dict.fromkeys(ref[0] for ref in refs))
+    counts = get_default_mapping_engine().get_legacy_tables(OUTPUT_PROFILE)['CV']
+    expected = [(BBB,str(C),str(V),None) for BBB in books
+                for C in range(1,int(counts[BBB]['numChapters'])+1)
+                for V in range(1,int(counts[BBB][str(C)])+1)]
+    target = {ref[:3] for ref in expected}
+    if set(refs)-target != SEED_REMOVED or target-set(refs) != SEED_ADDED:
+        raise ValueError(f'Unexpected seed/org differences: removed={set(refs)-target}; added={target-set(refs)}')
+    for ref in expected:
+        result = get_default_mapping_engine().convert(OUTPUT_PROFILE, OUTPUT_PROFILE, (ref,))
+        if result.status != MappingStatus.EXACT:
+            raise ValueError(f'Invalid org output address {ref}: {VersificationMappingError(result)}')
+    return expected
 
-def run() -> bool:
+
+def load_quoted_OT_annotations(audit, path=QUOTES_FILENAME):
+    """Read the source rows directly, preserving ranges and their provenance."""
+    importance = {}
+    ranks = 'TMIV'
+    audit.input_file(path)
+    with Path(path).open(encoding='utf-8-sig', newline='') as source:
+        reader = DictReader(source, delimiter='\t')
+        if reader.fieldnames != ['NTRef','OTRef','Strength']:
+            raise ValueError(f'{path}: unexpected quotation columns {reader.fieldnames}')
+        for line_number, row in enumerate(reader, 2):
+            profile = QUOTE_PROFILES.get((row['NTRef'],row['OTRef']), 'eng')
+            label = f'Quotation {row["NTRef"]} ({row["Strength"]})'
+            try:
+                score = {'Quote':'V', 'Allusion':'I', 'Possible':'M', 'Allusion+Possible':'M'}[row['Strength']]
+                refs, half = expand_reference(row['OTRef'], profile)
+                for ref in refs:
+                    for key in audit.convert(profile, (ref,), label, half):
+                        importance[key] = max(importance.get(key,'T'), score, key=ranks.index)
+            except (ValueError, KeyError) as error:
+                raise ValueError(f'{path}:{line_number}: {row}: {error}') from error
+    return importance
+
+
+def load_CNTR_collation_DB(audit, path=COLLATION_PATHNAME):
+    """Stream native VLT-numbered CNTR verse scores and map them to org.
+
+    The local source's combined ACT 19:40/CO2 13:12, separate JN3 1:15 and
+    REV 12:18, and selfish/loving PHP 1:16/17 agree with the VLT profile.
+    Whole-verse TC scores apply to both editorial halves, without inventing
+    word-level correspondence from a row-count midpoint.
     """
-    """
-    uhbBible = USFMBible.USFMBible( UHB_PATHNAME, givenAbbreviation='UHB', encoding='utf-8' )
-    # uhbBible.uWencoded = True # TODO: Shouldn't be required ???
-    uhbBible.loadBooks() # So we can iterate through them all later
-
-    OETLVOTBible = ESFMBible.ESFMBible( OET_LV_OT_PATHNAME, givenAbbreviation='OET-LV' )
-    OETLVOTBible.loadBooks() # So we can iterate through them all later
-
-    netBible = USXXMLBible.USXXMLBible( NET_PATHNAME, givenAbbreviation='NET', encoding='utf-8' )
-    netBible.loadBooks() # So we can iterate through them all later
-
-    OETRVSpeakersDict = load_OET_RV_speakers()
-
-    initialLines, splitVerseSet = load_previous_DB()
-
-    collationVerseDict = load_CNTR_collation_DB( splitVerseSet )
-
-    quotedOTRefs = getIndividualQuotedOTRefs()
-    quotingNTRefs = getIndividualQuotingNTRefs()
-
-    return create( initialLines, uhbBible, OETLVOTBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs, OETRVSpeakersDict )
-# end of initialise.run()
-
-
-def load_previous_DB():
-    """
-    Load our previous DB
-    """
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading original {TSV_FILENAME}…" )
-    with open( TSV_FILENAME, 'rt', encoding='utf-8') as inputTSVFile:
-        initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
-    assert len(initialTSVLines) == NUM_EXPECTED_DATA_LINES, f"{NUM_EXPECTED_DATA_LINES=:,} {len(initialTSVLines)=:,}"
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} initial lines loaded from original {TSV_FILENAME}." )
-
-    # Find the list of verses which must be split
-    splitVerseSet = set()
-    for ref in allRefs:
-        if ref[-1] in 'ab':
-            splitVerseSet.add( ref[:-1] )
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{len(splitVerseSet):,} verses need to be split." )
-    return initialTSVLines, splitVerseSet
-# end of initialise.load_previous_DB()
-
-
-def load_CNTR_collation_DB( splitVerseSet ):
-    """
-    Load the CNTR-GNT collation DB
-    """
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {COLLATION_PATHNAME}…" )
-    with open( COLLATION_PATHNAME, 'rt', encoding='utf-8') as input_csv_file:
-        csv_lines = input_csv_file.readlines()
-
-    # Remove any BOM
-    if csv_lines[0].startswith("\ufeff"):
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of collation CSV file…")
-        csv_lines[0] = csv_lines[0][1:]
-
-    # Get the headers before we start
-    collation_csv_column_headers = [header for header in csv_lines[0].strip().split(',')] # assumes no commas in headings
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Column headers: ({len(collation_csv_column_headers)}): {collation_csv_column_headers}")
-    assert len(collation_csv_column_headers) == NUM_EXPECTED_COLLATION_COLUMNS, f"{len(collation_csv_column_headers)=} {NUM_EXPECTED_COLLATION_COLUMNS=}"
-    # Check that the columns we use are still there somewhere
-    assert 'CollationId' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
-    assert 'VerseId' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
-    assert 'SR' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
-
-    # Read, check the number of columns, and summarise row contents all in one go
-    collation_csv_rows = []
-    dict_reader = DictReader(csv_lines)
-    for n, row in enumerate(dict_reader):
-        if len(row) != NUM_EXPECTED_COLLATION_COLUMNS:
-            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collation line {n} has {len(row)} columns instead of {NUM_EXPECTED_COLLATION_COLUMNS}!!!")
-        collation_csv_rows.append(row)
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(collation_csv_rows):,} collation data lines loaded from {COLLATION_PATHNAME}." )
-
-    collationVerseDict = {}
-    last_book_number = 39 # Start here coz we only do NT
-    last_chapter_number = last_verse_number = last_word_number = 0
-    last_verse_id = None
-    for collation_row_number, row in enumerate( collation_csv_rows ):
-        assert len(row) == len(collation_csv_column_headers)
-
-        collation_id, verse_id = row['CollationId'], row['VerseId']
-        assert len(collation_id) == 11 and collation_id.isdigit()
-        assert collation_id.startswith( verse_id )
-        book_number, chapter_number, verse_number, _word_number \
-            = int(collation_id[:2]), int(collation_id[2:5]), int(collation_id[5:8]), int(collation_id[8:])
-
-        # Use the original table row to put the gloss into the literal text
-        if collation_id == '99999999999':
-            this_verse_row_list = None
-            never_happens_now
-        else:
-            if book_number != last_book_number:  # we've started a new book
-                if book_number != 99:
-                    assert book_number == last_book_number + 1
-                if book_number == 99:
-                    break  # all done!
-                BBB = BOS_BOOK_ID_MAP[book_number]
-                last_book_number = book_number
-
-            assert len(verse_id) == 8 and verse_id.isdigit()
-            if verse_id != last_verse_id:
-                this_verse_row_list = get_verse_collation_rows(collation_csv_rows, collation_row_number)
-                last_verse_id = verse_id
-
-                fgRef = f'{BBB}_{chapter_number}:{verse_number}'
-                if fgRef in splitVerseSet:
-                    fgRefA, fgRefB = f'{fgRef}a', f'{fgRef}b'
-                    half = len(this_verse_row_list) // 2
-                    haveVariants = translatable = False
-                    for this_verse_row in this_verse_row_list[:half]:
-                        if this_verse_row['SR'] != 'X':
-                            haveVariants = True
-                        if this_verse_row['Translatable']:
-                            translatable = True
-                    collationVerseDict[fgRefA] = '2' if translatable else '1' if haveVariants else '0'
-                    haveVariants = translatable = False
-                    for this_verse_row in this_verse_row_list[half:]:
-                        if this_verse_row['SR'] != 'X':
-                            haveVariants = True
-                        if this_verse_row['Translatable']:
-                            translatable = True
-                    collationVerseDict[fgRefB] = '2' if translatable else '1' if haveVariants else '0'
-                else: # no split
-                    haveVariants = translatable = False
-                    for this_verse_row in this_verse_row_list:
-                        if this_verse_row['SR'] != 'X':
-                            haveVariants = True
-                        if this_verse_row['Translatable']:
-                            translatable = True
-                    collationVerseDict[fgRef] = '2' if translatable else '1' if haveVariants else '0'
-
-    return collationVerseDict
-# end of initialise.load_CNTR_collation_DB()
+    audit.input_file(path)
+    scores = {}
+    with Path(path).open(encoding='utf-8-sig', newline='') as source:
+        reader = DictReader(source)
+        required = {'CollationId','VerseId','SR','Translatable'}
+        if not required <= set(reader.fieldnames or ()):
+            raise ValueError(f'{path}: missing collation columns {required-set(reader.fieldnames or ())}')
+        for verse_id, rows in groupby(reader, key=lambda row:row['VerseId']):
+            if verse_id.startswith('99'):
+                break
+            if len(verse_id) != 8 or not verse_id.isdigit():
+                raise ValueError(f'{path}: malformed VerseId {verse_id!r}')
+            ref = (BOS_BOOK_ID_MAP[int(verse_id[:2])], str(int(verse_id[2:5])), str(int(verse_id[5:])), None)
+            score = '0'
+            for row in rows:
+                if not row['CollationId'].startswith(verse_id):
+                    raise ValueError(f'{path}: mismatched collation row {row["CollationId"]} at {verse_id}')
+                score = max(score, '2' if row['Translatable'] else '1' if row['SR'] != 'X' else '0')
+            for key in audit.convert(CNTR_PROFILE, (ref,), 'CNTR textual issue'):
+                if key in scores:
+                    raise ValueError(f'{path}: duplicate/noncontiguous CNTR verse at {verse_id}: {key}')
+                scores[key] = score
+    return scores
 
 
 FOOTNOTE_REGEX = re.compile( '\\\\f (.+?)\\\\f\\*')
-def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB:str, C:str, V:str ) -> int:
+def get_OSHB_reference_text_critical_footnote_score( verseEntryList, BBB:str, C:str, V:str ) -> int:
     """
     Returns 2 (stronger) if the Hebrew reference Bible has a TC footnote for this verse.
     Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
     """
-    try: verseEntryList, _contextList = OETLV_ReferenceOTBible.getContextVerseData( (BBB,C,V) )
-    except KeyError:
-        logging.critical( f"Seems OET-LV reference OT has no verse for {BBB}_{C}:{V}")
-        return False
-    except TypeError:
-        if C=='1' and V=='1':
-            logging.critical( f"Seems OET-LV reference OT has no {BBB} book")
-        return False
-
     havePossibleBHSReference = False
     for entry in verseEntryList:
         text = entry.getOriginalText()
@@ -590,20 +578,11 @@ def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB
 # end of initialise.get_OSHB_reference_text_critical_footnote_score function
 
 
-def get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB:str, C:str, V:str ) -> int:
+def get_UHB_Hebrew_reference_text_critical_footnote_score( verseEntryList, BBB:str, C:str, V:str ) -> int:
     """
     Returns 2 (stronger) if the Hebrew reference Bible has a TC footnote for this verse.
     Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
     """
-    try: verseEntryList, _contextList = HebrewReferenceBible.getContextVerseData( (BBB,C,V) )
-    except KeyError:
-        logging.critical( f"Seems Hebrew reference Bible has no verse for {BBB}_{C}:{V}")
-        return False
-    except TypeError:
-        if C=='1' and V=='1':
-            logging.critical( f"Seems Hebrew reference Bible has no {BBB} book")
-        return False
-
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
         text = entry.getOriginalText()
@@ -615,20 +594,11 @@ def get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible,
 # end of initialise.get_UHB_Hebrew_reference_text_critical_footnote_score function
 
 
-def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB:str, C:str, V:str ) -> int:
+def get_English_reference_text_critical_footnote_score( verseEntryList, BBB:str, C:str, V:str ) -> int:
     """
     Returns 2 (stronger) if the English reference Bible has a TC footnote for this verse.
     Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
     """
-    try: verseEntryList, _contextList = EnglishReferenceBible.getContextVerseData( (BBB,C,V) )
-    except KeyError:
-        logging.critical( f"Seems English reference Bible has no verse for {BBB}_{C}:{V}")
-        return False
-    except TypeError:
-        if C=='1' and V=='1':
-            logging.critical( f"Seems English reference Bible has no {BBB} book")
-        return False
-
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
         text = entry.getOriginalText()
@@ -638,26 +608,6 @@ def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, B
                 haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
     return 1 if haveEarlyTranslationReference else False
 # end of initialise.get_reference_English_text_critical_footnote_score function
-
-
-def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -> list[list]:
-    """
-    row_index should be the index of the first row for the particular verse
-
-    Returns a list of rows for the verse
-    """
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"get_verse_collation_rows({row_index})")
-    this_verse_row_list = []
-    this_verseID = given_collation_rows[row_index]['VerseId']
-    if row_index > 0: assert given_collation_rows[row_index-1]['VerseId'] != this_verseID
-    for ix in range(row_index, len(given_collation_rows)):
-        row = given_collation_rows[ix]
-        if row['VerseId'] == this_verseID:
-            this_verse_row_list.append(row)
-        else: # done
-            break
-    return this_verse_row_list
-# end of initialise.get_verse_collation_rows
 
 
 NOTES_REGEX = re.compile( r'\\[fx]\s.*?\\[fx]\*', re.DOTALL )
@@ -733,7 +683,7 @@ def detect_other_speakers( plainText:str ) -> list[str]:
 # end of initialise.detect_other_speakers function
 
 
-def get_speakers_from_verse_text( rawVerseText:str ) -> str:
+def get_speakers_from_verse_text( rawVerseText:str, default_speaker='@' ) -> str:
     r"""
     Determine who speaks in a verse from its raw ESFM text:
       * Each \wj ...\wj* block gives 'Yeshua', and any narration before,
@@ -749,7 +699,7 @@ def get_speakers_from_verse_text( rawVerseText:str ) -> str:
     text = NOTES_REGEX.sub( '', rawVerseText ) # Ignore footnotes and cross-references
     if not WJ_BLOCK_REGEX.search( text ): # No words of Yeshua to detect
         names = detect_other_speakers( to_plain_text( text ) )
-        return '@' if not names else '@,' + ','.join( names )
+        return ','.join(deduplicate_staying_ordered([*default_speaker.split(','), *names]))
 
     # Step through the verse, alternating between the \wj blocks (words of Yeshua)
     # and the narrator's narration surrounding them.
@@ -759,7 +709,7 @@ def get_speakers_from_verse_text( rawVerseText:str ) -> str:
         wjStart, wjEnd = match.start(), match.end()
         narrationText = to_plain_text( text[previousEnd:wjStart] )
         if has_narration( narrationText ):
-            speakers.append( '@' ) # The narrator speaks here
+            speakers.extend(default_speaker.split(','))
             # A 'Yeshua' detected in narration right next to a \wj block is just
             # an attribution ('... answered Yeshua,'), so don't repeat it
             speakers.extend( name for name in detect_other_speakers( narrationText ) if name != 'Yeshua' )
@@ -767,194 +717,556 @@ def get_speakers_from_verse_text( rawVerseText:str ) -> str:
         previousEnd = wjEnd
     trailingText = to_plain_text( text[previousEnd:] )
     if has_narration( trailingText ):
-        speakers.append( '@' ) # The narrator speaks last
+        speakers.extend(default_speaker.split(','))
         speakers.extend( name for name in detect_other_speakers( trailingText ) if name != 'Yeshua' )
     return ','.join( deduplicate_consecutive( speakers ) )
 # end of initialise.get_speakers_from_verse_text function
 
 
-def load_OET_RV_speakers() -> dict:
-    r"""
-    Read the OET-RV (Readers' Version) files
-    keeping track of the chapter (\c) and verse (\v) numbers, and detect the
-    speakers for each verse (see get_speakers_from_verse_text above).
+PSALM_AUTHOR_NAMES = {
+    'David':'David', 'Dāvid':'David', 'Asaf':'Asaf', 'ʼĀsāf':'Asaf', 'ʼĀşāf':'Asaf',
+    'Shelomoh':'Shelomoh', 'Solomon':'Shelomoh', 'Shəlomoh':'Shelomoh',
+    'Mosheh':'Mosheh', 'Mōsheh':'Mosheh', 'Heyman':'Heyman', 'Hēmān':'Heyman', 'Hēymān':'Heyman',
+    'Eytan':'Eytan', 'ʼĒytān':'Eytan',
+}
 
-    In a few books (e.g., SNG and JER) a USFM '\sp' marker explicitly states the
-    current speaker, and that name is then used for all following verses until the
-    next '\sp' or '\s1' marker.
 
-    Returns a dict of BBB_C:V references to comma-separated speaker lists.
-    (Verses not found in OET-RV default to just the narrator, '@'.)
+def literal_plain_text(text):
+    """Remove LV word-joining characters, retaining words and name diacritics."""
+    return re.sub(r'\s+', ' ', to_plain_text(text).translate(str.maketrans(dict.fromkeys('_÷=+>#',' ')))).strip()
+
+
+def psalm_author(title, literal=False):
+    """Read attribution grammar, never infer authorship from a name mentioned."""
+    text = literal_plain_text(title) if literal else to_plain_text(title).replace('#','')
+    names = '|'.join(map(re.escape, PSALM_AUTHOR_NAMES))
+    author = rf"(?:Korah['’]s descendants|(?:the )?(?:sons|children) of (?:of )?(?:Qōraḩ|Qoraḩ|Korah)|{names})"
+    qualifier = r"(?:(?:Yahweh['’]s servant|God['’]s man|King)\s+)?"
+    patterns = (
+        rf'\bby\s+{qualifier}({author})\b',
+        rf'\b(?:song|psalm|prayer|poem)\s+(?:of|by)\s+{qualifier}({author})\b',
+        rf"({author})['’]s\s+(?:songs?|psalms?|prayers?)\b",
+        rf'^(?:Of|of|To|to|For|for)\s+({author})\b' if literal else r'(?!)',
+        # Literal title syntax can separate the genre and attribution with
+        # "the ascents", "the dedication of the house", etc. This rule is
+        # only applied to the verified title, never the Psalm's body.
+        rf'\bof\s+({author})\b' if literal else r'(?!)',
+    )
+    found = sorted((match.start(),match[1]) for pattern in patterns for match in re.finditer(pattern,text))
+    return ','.join(deduplicate_staying_ordered(
+        PSALM_AUTHOR_NAMES.get(name,"Korah's descendants") for _,name in found)) or None
+
+
+def raw_verse_texts(path):
+    """Minimal native text reader for LV title evidence (no English renumbering)."""
+    records = {}
+    chapter = key = None
+    for line in Path(path).read_text(encoding='utf-8').splitlines():
+        if line.startswith('\\c '):
+            chapter, key = line.split()[1], None
+        elif line.startswith('\\v '):
+            label, *bits = line[3:].split(maxsplit=1)
+            key = (chapter,label)
+            records[key] = ' '.join(bits)
+        elif key and not re.match(r'^\\(?:s\d|r|rem|ms\d?|mr|cl|cd|qa)\b',line):
+            records[key] += ' ' + line
+    return records
+
+
+def psalm_heading_evidence(rv_path, lv_path, audit):
+    """Find authors and verify titles sharing LV verse 1 with the body.
+
+    A numbered title is mapped normally. For a title inside verse 1, require
+    the LV's explicit KJB boundary note and shared RV/LV source-word numbers;
+    do not invent a verse-zero mapping. An RV heading takes precedence over
+    LV corroboration; discrepancies are recorded for editorial review.
     """
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading OET-RV speakers data from {OET_RV_PATHNAME}…" )
-    speakersDict = {}
-    for BBB in bos_books_codes_py.get_all_bos_book_codes():
-        # if not (bos_books_codes_py.is_old_testament_nr( BBB ) or bos_books_codes_py.is_new_testament_nr( BBB )):
-        #     continue # We skip deuterocanon and any non-Bible (introductory, etc.) books
-        if BBB in ('FRT','INT','XXA','XXB','XXC','XXD'):
-            continue # skip non-chapter books
-        ESFMFilename = OET_RV_PATHNAME / f'OET-RV_{BBB}.ESFM'
-        if not ESFMFilename.exists():
-            logging.warning( f"Didn't find OET-RV ESFM file {ESFMFilename}" )
+    audit.input_file(lv_path)
+    literal = raw_verse_texts(lv_path)
+    authors, mixed = {}, set()
+    chapter = None
+    for line in Path(rv_path).read_text(encoding='utf-8').splitlines():
+        if line.startswith('\\c '):
+            chapter = line.split()[1]
+        elif line.startswith('\\d '):
+            rv_title = line[3:]
+            mapping = get_default_mapping_engine().convert_passage('OET-RV','OET-LV',(('PSA',chapter,'0',None),))
+            if mapping.status == MappingStatus.EXACT:
+                lv_title = ' '.join(literal[C,V] for _,C,V,_ in mapping.references)
+            elif any(d.code == 'UNDECLARED_TITLE' for d in mapping.diagnostics):
+                first = literal[chapter,'1']
+                boundary = re.search(r'\\f\s[^\n]*?\\ft Note: KJB: Ps\.'+chapter+r'\.1\\f\*',first)
+                lv_title = first[:boundary.start()] if boundary else ''
+                shared = set(WORD_NUMBER_REGEX.findall(rv_title)) & set(WORD_NUMBER_REGEX.findall(lv_title))
+                if lv_title and shared and has_narration(to_plain_text(first[boundary.end():])):
+                    mixed.add(chapter)
+            else:
+                raise ValueError(f'Psalm title {chapter}: {VersificationMappingError(mapping)}')
+            rv_author, lv_author = psalm_author(rv_title), psalm_author(lv_title,literal=True)
+            selected = rv_author or lv_author
+            if selected:
+                authors[chapter] = selected
+                audit.speaker_evidence[f'PSA {chapter} author'] = {
+                    'speaker':selected, 'OET-RV':to_plain_text(rv_title),
+                    'OET-LV':literal_plain_text(lv_title), 'LV_author':lv_author,
+                    'mixed_title_and_body':chapter in mixed}
+    return authors, mixed
+
+
+# Reviewed native OET-RV section boundaries. Check the source's own attribution
+# before applying it. Collectors (e.g. Hezekiah's men) are not the speakers.
+# The final anonymous poem is a new section, not a continuation by Lemuel's mother.
+PROVERB_SECTIONS = {
+    ('1','1'): ('Shelomoh',r'proverbs.*Solomon',True),
+    ('10','1'): ('Shelomoh',r'proverbs by Shelomoh',True),
+    ('22','17'): ('The wise',r'wise.*people',False),
+    ('24','23'): ('The wise',r'sayings of the wise',True),
+    ('25','1'): ('Shelomoh',r'proverbs from Shelomoh',True),
+    ('30','1'): ('Agur',r'sayings.*Agur',True),
+    ('31','1'): ("Lemuel's mother",r'Lemuel.*mother.*taught',True),
+    ('31','10'): ('@',r'capable.*wife',False),
+}
+
+
+def read_speakers(path, BBB, *, detailed=False, psalm_authors=None):
+    r"""Read native verse labels, bridges, suffixes and Psalm \d titles.
+
+    OET's a/b source segments are recombined into the whole native verse here;
+    they are unrelated to the dataset's editorial halves. Flush before section
+    and speaker changes, retaining every within-verse speaker run. A run is
+    (speaker list, kind); exactly two explicit runs can later form editorial
+    a/b rows. Textual attribution guesses do not establish a split boundary.
+    """
+    records = {}
+    chapter = None
+    pending = ()
+    bits = []
+    speaker = verse_speaker = None
+    author = '@'
+    kind = 'body'
+
+    def flush_segment():
+        nonlocal bits
+        if pending and has_narration(to_plain_text(' '.join(bits))):
+            value = verse_speaker or get_speakers_from_verse_text(' '.join(bits),author)
+            for ref in pending:
+                records.setdefault(ref,[]).append((value,kind))
+        bits = []
+
+    def flush():
+        nonlocal pending
+        flush_segment()
+        pending = ()
+
+    with Path(path).open(encoding='utf-8') as source:
+        for line in source:
+            line = line.rstrip()
+            if line.startswith('\\c '):
+                flush()
+                chapter = line.split()[1]
+                if BBB == 'PSA':
+                    author = (psalm_authors or {}).get(chapter,'@')
+                    speaker = None
+            elif line.startswith('\\v '):
+                flush()
+                label, *text = line[3:].split(maxsplit=1)
+                # Physical source suffixes partition the same whole verse.
+                label = re.sub(r'(?<=\d)[a-z]', '', label)
+                pending, _ = expand_reference(f'{BBB}_{chapter}:{label}', 'OET-RV')
+                verse_speaker = speaker
+                bits = text
+                kind = 'body'
+                if BBB == 'PRO' and (chapter,label) in PROVERB_SECTIONS:
+                    author, evidence, heading = PROVERB_SECTIONS[chapter,label]
+                    if not re.search(evidence,to_plain_text(' '.join(bits)),re.IGNORECASE):
+                        raise ValueError(f'PRO {chapter}:{label}: author-section evidence changed')
+                    if heading:
+                        verse_speaker, kind = '@', 'title'
+                        flush_segment() # Remaining lines of this verse belong to the body.
+                        verse_speaker, kind = speaker, 'body'
+            elif line.startswith('\\d '):
+                flush()
+                pending = ((BBB,chapter,'0',None),)
+                verse_speaker, kind = '@', 'title'
+                bits = [line[3:]]
+                if BBB == 'PSA' and psalm_authors is None:
+                    author = psalm_author(line[3:]) or '@'
+            elif line.startswith('\\s1 '):
+                flush()
+                speaker = None
+            elif line.startswith('\\sp '):
+                flush_segment() # Keep pending refs for speech later in the SAME verse.
+                speaker = verse_speaker = to_plain_text(line[4:])
+                kind = 'explicit speaker'
+            elif pending and not re.match(r'^\\(?:s\d|r|rem|ms\d?|mr|cl|cd|qa)\b', line):
+                bits.append(line)
+    flush()
+    return records if detailed else {ref:','.join(deduplicate_consecutive(
+        [name for value,_ in runs for name in value.split(',')])) for ref,runs in records.items()}
+
+
+def load_OET_RV_speakers(audit, source_folder=OET_RV_PATHNAME, *, existing_splits=(),
+                         lv_psalm_path=OET_LV_OT_PATHNAME / 'OET-LV_PSA.ESFM'):
+    """Map OET-RV speaker sequences into org; scope is its reviewed 66 books."""
+    records = {}
+    authors, mixed_titles = psalm_heading_evidence(source_folder/'OET-RV_PSA.ESFM',lv_psalm_path,audit)
+    for BBB in get_default_mapping_engine().get_legacy_tables('OET-RV')['CV']:
+        path = source_folder / f'OET-RV_{BBB}.ESFM'
+        if not path.is_file():
+            raise FileNotFoundError(f'Missing required OET-RV speaker source: {path}')
+        audit.input_file(path)
+        records.update(read_speakers(path, BBB, detailed=True, psalm_authors=authors))
+    # These headings have no separate org verse. LV word evidence above proves
+    # they precede the body inside verse 1, so carry that narrator run with it.
+    for chapter in mixed_titles:
+        title, body = ('PSA',chapter,'0',None), ('PSA',chapter,'1',None)
+        records[body] = [*records.pop(title), *records[body]]
+    result = {}
+    visited = set()
+    for ref in records:
+        if ref[2] == '0':
+            title = get_default_mapping_engine().convert('OET-RV','OET-RV',(ref,))
+            if title.diagnostics and all(d.code == 'UNDECLARED_TITLE' for d in title.diagnostics):
+                # A source heading without a separate org scripture address.
+                # Do not attach it to the following numbered verse by guesswork.
+                audit.editorial_titles.add(fgref(ref))
+                continue
+        keys = audit.convert('OET-RV', (ref,), 'OET-RV speakers')
+        if not keys:
+            continue # reviewed source-only verse
+        mapping = mapped_references('OET-RV', (ref,))
+        group = mapping.source_references
+        if group in visited:
             continue
-        currentChapter = currentVerse = None
-        currentSpeaker = None # Set whenever a '\sp' speaker marker is seen
-        verseSpeaker = None # The '\sp' speaker in effect when the pending verse started
-        verseTextBits = []
-        def flushPendingVerse():
-            """
-            Store the speakers for the currently-pending verse (if there is one)
-            """
-            if currentChapter is not None and currentVerse is not None and verseTextBits:
-                # A '\sp' marker explicitly identifies the speaker, so it takes precedence
-                speakersDict[f'{BBB}_{currentChapter}:{currentVerse}'] = \
-                        verseSpeaker if verseSpeaker else get_speakers_from_verse_text( ' '.join(verseTextBits) )
-        with open( ESFMFilename, 'rt', encoding='utf-8') as ESFMFile:
-            for line in ESFMFile:
-                chapterMatch = re.match( r'^\\c\s+(\d+)', line )
-                if chapterMatch:
-                    flushPendingVerse()
-                    currentChapter = int( chapterMatch.group(1) )
-                    currentVerse = None
-                    verseTextBits = []
-                    continue
-                verseMatch = re.match( r'^\\v\s+(\d+)[a-z]?\s?(.*)$', line )
-                if verseMatch:
-                    flushPendingVerse()
-                    currentVerse = int( verseMatch.group(1) )
-                    verseSpeaker = currentSpeaker # Capture the speaker at the verse start
-                    verseTextBits = [verseMatch.group(2)]
-                    continue
-                sectionMatch = re.match( r'^\\s[1]\s', line ) # was [12]
-                if sectionMatch:
-                    flushPendingVerse()
-                    currentSpeaker = None # A new '\s1'/'\s2' section ends the range of any '\sp' speaker
-                    continue
-                speakerMatch = re.match( r'^\\sp\s+(.+)$', line )
-                if speakerMatch:
-                    currentSpeaker = WORD_NUMBER_REGEX.sub( '', speakerMatch.group(1) ).strip()
-                    continue
-                verseTextBits.append( line.strip() )
-            flushPendingVerse()
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(speakersDict):,} OET-RV verses loaded with speaker data." )
-    return speakersDict
-# end of initialise.load_OET_RV_speakers function
+        visited.add(group)
+        missing = [source_ref for source_ref in group if source_ref not in records]
+        if missing:
+            raise ValueError(f'OET-RV speaker mapping requires missing native verses: {missing}')
+        runs = [run for source_ref in group for run in records[source_ref]]
+        speakers = ','.join(deduplicate_consecutive(
+            [name for value,_ in runs for name in value.split(',')]))
+        for key in keys:
+            if key in result and result[key] != speakers:
+                raise ValueError(f'Conflicting speaker groups at org {key}')
+            result[key] = speakers
+        distinct = [value for value,_ in groupby(value for value,_kind in runs)]
+        if len(distinct) == 2:
+            if len(group) == len(keys) == 1 and keys[0] not in existing_splits:
+                key = keys[0]
+                result[key+'a'], result[key+'b'] = distinct
+                audit.speaker_splits[key] = {'source':fgref(ref),'speakers':distinct,
+                    'reason':'two explicit text runs (heading/body or speaker change)'}
+                audit.comments[key].add(f'Speaker portions: a={distinct[0]}; b={distinct[1]} '
+                    f'(two explicit text runs in OET-RV {fgref(ref)})')
+            else:
+                audit.speaker_unsplit[fgref(ref)] = 'Existing curated halves or indivisible mapping group; retained complete speaker list'
+    return result
 
 
-def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs, OETRVSpeakersDict ) -> bool:
+LV_PERSON_NAMES = {'Jesus':'Yeshua', 'John':'Yohan', 'Peter':'Petros',
+                   'James':'Yacob', 'Moses':'Mosheh', 'Solomon':'Shelomoh'}
+LV_SPEECH_REGEX = re.compile(r'\b(?:said|says|say|saying|speaks?|speaking|spoken|'
+    r'answered|answering|replied|replying|declared|declaring|cried_out|shouted)\b')
+
+
+def supplement_LV_speakers(speakers, audit, path=OET_LV_NT_WORD_TABLE):
+    """Use person/referent tags ON a speech verb with an explicit subject.
+
+    NT OET-LV word rows carry Macula pronoun referents (R...) and their person
+    identities (P...). A person tag on an ordinary noun is not speaker evidence.
+    Require a first/third-person subject in the gloss and a speech verb; avoid
+    second-person addresses, infinitives and generic references to speaking.
+    This remains a conservative fallback for whole verses still marked only @.
+    Never overwrite an RV speaker, a narrator heading or an editorial half.
     """
+    audit.input_file(path)
+    native = defaultdict(list)
+    evidence = defaultdict(list)
+    with Path(path).open(encoding='utf-8') as source:
+        reader = DictReader(source,delimiter='\t')
+        required = {'Ref','Role','OETGlossWords','Tags'}
+        if not required <= set(reader.fieldnames or ()):
+            raise ValueError(f'{path}: missing LV speaker evidence columns')
+        for row in reader:
+            gloss, tags = row['OETGlossWords'], row['Tags'].split(';')
+            if (row['Role'] != 'V' or not LV_SPEECH_REGEX.search(gloss)
+                    or not re.search(r'˱(?:he|she|they|I|we)˲',gloss)
+                    or not any(re.fullmatch(r'R\d+',tag) for tag in tags)):
+                continue
+            names = [re.sub(r'\d+$','',tag[1:]).replace('_',' ')
+                     for tag in tags if re.fullmatch(r'P[A-Za-z][A-Za-z_\d]*',tag)]
+            names = [LV_PERSON_NAMES.get(name,name) for name in names]
+            if not names:
+                continue
+            reference = row['Ref'].split('w')[0]
+            refs,half = expand_reference(reference,'OET-LV')
+            if len(refs) != 1 or half:
+                raise ValueError(f'Invalid LV speech word reference: {row["Ref"]}')
+            native[refs[0]].extend(names)
+            evidence[refs[0]].append(f'{row["Ref"]}: {gloss}; {row["Tags"]}')
+    visited = set()
+    for ref in native:
+        mapping = mapped_references('OET-LV',(ref,))
+        keys = audit.convert('OET-LV',(ref,),'OET-LV tagged speech')
+        if not keys or mapping.source_references in visited:
+            continue
+        visited.add(mapping.source_references)
+        names = deduplicate_staying_ordered([name for source_ref in mapping.source_references
+                                             for name in native.get(source_ref,())])
+        for key in keys:
+            if speakers.get(key,'@') == '@' and key+'a' not in speakers:
+                speakers[key] = '@,' + ','.join(names)
+                audit.speaker_evidence[key] = {'speaker':speakers[key], 'source_profile':'OET-LV',
+                    'word_evidence':[item for source_ref in mapping.source_references
+                                     for item in evidence.get(source_ref,())]}
+    return speakers
+
+
+def net_profile(BBB):
+    """The local NET USX's actual numbering, checked against boundary text.
+
+    NET explicitly describes NA/UBS numbering in its 2 Corinthians 13:12 note;
+    3 John has 15 verses, Revelation 12 has 18, and PHP 1:16 is loving preaching.
+    Acts alone retains the English 19:40-41 division. OT uses English numbers.
     """
-    BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
-
-    numLinesWritten = 0
-    with open( TSV_FILENAME, 'wt', encoding='utf-8') as outputFile:
-        outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\tSpeakers\tComment\n")
-        numLinesWritten += 1
-        for line in initialTSVLines:
-            UUU, CV = line.split(' ')
-            BBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code( UUU )
-            C, V = CV.split( ':' )
-            fgRef = f'{BBB}_{CV}'
-            # print( f"{fgRef}" )
-
-            isOT = bos_books_codes_py.is_old_testament_nr( BBB )
-            if isOT:
-                oshb_TC_footnote_value = get_OSHB_reference_text_critical_footnote_score( OET_LT_ReferenceOTBible, BBB, C, V )
-            heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
-            eng_TC_footnote_value = get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB, C, V )
-            # print( f"  {has_TC_footnote}")
-            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); assert False, "We want to stop here"
-            # print( f"{line=} {fgRef=}" )
-            subRefs = [f'{fgRef}a',f'{fgRef}b'] if fgRef in splitVerseSet else [fgRef]
-
-            for subRef in subRefs: # either one or two lines per verse
-                importance, clarity, comment = defaultImportance, defaultClarity, ''
-
-                # Look at textual issues 0=None/1=Minor spelling/2=Minor words/3-Major
-                textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
-                if heb_TC_footnote_value==2 or eng_TC_footnote_value==2 or subRef in textualCriticismRefs:
-                    if textualIssue==defaultTextualIssue: # default is '0'
-                        textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
-                    elif textualIssue == '1':
-                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Increased {subRef} TC from 1 to 2")
-                        textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
-                    else:
-                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-                            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
-                elif oshb_TC_footnote_value==1 or eng_TC_footnote_value==1:
-                    if textualIssue==defaultTextualIssue: # default is '0'
-                        textualIssue = '1' # textualIssue ranges from 0 (None) to 4 (Major)
-                    else:
-                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-                            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
-
-                # Look at importance Trival/Medium/Important/Vital
-                if subRef in vitalImportanceRefs:
-                    importance = 'V' # vital = 3/3
-                    vitalImportanceRefs.remove( subRef )
-                elif fgRef in vitalImportanceRefs:
-                    importance = 'V' # vital = 3/3
-                    if subRef[-1] == 'b':
-                        vitalImportanceRefs.remove( fgRef )
-                elif subRef in importantRefs:
-                    importance = 'I' # important = 2/3
-                    importantRefs.remove( subRef )
-                elif fgRef in importantRefs:
-                    importance = 'I' # important = 2/3
-                    if subRef[-1] == 'b':
-                        importantRefs.remove( fgRef )
-                elif subRef in trivialImportanceRefs:
-                    importance = 'T' # trivial = 0/3
-                    trivialImportanceRefs.remove( subRef )
-                elif fgRef in trivialImportanceRefs:
-                    importance = 'T' # trivial = 0/3
-                    if subRef[-1] == 'b':
-                        trivialImportanceRefs.remove( fgRef )
-                # Now adjust if we have OT quotes
-                if (BBB,C,V) in individualQuotedOTRefs['Possible'] or (BBB,C,V) in individualQuotedOTRefs['Allusion+Possible']:
-                    if importance not in ('V','I'): # already
-                        importance = 'M' # medium = 1/3
-                if (BBB,C,V) in individualQuotedOTRefs['Allusion']:
-                    if importance != 'V': # already
-                        importance = 'I' # important = 2/3
-                if (BBB,C,V) in individualQuotedOTRefs['Quote']:
-                    importance = 'V' # vital = 3/3
+    return 'org' if bos_books_codes_py.is_new_testament_nr(BBB) and BBB != 'ACT' else 'eng'
 
 
-                # Look at clarity Obscure/Unclear/Clear
-                if subRef in obscureClarityRefs:
-                    clarity = 'O' # obscure = 1/3
-                    obscureClarityRefs.remove( subRef )
-                elif fgRef in obscureClarityRefs:
-                    clarity = 'O' # obscure = 1/3
-                    if subRef[-1] == 'b':
-                        obscureClarityRefs.remove( fgRef )
-                elif subRef in unclearClarityRefs:
-                    clarity = 'U' # unclear = 2/3
-                    unclearClarityRefs.remove( subRef )
-                elif fgRef in unclearClarityRefs:
-                    clarity = 'U' # unclear = 2/3
-                    if subRef[-1] == 'b':
-                        unclearClarityRefs.remove( fgRef )
+@contextmanager
+def prepared_source(label, folder, audit):
+    """Restore NET's printed 1:17 label in a temporary copy, never source data.
 
-                speakers = OETRVSpeakersDict.get( fgRef, speakersDefault )
-                outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{speakers}\t{comment}\n" )
-                numLinesWritten += 1
+    The old Jonah USX has <para>1:17 <char style="va">(2:1)</char>...
+    instead of a verse element. BOS otherwise attaches that paragraph to 1:16.
+    This is a verified storage repair, not a hand-written versification mapping.
+    """
+    if label != 'NET':
+        yield folder
+        return
+    with tempfile.TemporaryDirectory(prefix='sentence-importance-net-') as temporary:
+        prepared = Path(temporary)
+        for path in sorted(folder.glob('*.usx')):
+            shutil.copy2(path,prepared/path.name)
+            tree = ElementTree.parse(path)
+            root = tree.getroot()
+            BBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code(root.find('book').get('code'))
+            chapter = verse = None
+            present, notes = set(), defaultdict(list)
+            for element in root.iter():
+                if element.tag == 'chapter' and element.get('number'):
+                    chapter,verse = element.get('number'),None
+                elif element.tag == 'verse' and element.get('number'):
+                    verse = element.get('number')
+                    present.add((BBB,chapter,verse))
+                elif element.tag == 'note':
+                    notes[(BBB,chapter,verse)].append(''.join(element.itertext()))
+            for omitted,note_verse in NET_OMISSION_NOTES.items():
+                if omitted[0] != BBB or omitted in present:
+                    continue
+                _,C,V = omitted
+                note_ref = (BBB,C,note_verse)
+                evidence = [note for note in notes[note_ref] if 'Textual Criticism' in note
+                            and re.search(rf'\b{C}:{V}\b|\bverses? {V}\b',note,re.IGNORECASE)]
+                if not evidence:
+                    raise ValueError(f'{path}: missing NET {fgref(omitted)} without its reviewed TC note at {fgref(note_ref)}')
+                audit.net_omissions[(*omitted,None)] = fgref(note_ref)
+            if root.find('book').get('code') != 'JON':
+                continue
+            chapter = None
+            repaired = False
+            for element in root:
+                if element.tag == 'chapter':
+                    chapter = element.get('number')
+                if (chapter == '1' and element.tag == 'para' and element.text == '1:17 '
+                        and len(element) and element[0].tag == 'char'
+                        and element[0].get('style') == 'va' and element[0].text == '(2:1)'):
+                    element.text = None
+                    element.insert(0,ElementTree.Element('verse',number='17',style='v'))
+                    repaired = True
+            if repaired:
+                tree.write(prepared/path.name,encoding='utf-8',xml_declaration=True)
+                note = 'NET USX source repair: restored explicit Jonah 1:17 marker from printed 1:17 (2:1) label'
+                audit.source_repairs.add(note)
+                audit.comments['JNA_2:1'].add(note)
+                logging.warning(note)
+        yield prepared
 
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
-    assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
-    assert len(vitalImportanceRefs) == 0, f"({len(vitalImportanceRefs)}) {vitalImportanceRefs=}" # They should all have been used
-    assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used (but might have versification issues with Deu 29:29, etc.)
-    assert len(trivialImportanceRefs) == 0, f"({len(trivialImportanceRefs)}) {trivialImportanceRefs=}" # They should all have been used
-    assert len(obscureClarityRefs) == 0, f"({len(obscureClarityRefs)}) {obscureClarityRefs=}" # They should all have been used
-    assert len(unclearClarityRefs) == 0, f"({len(unclearClarityRefs)}) {unclearClarityRefs=}" # They should all have been used
 
-    return True
-# end of initialise.create()
+def score_bible(bible, profile_for_book, scorer, references, audit, label):
+    """Map each output verse to all corresponding native portions before scoring."""
+    scores = {}
+    chapter_cache = {}
+    group_scores = {}
+    for ref in references:
+        BBB,C,V,_ = ref
+        if BBB not in bible.books:
+            continue # Explicit source scope: e.g. UHB/OET-LV OT have no NT/DC.
+        profile = profile_for_book(BBB)
+        mapping = get_default_mapping_engine().convert_passage(OUTPUT_PROFILE, profile, (ref,))
+        if mapping.status != MappingStatus.EXACT:
+            raise ValueError(f'{label}: org {fgref(ref)} -> {profile}: {VersificationMappingError(mapping)}')
+        if mapping.is_expanded or len(mapping.references) > 1:
+            note = (f'{label}: shared annotation from {profile} '
+                    f'{", ".join(map(fgref, mapping.references))} '
+                    f'to org {", ".join(map(fgref, mapping.source_references))}')
+            for output_ref in mapping.source_references:
+                audit.comments[fgref(output_ref)].add(note)
+        group = mapping.references
+        if group not in group_scores:
+            # NET/UHB unnumbered titles may contain no stored text. Only these
+            # explicitly mapped title coordinates may be absent without error.
+            entries = []
+            minimum_score = 0
+            for native_ref in group:
+                try:
+                    portions = bible.getPassageData((native_ref,), chapterCache=chapter_cache)
+                except KeyError:
+                    if label == 'NET' and native_ref in audit.net_omissions:
+                        minimum_score = 2
+                        note = (f'NET omits {fgref(native_ref)}; textual-criticism evidence at '
+                                f'{audit.net_omissions[native_ref]} ({profile})')
+                        for output_ref in mapping.source_references:
+                            audit.comments[fgref(output_ref)].add(note)
+                        continue
+                    if native_ref[2] != '0':
+                        raise ValueError(f'{label}: org {fgref(ref)} maps to missing {profile} {fgref(native_ref)}')
+                    continue
+                entries.extend(entry for portion in portions for entry in portion.entries)
+            group_scores[group] = str(max(minimum_score,int(scorer(entries, BBB,C,V))))
+        scores[fgref(ref)] = group_scores[group]
+    return scores
+
+
+def annotation_value(values, key, ranks, default):
+    """Whole-verse annotations apply to both editorial halves; strongest wins."""
+    parent = key[:-1] if key[-1] in 'ab' else key
+    return max(values.get(key,default), values.get(parent,default), key=ranks.index)
+
+
+def build_rows(references, curated, quotes, collation, oshb, uhb, net, speakers, audit):
+    importance, textual, clarity = curated
+    split = {key[:-1] for values in (*curated,speakers) for key in values if key[-1] in 'ab'}
+    inventory = {fgref(ref) for ref in references}
+    for label,values in (('importance',importance), ('textual issue',textual), ('clarity',clarity),
+                         ('quotations',quotes), ('CNTR',collation), ('OET-LV',oshb),
+                         ('UHB',uhb), ('NET',net), ('speakers',speakers)):
+        outside = {key for key in values if (key[:-1] if key[-1] in 'ab' else key) not in inventory}
+        if outside:
+            raise ValueError(f'{label}: mapped annotations outside output inventory: {sorted(outside)}')
+    rows = []
+    for ref in references:
+        parent = fgref(ref)
+        for key in (parent+'a',parent+'b') if parent in split else (parent,):
+            # Explicit T replaces default M, but quotes can promote T back to M.
+            imp = annotation_value(importance,key,'TMIV','T') if key in importance or parent in importance else 'M'
+            imp = max(imp, quotes.get(parent,'T'), key='TMIV'.index)
+            tc = max(annotation_value(textual,key,'0123','0'), collation.get(parent,'0'),
+                     oshb.get(parent,'0'), uhb.get(parent,'0'), net.get(parent,'0'))
+            cl = annotation_value(clarity,key,'CUO','C')
+            comment = '; '.join(sorted(audit.comments.get(parent,())))
+            rows.append((key,imp,tc,cl,speakers.get(key,speakers.get(parent,'@')),comment))
+    return rows
+
+
+def write_database(rows, audit, output=TSV_FILENAME, report_path=REPORT_FILENAME):
+    """Validate everything before replacing the database; retain a full backup."""
+    keys = set()
+    for row in rows:
+        if (len(row) != 6 or row[0] in keys or row[1] not in ('T','M','I','V')
+                or row[2] not in ('0','1','2','3') or row[3] not in ('C','U','O') or not row[4]
+                or any('\t' in field or '\n' in field for field in row)):
+            raise ValueError(f'Invalid/duplicate output row: {row}')
+        keys.add(row[0])
+    content = HEADER + ''.join('\t'.join(row)+'\n' for row in rows)
+    identity = get_default_mapping_engine().convert('org','org',(('GEN','1','1'),))
+    report = {
+        'output_versification': OUTPUT_PROFILE,
+        'reference_version': identity.reference_version,
+        'mapping_data_revision': identity.data_revision,
+        'mapping_policy_version': identity.mapping_policy_version,
+        'source_profiles': {'curated':CURATED_PROFILE, 'quotations':'eng, with QUOTE_PROFILES overrides',
+                            'UHB':'eng', 'OET-LV OT':'OET-LV', 'NET':'eng OT/Acts; org other NT',
+                            'CNTR':CNTR_PROFILE, 'speakers':'OET-RV; OET-LV title and tagged-speech evidence'},
+        'speaker_evidence': audit.speaker_evidence,
+        'speaker_editorial_splits': audit.speaker_splits,
+        'speaker_unsplit_boundaries': audit.speaker_unsplit,
+        'seed_removed': sorted(map(fgref, SEED_REMOVED)),
+        'seed_added': sorted(map(fgref, SEED_ADDED)),
+        'omitted_source_annotations': sorted(audit.omitted),
+        'unnumbered_OET_RV_headings_without_title_coordinate': sorted(audit.editorial_titles),
+        'temporary_source_repairs': sorted(audit.source_repairs),
+        'NET_omitted_verses_with_TC_note': {fgref(ref):note for ref,note in sorted(audit.net_omissions.items())},
+        'input_sha256': dict(sorted(audit.inputs.items())),
+        'output_sha256': hashlib.sha256(content.encode('utf-8')).hexdigest(),
+        'data_rows': len(rows),
+        'whole_verses': len({key[:-1] if key[-1] in 'ab' else key for key in keys}),
+        'rows_with_group_comments': sum(bool(row[-1]) for row in rows),
+    }
+    # Stage both files first. A mapping/read/validation failure above leaves the
+    # existing database untouched. replace() is atomic within this filesystem.
+    staged = []
+    try:
+        for destination, text in ((Path(output),content),
+                (Path(report_path),json.dumps(report,ensure_ascii=False,indent=2)+'\n')):
+            with tempfile.NamedTemporaryFile('w',encoding='utf-8',dir=destination.parent,
+                                             prefix=destination.name+'.',suffix='.tmp',delete=False) as handle:
+                handle.write(text)
+                staged.append((Path(handle.name),destination))
+        if Path(output).exists():
+            backup = Path(str(output)+'.bak-before-regeneration')
+            # Never overwrite the first pre-regeneration snapshot on repeat runs.
+            if not backup.exists():
+                shutil.copy2(output,backup)
+        for temporary,destination in staged:
+            temporary.chmod(0o664)
+            temporary.replace(destination)
+    finally:
+        for temporary,_ in staged:
+            temporary.unlink(missing_ok=True)
+    vPrint('Quiet',DEBUGGING_THIS_MODULE,f'Wrote {len(rows):,} data rows in org versification to {output}')
+    return report
+
+
+def run():
+    audit = MappingAudit()
+    audit.input_file(Path(__file__))
+    audit.input_file(SEED_FILENAME)
+    references = load_original_inventory()
+    curated = setup(audit)
+    quotes = load_quoted_OT_annotations(audit)
+    collation = load_CNTR_collation_DB(audit)
+    existing_splits = {key[:-1] for values in curated for key in values if key[-1] in 'ab'}
+    speakers = load_OET_RV_speakers(audit,existing_splits=existing_splits)
+    supplement_LV_speakers(speakers,audit)
+    score_tables = []
+    # Load and release one source at a time to keep regeneration memory bounded.
+    for label,folder,loader,profile,scorer,extension in (
+        ('OET-LV OT',OET_LV_OT_PATHNAME,ESFMBible.ESFMBible,lambda BBB:'OET-LV',get_OSHB_reference_text_critical_footnote_score,'.ESFM'),
+        ('UHB',UHB_PATHNAME,USFMBible.USFMBible,lambda BBB:'eng',get_UHB_Hebrew_reference_text_critical_footnote_score,'.usfm'),
+        ('NET',NET_PATHNAME,USXXMLBible.USXXMLBible,net_profile,get_English_reference_text_critical_footnote_score,'.usx'),
+    ):
+        if not folder.is_dir():
+            raise FileNotFoundError(f'Missing {label} source directory: {folder}')
+        source_files = sorted(path for path in folder.iterdir() if path.suffix.lower()==extension.lower())
+        if not source_files:
+            raise FileNotFoundError(f'No {label} {extension} source files in {folder}')
+        for path in source_files:
+            audit.input_file(path)
+        vPrint('Normal',DEBUGGING_THIS_MODULE,f'Loading and mapping {label} annotations…')
+        with prepared_source(label,folder,audit) as source_folder:
+            bible = loader(source_folder,givenAbbreviation=label)
+            if label == 'UHB':
+                bible.uWencoded = True # Required for unfoldingWord's word markup.
+            bible.loadBooks()
+            expected_books = {ref[0] for ref in references if bos_books_codes_py.is_old_testament_nr(ref[0])
+                              or label=='NET' and bos_books_codes_py.is_new_testament_nr(ref[0])}
+            missing_books = expected_books-set(bible.books)
+            if missing_books:
+                raise ValueError(f'{label} missing required books: {sorted(missing_books)}')
+            score_tables.append(score_bible(bible,profile,scorer,references,audit,label))
+            del bible
+    rows = build_rows(references,curated,quotes,collation,*score_tables,speakers,audit)
+    return write_database(rows,audit)
 
 
 def briefDemo() -> None:
@@ -963,7 +1275,6 @@ def briefDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    setup()
     run()
 # end of initialise.briefDemo()
 
@@ -973,7 +1284,6 @@ def fullDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    setup()
     run()
 # end of initialise.fullDemo()
 

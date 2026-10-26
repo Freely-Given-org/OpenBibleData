@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: CC0-1.0
 //! Per-version HTML customisations originally ported from `html.py`.
 //!
 //! These functions are the bulk-mutation pass applied to each version's

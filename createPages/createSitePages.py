@@ -69,6 +69,8 @@ CHANGELOG:
     2026-09-04 Added a separate program version number string in State
     2026-09-16 Replace assert quirk on program completion with a better summary
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
+    2026-10-23 Use the configured destination in the search-index command.
+    2026-10-24 Build version navigation in OET or traditional order with matching book labels.
 """
 from pathlib import Path
 import os
@@ -84,6 +86,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT3
 import bos_books_codes_py
 
 from settings import State, state, reorderBooksForOETVersions
+from navigation import bookNavigationOrder, bookAbbreviation, bookName
 from Bibles import preloadVersions
 from openbibledata_rust import getOETTidyBBB, getOETBookName, build_word_table_snapshot_py, build_word_table_index
 from createBookPages import createOETBookPages, createBookPages
@@ -101,7 +104,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-10-21' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.4.5'
@@ -205,7 +208,7 @@ def _createSitePages() -> bool:
             state.BBBLinks['OET'] = []
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'
-                ourTidyBBB = getOETTidyBBB( BBB )
+                ourTidyBBB = getOETTidyBBB( BBB, addNotes=True )
                 state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
             if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY: continue # Didn't load these ones
@@ -221,8 +224,8 @@ def _createSitePages() -> bool:
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
                 state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST if versionAbbreviation=='OET-RV' else list( thisBible.books.keys() )
-                if 'OET' in versionAbbreviation:
-                    state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
+                state.BBBsToProcess[versionAbbreviation] = bookNavigationOrder(
+                    state.BBBsToProcess[versionAbbreviation], versionAbbreviation )
                 state.BBBLinks[versionAbbreviation] = []
                 ourBBBsToProcess = BOOKLIST_NT27 if state.BBBsToProcess[versionAbbreviation]==['NT'] \
                             else BOOKLIST_OT39 if state.BBBsToProcess[versionAbbreviation]==['OT'] \
@@ -233,8 +236,8 @@ def _createSitePages() -> bool:
                     or 'ALL' in thisBibleBooksToLoad \
                     or BBB in thisBibleBooksToLoad:
                         filename = f'{BBB}.htm'
-                        ourTidyBBB = getOETTidyBBB( BBB )
-                        state.BBBLinks[versionAbbreviation].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+                        ourTidyBBB = bookAbbreviation( BBB, versionAbbreviation, addNotes=True )
+                        state.BBBLinks[versionAbbreviation].append( f'''<a title="{bookName(BBB, versionAbbreviation)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
     assert 'discoveryResults' in state.preloadedBibles['OET-RV'].__dict__
@@ -453,7 +456,7 @@ def _createSitePages() -> bool:
             logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{f'/{state.DEBUG_DESTINATION_FOLDER_NAME}' if state.TEST_MODE_FLAG else ''}/" to create search index!''' )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site {state.DESTINATION_FOLDER}/" to create search index!''' )
     else:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if state.TEST_MODE_FLAG else ''}site{'' if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG else ' (as requested)'}." )
@@ -748,7 +751,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
         if state.TEST_MODE_FLAG and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="__LEVEL__par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="__LEVEL__par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{bookAbbreviation( BBB, versionAbbreviation, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
             detailsHtml = f'''{detailsHtml}
 <h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>

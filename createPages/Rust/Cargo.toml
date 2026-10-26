@@ -3,7 +3,7 @@ name = "openbibledata-rust"
 version = "0.1.0"
 edition = "2024"
 authors = ["Robert Hunt <Freely.Given.org+OBD@gmail.com>"]
-license = "GPL-3.0-or-later"
+license = "CC0-1.0"
 description = "Rust backend extension for OpenBibleData"
 
 [lib]

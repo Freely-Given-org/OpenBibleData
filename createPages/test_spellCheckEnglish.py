@@ -1,15 +1,16 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 """Regression checks for translated Luther and Vulgate vocabulary.
 
 CHANGELOG:
-    2026-10-23 Check combined OET formatting titles through the spelling pipeline
-    2026-10-21 Check full optional -ies plurals without hiding misspellings
-    2026-10-20 Check residual translations and separate spelling totals from repetition warnings
-    2026-10-20 Distinguish accidental repeated words from punctuated speech and glosses
-    2026-10-18 Check modernised ordinary vocabulary without hiding damaged spellings
     2026-10-17 Check part-of-speech labels and Jubilee in both modernised-English page paths
     2026-10-17 Check reviewed names without accepting untranslated or damaged words
+    2026-10-18 Check modernised ordinary vocabulary without hiding damaged spellings
+    2026-10-20 Check residual translations and separate spelling totals from repetition warnings
+    2026-10-20 Distinguish accidental repeated words from punctuated speech and glosses
+    2026-10-21 Check full optional -ies plurals without hiding misspellings
+    2026-10-23 Check combined OET formatting titles through the spelling pipeline
+    2026-10-26 Check LSV uppercase words, names and possessives without hiding misspellings
 """
 from types import SimpleNamespace
 from collections import defaultdict
@@ -31,7 +32,7 @@ class TestTranslatedVocabulary(unittest.TestCase):
         cls.old_verbosity = BibleOrgSysGlobals.verbosityLevel
         BibleOrgSysGlobals.verbosityLevel = 0
         spelling.load_dict_sources()
-        cls.state = SimpleNamespace(BibleLanguages={'Luth': 'GER', 'ClVg': 'LAT', 'Wycl': 'EN-UK', 'OET-RV': 'EN-UK', 'OET-LV': 'EN-UK'})
+        cls.state = SimpleNamespace(BibleLanguages={'Luth': 'GER', 'ClVg': 'LAT', 'Wycl': 'EN-UK', 'OET-RV': 'EN-UK', 'OET-LV': 'EN-UK', 'LSV': 'EN-USA', 'BSB': 'EN-USA'})
 
     @classmethod
     def tearDownClass(cls):
@@ -40,6 +41,36 @@ class TestTranslatedVocabulary(unittest.TestCase):
     def check_text(self, version, text):
         source = f'<span class="{version}_trans">{text}</span>'
         return spelling.spellCheckAndMarkHTMLText(version, 'MAT_1:1', source, source, self.state)
+
+    def test_lsv_uppercase_headings_and_inscriptions(self):
+        for text in ('A SHIGGAION OF DAVID, THAT HE SUNG TO YHWH',
+                     'AN INSTRUCTION. A SONG OF LOVES. LILIES.',
+                     'OF KORAH. JEDUTHUN. HEMAN THE EZRAHITE.',
+                     'KING OF KINGS, AND LORD OF LORDS.',
+                     'SAUL’S HOUSE', "SAUL'S HOUSE", 'KORAH’S SONS',
+                     'ALEPH-BET. QOF. TSADE. WAW. TAW.',
+                     '<b>AFFLICTED</b>, COMPLAINT; THANKSGIVING!'):
+            with self.subTest(text=text):
+                before = len(spelling.MISPELLING_VERSION_REF_DICT['LSV'])
+                self.assertEqual(self.check_text('LSV', text),
+                                 f'<span class="LSV_trans">{text}</span>')
+                self.assertEqual(len(spelling.MISPELLING_VERSION_REF_DICT['LSV']), before)
+
+    def test_lsv_uppercase_misspellings_keep_original_reports_and_markup(self):
+        for text, word in (('AFFLICTEDD', 'AFFLICTEDD'), ('KORRAH', 'KORRAH'),
+                           ('SHIGGAIONN', 'SHIGGAIONN'), ('SAULL’S', 'SAULL'),
+                           ('AFFLicTED', 'AFFLicTED')):
+            with self.subTest(text=text):
+                before = len(spelling.MISPELLING_VERSION_REF_DICT['LSV'])
+                self.assertIn(f'class="spelling">{word}</span>', self.check_text('LSV', text))
+                self.assertEqual(spelling.MISPELLING_VERSION_REF_DICT['LSV'][before:],
+                                 [(word, 'MAT_1:1')])
+
+    def test_lsv_case_rule_does_not_change_other_versions_dictionary(self):
+        for version in ('BSB', 'LSV', 'BSB'):
+            with self.subTest(version=version):
+                checked = self.check_text(version, 'AFFLICTED')
+                self.assertEqual('class="spelling"' in checked, version != 'LSV')
 
     def test_combined_oet_titles_do_not_enter_spelling_text(self):
         from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations

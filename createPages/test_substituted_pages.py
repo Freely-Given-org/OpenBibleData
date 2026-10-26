@@ -1,5 +1,5 @@
 #!/usr/bin/env -S uv run
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 """Exercise both complete page builders with all ten derived editions.
 
 Use real BOS Bible entries, the Rust HTML renderer and the real word tables.
@@ -8,6 +8,8 @@ are built in temporary directories; no production output/settings are changed.
 
 CHANGELOG:
     2026-10-21 Compare uncached/cold/warm pages and require zero warm substitutions.
+    2026-10-24 Cover verse-list builds with and without study/translation notes.
+    2026-10-26 Validate complete introduction pages with real, possibly empty metadata.
 """
 from contextlib import ExitStack
 import json
@@ -133,6 +135,63 @@ class SubstitutedPageTests(unittest.TestCase):
             warm, editions = self.render('fork-warm', processes=2)
         self.assertEqual(warm, baseline)
         self.assertEqual(editions.substitutions, 0)
+
+    def test_verse_lists_exclude_notes_in_sequential_and_forked_builds(self):
+        self.state.TEST_MODE_FLAG = False
+        self.state.TEST_VERSIONS_ONLY = None
+        editions = list(cache.SUBSTITUTED_VERSIONS)
+        for processes in (1, 2):
+            for notes in (('TOSN', 'UTN'), ('TOSN', 'TTN', 'SOTN', 'UTN'), ()):
+                with self.subTest(processes=processes, notes=notes):
+                    self.state.BibleVersions = [*editions, *notes]
+                    expectedVersions = self.state.BibleVersions.copy()
+                    destination = self.root / f'list-{processes}-{len(notes)}'
+                    with patch.object(BibleOrgSysGlobals, 'maxProcesses', processes):
+                        self.assertTrue(listPages.createVerseListPages(1, destination, self.state))
+                    page = (destination / 'MRK' / 'C1V1.htm').read_text()
+                    positions = [page.index(f'id="{version}"') for version in editions]
+                    self.assertEqual(positions, sorted(positions))
+                    for note in notes:
+                        self.assertNotIn(f'id="{note}"', page)
+                    self.assertEqual(self.state.BibleVersions, expectedVersions)
+
+    def test_introductions_with_empty_metadata_pass_html_validation(self):
+        folder = self.root / 'ULT'
+        folder.mkdir()
+        (folder / '41MRK.usfm').write_text(
+            '\\id MRK\n\\h Mark\n\\c 1\n'
+            '\\v 1 The beginning.\n\\v 2 A messenger.\n\\v 3 A voice.\n')
+        bible = USFMBible(folder, givenAbbreviation='ULT',
+                         versification=self.state.BibleVersifications['ULT'])
+        bible.loadBooks()
+        self.state.preloadedBibles['ULT'] = bible
+        for module in (parallelPages, listPages):
+            self.stack.enter_context(patch.object(module, 'getVerseMetaInfoHtml',
+                                                 side_effect=Bibles.getVerseMetaInfoHtml))
+        self.assertEqual(Bibles.getVerseMetaInfoHtml('MRK', '1', '0', 'eng'), '')
+        for processes in (1, 2):
+            for label, versions, notes in (
+                    ('visible-then-hidden', ('ULT', 'RV'), ''),
+                    ('hidden-first', ('RV',), ''),
+                    ('empty-intro', ('ULT',), ''),
+                    ('notes-only-intro', ('ULT',), '<p>Chapter introduction notes.</p>')):
+                with self.subTest(processes=processes, case=label):
+                    self.state.BibleVersions = [*versions, 'UTN']
+                    self.state.TEST_VERSIONS_ONLY = versions
+                    with patch.object(parallelPages, 'formatUnfoldingWordTranslationNotes',
+                            side_effect=lambda level, book, chapter, verse, *args:
+                                notes if (chapter, verse) == ('1', '0') else ''):
+                        files, _ = self.render(f'intro-{processes}-{label}', processes=processes)
+                    for family in ('par', 'lst'):
+                        for filename in ('Intro.htm', 'C1V0.htm', 'C1V1.htm'):
+                            page = files[f'{family}/MRK/{filename}'].decode()
+                            self.assertNotIn('\n\n', page)
+                            if filename == 'C1V1.htm':
+                                self.assertIn('Importance to us', page)
+                            else:
+                                self.assertNotIn('class="verseDetails"', page)
+                    if notes:
+                        self.assertIn(notes, files['par/MRK/C1V0.htm'].decode())
 
     def test_fresh_process_warm_load_never_imports_the_word_tables(self):
         editions = cache.prepareSubstitutedVersions(self.state)

@@ -4,8 +4,8 @@ The recording renderer exercises addresses, grouping, links and note isolation;
 it does not replace the server's full-site HTML/layout validation.
 
 CHANGELOG:
-    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
+    2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
 """
 import ast
 from collections import defaultdict

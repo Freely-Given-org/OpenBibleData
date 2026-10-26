@@ -16,7 +16,6 @@
 Module handling settings functions.
 
 CHANGELOG:
-    2026-10-22 Declare the reviewed OET source profiles; navigation remains English.
     2024-01-11 Load all OET-LV NT books
     2024-04-05 Add more acknowledgements for the OT part
     2024-04-18 Added AICNT (have emailed permission)
@@ -41,14 +40,19 @@ CHANGELOG:
     2026-10-12 Declare source and navigation versifications for parallel pages
     2026-10-16 Use the BOS Luther mapping verified against LUTH1545STR
     2026-10-21 Configure persistent substituted editions independently of page output
+    2026-10-22 Declare the reviewed OET source profiles; navigation remains English.
+    2026-10-23 Add historical notes for ClVg, Luth, Wycl, TNT, Cvdl, Gnva, and Bshps details pages.
+    2026-10-23 Load private test destinations and translations from ignored local configuration.
+    2026-10-24 Add historical notes for Wbstr, SLT, RV, Drby, YLT, DRA, ASV, Wymth, and JPS details pages.
 """
 from pathlib import Path
+from privateConfig import configurePrivateBuild
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-21' # by RJH
+LAST_MODIFIED_DATE = '2026-10-24' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.3.0'
@@ -65,10 +69,10 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.2.0' # Incremented after most updates to OBD web page generation code
+    OBD_VERSION_NUMBER_STRING = 'v3.3.0' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.48.90' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
@@ -92,10 +96,10 @@ class State:
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-    DEBUG_DESTINATION_FOLDER_NAME = 'Testa'
-    DEBUG_DESTINATION_FOLDER_PATH = NORMAL_DESTINATION_FOLDER.joinpath( DEBUG_DESTINATION_FOLDER_NAME )
-    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER_PATH if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
-                            else NORMAL_DESTINATION_FOLDER
+    # Private destinations are configured after the public State is complete.
+    DEBUG_DESTINATION_FOLDER_NAME = None
+    DEBUG_DESTINATION_FOLDER_PATH = None
+    DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER
 
     # We use a rough logical, then chronological 'book' order
     # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
@@ -178,22 +182,6 @@ class State:
     # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
     #           and 'SOTN' is not included
     BibleVersions = ['OET',
-        'OET-RV','OET-LV',
-        'AHB', 'SLBL', 'GHT', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
-        'BSB','MSB','BLB',
-        'AICNT','OEB','ISV','CSB','NLT',
-        'NIV','CEV','ESV','NASB','LSB',
-        'JQT','2DT','1ST',
-        'WEBBE','WMBB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
-        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
-        'TNT','Wycl',
-        'Luth','ClVg',
-        'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT',
-        'UHB', 'BrLXX','BrTr', 'NETS',
-        # NOTES:
-        'TOSN','UTN',
-        ] if TEST_MODE_FLAG else \
-        ['OET',
         'OET-RV','OET-LV',
         'AHB', 'SLBL', 'GHT', 'ULT','UST',
         'BSB','MSB','BLB',
@@ -313,7 +301,7 @@ class State:
         'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling  # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
         'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling  # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
         'MSG': '../copiedBibles/English/Selected_verses_versions/MSG_verses.tsv',
-        'NET': '../copiedBibles/English/NET/' if TEST_MODE_FLAG else '../copiedBibles/English/eBible.org/NET/',
+        'NET': '../copiedBibles/English/eBible.org/NET/',
         'LSV': '../copiedBibles/English/eBible.org/LSV/',
         'FBV': '../copiedBibles/English/eBible.org/FBV/',
         'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
@@ -357,6 +345,7 @@ class State:
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
         }
     WholeBibleVersions = ('BSB','MSB','LEB','SLT','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
+    BibleSourceFormats = {} # Explicit formats for locally configured sources
 
     BibleNames = {
         'OET': 'Open English Translation (2030)',
@@ -854,47 +843,86 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
         'JPS': {'about': '<p class="about">Jewish Publication Society TaNaKH (1917).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">The Jewish Publication Society published this English translation of the Hebrew Bible in 1917 to meet the needs of English-speaking Jewish readers.
+Max Margolis served as editor-in-chief, working with a board drawn from major American Jewish scholarly institutions.
+The translation followed the Masoretic Hebrew text and Jewish interpretive traditions while retaining much of the English style of the Revised Version and King James Bible.
+Widely used in Jewish education and worship, it is now often called the Old JPS (OJPS) to distinguish it from the Society’s later translation.
+See the <a href="https://jps.org/books/holy-scriptures-tanakh-1917-edition/">Jewish Publication Society’s history of the edition</a>.</p>''' },
         'Wymth': {'about': '<p class="about">Weymouth New Testament (1903). Also known as “The New Testament in Modern Speech” or “The Modern Speech New Testament”.</p>',
                 'copyright': '<p class="copyright">Copyright © 1903.</p>',
                 'licence': '<p class="licence">Copyright expired. Public domain. No licence required.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to Richard Weymouth for his work 120 years ago to bring English Bible translations back to the modern English of the time—the end of the 19th century and start of the 20th.
 (Our own <a href="https://OpenEnglishTranslation.Bible">Open English Translation</a> continues this concept, but now into the 21st century.)</p>''',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Weymouth_New_Testament">Wikipedia</a> and <a href="https://www.bible-researcher.com/weymouth.html">here</a>.</p>''' },
+                'notes': '''<p class="note">Richard Francis Weymouth, a language scholar and former headmaster, translated the New Testament into the natural English of his own day.
+He worked from his own Resultant Greek Testament, which brought together readings favoured by leading editors of the Greek text.
+His aim was to convey the writers’ meaning clearly and provide a companion for study alongside established English versions.
+After Weymouth’s death in 1902, Ernest Hampden-Cook edited and partly revised the manuscript for its first publication in 1903.
+See <a href="https://www.bible-researcher.com/weymouth.html">Weymouth’s preface and a biographical account</a>.</p>''' },
         'ASV': {'about': '<p class="about">American Standard Version (1901).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'DRA': {'about': '<p class="about">Douay-Rheims American Edition (1899), named after two French cities where it was first translated from the Latin Vulgate in the early 1600’s.</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Published in 1901, the American Standard Version grew out of the American scholars’ participation in the English Revised Version project.
+The American committee continued its work after 1885, incorporating preferences previously printed in an appendix and making further improvements in wording and consistency.
+Distinctive choices include using ‘Jehovah’ for the divine name in the Old Testament and replacing a number of obsolete English expressions.
+The ASV later provided the basis for the Revised Standard Version and the New American Standard Bible.
+See the <a href="https://www.bible-researcher.com/asvpreface.html">American revisers’ prefaces</a> and <a href="https://www.bible-researcher.com/asv.html">historical overview</a>.</p>''' },
+        'DRA': {'about': '<p class="about">Douay-Rheims American Edition (1899), descended from the English Catholic translation of the Latin Vulgate published at Rheims (1582) and Douai (1609–1610).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Douay%E2%80%93Rheims_Bible">Wikipedia</a>.</p><!--note-->''' },
+                'notes': '''<p class="note">English Catholic exiles prepared the original Douay-Rheims Bible to provide an English text reflecting their church’s teaching during the Reformation.
+Gregory Martin was the principal translator, working under William Allen’s sponsorship and translating from the Latin Vulgate.
+Bishop Richard Challoner substantially revised its language between 1749 and 1752, making the English easier to understand.
+The 1899 American edition belongs to this later Challoner tradition, so its wording differs considerably from the original sixteenth- and seventeenth-century publications.
+See <a href="https://www.biblegateway.com/versions/Douay-Rheims-1899-American-Edition-DRA-Bible/">Bible Gateway’s history of this edition</a>.</p>''' },
         'YLT': {'about': '<p class="about">Youngs Literal Translation (1898).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Young%27s_Literal_Translation">Wikipedia</a>.</p><!--note-->''' },
+                'notes': '''<p class="note">Robert Young, also known for his Analytical Concordance to the Bible, first published this translation in 1862.
+He sought to help readers study the Hebrew and Greek through closely literal English, preserving distinctions that he believed existing versions obscured.
+His emphasis on consistent word choices and his particular understanding of Hebrew verb forms produced much of the translation’s distinctive wording.
+Young issued a revised edition in 1887; the 1898 edition was a further revision published after his death, retaining his translation principles.
+See <a href="https://www.ccel.org/bible/ylt/ylt.htm">Young’s prefaces and the publishers’ note</a>.</p>''' },
         'Drby': {'about': '<p class="about">Darby Translation (1890).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Darby_Bible">Wikipedia</a>.</p><!--note-->''' },
+                'notes': '''<p class="note">John Nelson Darby, a former Anglican clergyman and a leading figure in the Plymouth Brethren movement, produced a closely literal English New Testament for Bible study.
+First published in full in 1867, it used critical editions of the Greek text and included detailed notes on readings and translation choices.
+Darby also worked with colleagues on French and German Bible translations.
+After his death in 1882, his associates prepared an English Old Testament using that work, and the complete English Bible appeared in 1890.
+See <a href="https://www.bible-researcher.com/darby.html">the historical account of Darby’s translation</a>.</p>''' },
         'RV': {'about': '''<p class="about">The English Revised Version (1885) was an officially authorised revision of the King James Bible.
                             (See <a href="https://en.wikipedia.org/wiki/Revised_Version">Wikipedia entry</a>.)</p>''',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">The Church of England’s Convocation of Canterbury initiated this revision of the King James Bible in 1870.
+British committees, with assistance from American scholars, sought greater accuracy using manuscript evidence and advances in Hebrew and Greek scholarship while preserving the older version’s style.
+The New Testament appeared in 1881, the Old Testament in 1885, and the Apocrypha in 1895.
+The American participants’ continuing work subsequently produced the American Standard Version of 1901.
+See the <a href="https://www.bible-researcher.com/ervpreface.html">revisers’ prefaces</a> and <a href="https://www.bible-researcher.com/erv.html">publication history</a>.</p>''' },
         'SLT': {'about': '<p class="about">Smiths Literal Translation (1855).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href='https://OpenBible.com/downloads.htm'>OpenBible.com</a> for this download.</p>''',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Julia_E._Smith_Parker_Translation">Wikipedia</a>.</p>''' },
+                'notes': '''<p class="note">Julia Evelina Smith of Glastonbury, Connecticut, completed her translation in 1855 and published it at her own expense in 1876.
+Her work grew out of Bible study with her sisters and a desire to examine the Hebrew and Greek wording for themselves.
+She aimed to use the same English equivalent for each original word wherever possible, producing an unusually literal text with distinctive handling of verb forms.
+Smith, also active in the women’s suffrage movement, is recognised as the first woman to publish a complete English translation of the Bible.
+See <a href="https://bridwell.omeka.net/exhibits/show/harrison/earlyamerican/woman">Bridwell Library’s account</a> and <a href="https://en.wikipedia.org/wiki/Julia_E._Smith_Parker_Translation">the translation’s history</a>.</p>''' },
         'Wbstr': {'about': '<p class="about">Webster Bible (1833).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Webster%27s_Revision">Wikipedia</a>.</p>''' },
+                'notes': '''<p class="note">American dictionary-maker Noah Webster published this revision of the King James Bible in 1833.
+He wanted ordinary readers to understand passages whose vocabulary had become obsolete or changed meaning since 1611.
+His changes included updated words, grammatical corrections, and gentler expressions where he considered the older wording unsuitable for public reading.
+Webster deliberately retained the familiar style and general character of the King James text, consulting the original languages and other translations when making corrections.
+See <a href="https://hc.edu/museums/dunham-bible-museum/reprints-from-the-collection/prefaces-to-major-bible-editions/noah-webster-bible-1833/">Webster’s own preface at the Dunham Bible Museum</a>.</p>''' },
         'KJB-1769': {'about': '<p class="about">King James Bible (1611-1769).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
@@ -923,32 +951,66 @@ Footnote markers PRECEDE the text that they concern,
         'Bshps': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Archbishop Matthew Parker organised this revision of the Great Bible, first published in 1568, for use in Church of England worship.
+He divided the work among several scholars, many of them bishops, giving the translation its name.
+The project also offered a church alternative to the popular Geneva Bible and its controversial explanatory notes.
+It became a standard church Bible and later the prescribed starting text for the King James translators, although it never matched Geneva’s popularity among private readers.
+See <a href="https://wwwe.lib.cam.ac.uk/CUL/exhibitions/KJV/forchurch.html">Cambridge University Library’s historical overview</a>.</p>''' },
         'Gnva': {'about': '<p class="about">Geneva Bible (1557-1560, 1599).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">English Protestant exiles who had fled persecution under Mary I prepared this Bible in Geneva, with William Whittingham leading the translators.
+The complete Bible appeared in 1560 and drew on the Hebrew and Greek texts as well as earlier English translations.
+Its manageable format and extensive explanatory notes helped readers study the Bible at home.
+It became widely read in Britain, although its Reformed interpretation provoked opposition from some church leaders and later King James I.
+See <a href="https://wwwe.lib.cam.ac.uk/CUL/exhibitions/KJV/captions.html">Cambridge University Library’s exhibition notes</a>.</p>''' },
         'Cvdl': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Myles Coverdale, an English priest and reformer working abroad, produced the first complete printed Bible in English in 1535.
+He drew on Tyndale’s existing translations and on German and Latin Bibles to supply a complete English text.
+His work therefore brought together and revised several translations, rather than translating every book directly from Hebrew or Greek.
+Coverdale later prepared the Great Bible of 1539, which was intended to be available in parish churches.
+See <a href="https://wwwe.lib.cam.ac.uk/CUL/exhibitions/KJV/bibleinen.html">Cambridge University Library’s account</a> and <a href="https://ucldigitalpress.co.uk/Book/Article/2/9/23/">UCL’s history of early printed Bibles</a>.</p>''' },
         'TNT': {'about': '<p class="about">Tyndale New Testament (1526).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">William Tyndale wanted English readers to have the scriptures in their own language and translated the New Testament from Greek.
+Unable to obtain church support in England, he worked on the European mainland; his first complete printed New Testament appeared at Worms in 1526.
+Copies were smuggled into England, where the authorities condemned and burned them.
+Tyndale revised his translation in 1534 and also translated portions of the Old Testament from Hebrew before his arrest and execution for heresy in 1536.
+See <a href="https://wwwe.lib.cam.ac.uk/CUL/exhibitions/KJV/bibleinen.html">Cambridge University Library’s historical overview</a>.</p>''' },
         'Wycl': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (middle-English, 1382).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>',
-                'notes': '''<p class="note">The earliest editions were hand-copied because Gutenberg’s printing press didn’t come along until the 1450’s. Chapter divisions had been developed in the 1220’s and the Wycliffe Bible was the first to use those. (Verse divisions didn’t really come until the 1550’s.)</p>''' },
+                'notes': '''<p class="note">The first complete English Bible emerged in the late fourteenth century among followers of the Oxford theologian John Wycliffe.
+It rendered the Latin Vulgate into Middle English, making the whole Bible accessible beyond readers of Latin.
+The translators’ identities and Wycliffe’s personal contribution remain uncertain; an earlier, closely literal version was followed by a more fluent revision.
+These Bibles circulated as handwritten manuscripts before printing reached England, and many copies survive despite later restrictions on unauthorised English translations.
+See <a href="https://www.cambridge.org/core/books/abs/manuscripts-of-the-wycliffite-bible-in-the-bodleian-and-oxford-college-libraries/introduction/07B2840DD1DB3B828D40F3386B6ABBE7">Elizabeth Solopova’s introduction to the Wycliffite manuscripts</a>.</p>''' },
         'Luth': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Luther_Bible">Luther’s German Bible</a> (1545).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>' },
+                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>',
+                'notes': '''<p class="note">Martin Luther’s translation helped German readers encounter the Bible in their own language during the Reformation.
+His New Testament appeared in 1522; the complete Bible followed in 1534 after years of collaboration with Wittenberg scholars, including Philipp Melanchthon.
+Luther and his colleagues continued revising the text, with the 1545 edition representing the last complete edition reviewed during his lifetime.
+Its wide circulation helped spread Reformation teaching and had a lasting influence on German language and literature.
+See the <a href="https://www.luthermuseen.de/news/uebersetzung-des-alten-testaments">Luther Museums’ account of the translation</a> (in German).</p>''' },
         'ClVg': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Issued under Pope Clement VIII in 1592, this edition provided a standard Latin Bible text for the Roman Catholic Church.
+It followed the Council of Trent’s endorsement of the Vulgate in 1546 and replaced the edition published under Pope Sixtus V in 1590.
+Scholars including Cardinal Robert Bellarmine helped revise the text, which belongs to the long Vulgate tradition.
+The Clementine edition remained the Church’s standard Latin Bible until 1979.
+See the <a href="https://collections.museumofthebible.org/artifacts/57851-clementine-vulgate-second-edition">Museum of the Bible’s account</a>.</p>''' },
         'SR-GNT': {'about': '<p class="about">Statistical Restoration Greek New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Alan Bunning.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
@@ -1048,6 +1110,7 @@ Footnote markers PRECEDE the text that they concern,
     sectionsLists = {}
 # end of State class
 
+configurePrivateBuild(State, debug=BibleOrgSysGlobals.debugFlag)
 state = State()
 
 CNTR_BOOK_ID_MAP = {

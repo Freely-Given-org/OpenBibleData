@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: CC0-1.0
 //! Port of `convertVerseEntryListToHtml` from `usfm.py`.
 //!
 //! This module contains the main verse-entry-to-HTML conversion pipeline
@@ -6,10 +6,6 @@
 //! HTML segment.
 //!
 //! Changelog:
-//!  2026-10-18: Preserve word separation when verse numbers are hidden between
-//!              multiple basic-mode verses (including repeated source numbers).
-//!  2026-10-16: Report malformed note markers with version, book, C:V,
-//!              processed entry number/marker, and offending text.
 //!  2026-08-22: Fixed list-close ordering bugs inherited from usfm.py — an
 //!              open <li> is now closed BEFORE its enclosing </ul>, both in
 //!              close_list() and in the li level-drop recovery branch.
@@ -63,6 +59,10 @@
 //!              "<br>\n"→"\n<br>" cleanup can't catch here because the
 //!              pilcrow/indent sit between <br> and the newline).  Rendered
 //!              output is unchanged (whitespace collapses in HTML).
+//!  2026-10-16: Report malformed note markers with version, book, C:V,
+//!              processed entry number/marker, and offending text.
+//!  2026-10-18: Preserve word separation when verse numbers are hidden between
+//!              multiple basic-mode verses (including repeated source numbers).
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
