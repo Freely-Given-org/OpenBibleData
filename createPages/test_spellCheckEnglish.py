@@ -11,10 +11,12 @@ CHANGELOG:
     2026-10-21 Check full optional -ies plurals without hiding misspellings
     2026-10-23 Check combined OET formatting titles through the spelling pipeline
     2026-10-26 Check LSV uppercase words, names and possessives without hiding misspellings
+    2026-10-30 Check generated DC names through the same LV spelling path as NT names.
 """
 from types import SimpleNamespace
 from collections import defaultdict
 from pathlib import Path
+from csv import DictReader
 import ast
 import unittest
 from unittest.mock import patch
@@ -24,6 +26,40 @@ import spellCheckEnglish as spelling
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.LutherGermanToEnglish import translateGerman
 from BibleOrgSys.Reference.VulgateLatinToEnglish import translateLatin
+
+
+class TestOETLVNames(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch.object(BibleOrgSysGlobals, 'verbosityLevel', 0))
+        self.enterContext(patch.object(spelling, 'BRITISH_WORD_SET', set(spelling.BRITISH_WORD_SET)))
+        self.enterContext(patch.object(spelling, 'OET_LV_NAMES_SET', set()))
+        spelling.load_dict_sources()
+        spelling.load_OET_LV_names()
+        self.state = SimpleNamespace(BibleLanguages={'OET-LV': 'EN-UK'})
+
+    def test_all_emitted_dc_name_spellings_are_in_shared_table(self):
+        table = spelling.OET_LV_NAMES_TSV_FILEPATH.parent / 'auto_edited_DC_ESFM/OET-LV_DC_word_table.tsv'
+        with table.open(encoding='utf-8') as source:
+            rows = [row for row in DictReader(source, delimiter='\t')
+                    if row['GlossStatus'] in ('name-transliteration', 'name-transliteration-candidate')]
+        self.assertTrue(rows)
+        missing = {row['OETGlossWords'] for row in rows} - spelling.OET_LV_NAMES_SET
+        self.assertFalse(missing, f'DC names missing from shared LV table: {sorted(missing)}')
+
+    def test_dc_and_nt_names_pass_but_damaged_names_and_untranslated_words_do_not(self):
+        for ref, text in (
+            ('TOB_1:1', 'Tōbit Tōbiaʸl Ananiaʸl Adouaʸl Gabaaʸl Asiaʸl Nefthali'),
+            ('MAT_1:1', 'Yaʸsous/(Yəhōshūˊa) Dawid/(Dāvid) Abraʼam/(ʼAⱱrāhām)'),
+        ):
+            source = '<span class="OET-LV_verseTextChunk">' + ' '.join(
+                f'<a href="../../ref/example.htm">{name}</a>' for name in text.split()) + '</span>'
+            with self.subTest(ref=ref):
+                self.assertEqual(spelling.spellCheckAndMarkHTMLText('OET-LV', ref, source, source, self.state), source)
+        for word in ('Tōbitt', '⟦ἀγνώστως⟧'):
+            source = f'<span class="OET-LV_verseTextChunk">{word}</span>'
+            with self.subTest(word=word):
+                self.assertIn('class="spelling"', spelling.spellCheckAndMarkHTMLText(
+                    'OET-LV', 'TOB_1:1', source, source, self.state))
 
 
 class TestTranslatedVocabulary(unittest.TestCase):

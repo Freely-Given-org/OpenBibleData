@@ -11,10 +11,13 @@
 //!              errors; share validation with the entry loop for C:V diagnostics.
 //!  2026-10-25: Render xref added text separately so editorial corrections do not
 //!              create links to the superseded references.
+//!  2026-11-01: Keep punctuation and unknown verse labels out of note-return URLs.
 
 use crate::verbosity_println;
 use crate::constants::SPAN_CLASS_REGEX;
 use crate::xref_links::liven_xref_field_core;
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 // ── Error type ─────────────────────────────────────────────────────────────
 
@@ -252,32 +255,7 @@ fn protect_xref_added_text(raw: &str, placeholder: char) -> (String, Vec<String>
 ///
 /// E.g. `"1:1-3"` → `<span class="xrRef"><a title="Return to text" href="#C1V1">1:1-3</a></span> `
 fn build_cv_ref(xo_text: &str) -> String {
-    if xo_text.is_empty() {
-        return String::new();
-    }
-    let mut cv = xo_text.to_string();
-    if cv.contains('-') || cv.contains('\u{2013}') {
-        // en-dash → hyphen, then take part before first dash
-        cv = cv.replace('\u{2013}', "-");
-        if let Some(ix) = cv.find('-') {
-            cv = cv[..ix].to_string();
-        }
-    }
-    if let Some(colon_ix) = cv.find(':') {
-        let ch = &cv[..colon_ix];
-        let mut v = &cv[colon_ix + 1..];
-        if let Some(inner) = v.find(':') {
-            v = &v[..inner];
-        }
-        format!(
-            r##"<span class="xrRef"><a title="Return to text" href="#C{ch}V{v}">{xo_text}</a></span> "##
-        )
-    } else {
-        // No colon – unusual, produce link without href
-        format!(
-            r#"<span class="xrRef"><a title="Return to text" href="">{xo_text}</a></span> "#
-        )
-    }
+    build_note_return("xrRef", xo_text)
 }
 
 // ── Footnote processing ────────────────────────────────────────────────────
@@ -681,30 +659,22 @@ fn sanitise_footnote_popup(fnote_middle: &str, is_oet_lv: bool) -> String {
 
 /// Build a `<span class="fnRef">…</span>` back-reference from `\fr` text.
 fn build_footnote_ref(fr_text: &str) -> String {
-    if fr_text.is_empty() {
-        return String::new();
-    }
-    let mut cv = fr_text.to_string();
-    if cv.contains('-') || cv.contains('\u{2013}') {
-        cv = cv.replace('\u{2013}', "-");
-        if let Some(ix) = cv.find('-') {
-            cv = cv[..ix].to_string();
-        }
-    }
-    let href = if let Some(colon_ix) = cv.find(':') {
-        let ch = &cv[..colon_ix];
-        let v = &cv[colon_ix + 1..];
-        format!("#C{ch}V{v}")
-    } else if let Some(dot_ix) = cv.find('.') {
-        let ch = &cv[..dot_ix];
-        let v = &cv[dot_ix + 1..];
-        format!("#C{ch}V{v}")
+    build_note_return("fnRef", fr_text)
+}
+
+static NOTE_RETURN_REFERENCE: Lazy<Regex> = Lazy::new(||
+    Regex::new(r"^\s*([0-9]+)[:.]([0-9]+[a-z]?)(?:\b|$)").unwrap());
+
+fn build_note_return(class_name: &str, label: &str) -> String {
+    if label.is_empty() { return String::new(); }
+    if let Some(reference) = NOTE_RETURN_REFERENCE.captures(label) {
+        let (chapter, verse) = (&reference[1], &reference[2]);
+        format!(r##"<span class="{class_name}"><a title="Return to text" href="#C{chapter}V{verse}">{label}</a></span> "##)
     } else {
-        String::new()
-    };
-    format!(
-        r#"<span class="fnRef"><a title="Return to text" href="{href}">{fr_text}</a></span> "#
-    )
+        // Preserve incomplete source references such as "13:?" as readable
+        // text; they do not identify a usable return destination.
+        format!(r#"<span class="{class_name}">{label}</span> "#)
+    }
 }
 
 // ── PyO3 wrappers ─────────────────────────────────────────────────────────
@@ -773,6 +743,22 @@ mod tests {
     fn test_build_footnote_ref_range() {
         let result = build_footnote_ref("3:16-17");
         assert!(result.contains("href=\"#C3V16\""));
+    }
+
+    #[test]
+    fn test_note_returns_keep_labels_but_exclude_punctuation_and_unknown_verses() {
+        for build in [build_footnote_ref, build_cv_ref] {
+            for label in ["3:16,", "3:16, 18", "3:16–18", "3.16."] {
+                let result = build(label);
+                assert!(result.contains("href=\"#C3V16\""), "{result}");
+                assert!(result.contains(label));
+            }
+            for label in ["3:?", "introduction", "3:unknown"] {
+                let result = build(label);
+                assert!(!result.contains("href="), "{result}");
+                assert!(result.contains(label));
+            }
+        }
     }
 
     #[test]

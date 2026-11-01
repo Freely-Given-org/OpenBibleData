@@ -6,6 +6,18 @@ div.container3 { display:grid; column-gap:0.5em; grid-template-columns:0.33fr 0.
 div.container4 { display:grid; column-gap:0.4em; grid-template-columns:0.25fr 0.25fr 0.25fr 0.25fr; }
 div.container5 { display:grid; column-gap:0.4em; grid-template-columns:0.2fr 0.2fr 0.2fr 0.2fr 0.2fr; }
 div.chunkRV {}
+div.chunkLV { font-size:0.9em; }
+span.OET-LV_verseTextChunk {}
+
+/* 2026-10-30 Optional LV comparisons stay with their own related passage. */
+.relatedPassageColumn { min-width:0; overflow-wrap:anywhere; }
+.relatedPassages {}
+.relatedLV { margin-top:1em; border-top:1px solid currentColor; padding-top:0.5em; }
+details.relatedLV summary { cursor:pointer; font-weight:bold; }
+@media (max-width:50em) {
+    div.relatedPassages { display:block; }
+    .relatedPassageColumn { margin-bottom:2em; }
+}
 
 div.header {}
 div.footer { margin:50px; }
@@ -93,7 +105,7 @@ span.bk { font-style:italic; }
 
 /* Section headings list */
 p.mainSectionHeading { font-size:1.6em; }
-/* p.sectionHeading { } */
+p.sectionHeading { }
 /* p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; } */
 /* p.sectionHeading + p.alternateHeading { margin-top:-1.2em; } */
 /* p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; } */
@@ -139,6 +151,7 @@ span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
+small.versificationRef {}
 p.d { font-style:italic; }
 p.sp { font-weight:bold; } /* Speaker */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -167,11 +180,12 @@ span.qs { font-style:italic; } /* Selah */
 span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
 span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
+span.wh {} /* Hebrew word */
 
 /* OET add spans */
 span.addArticle { color:#b55f5f; }
 /* span.unusedArticle { color:lavender; } */
-/* span.addCopula { color:#78aba4; } */
+span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
 span.addElided { color:#9c740b; }
@@ -184,16 +198,17 @@ span.addNegated { color:darkred; }
 span.addTradName { color:purple; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-/* span.add { color:grey; } */
-/* span.untr { font-size:0.8em; color:grey; text-decoration:line-through; } */
+span.add { color:#6b6b6b; }
+
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 span.noLinkYet { background-color:darkgrey; color:white }
 
-/* span.ul { color:darkGrey; } */
+span.ul { color:darkGrey; }
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
 span.nominaSacra { text-decoration: underline; text-underline-offset: 0px; text-decoration-color: #575959; } /* text-decoration-thickness: 1px; text-decoration-skip-ink: auto; font-weight: 560; */
-/* span.nd {} */
+span.nd {}
 /* span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 
 span.OET-RV_verseTextChunk {}

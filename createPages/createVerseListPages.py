@@ -38,6 +38,13 @@ CHANGELOG:
     2026-10-24 Exclude all study/translation note collections from verse-list pages.
     2026-10-26 Avoid an empty body line when introductions have no metadata or text.
     2026-10-26 Pass the navigation profile when retrieving original-numbered verse metadata.
+    2026-10-30 Omit empty verse-zero pages and unavailable view links; add GHT colours and a colour toggle.
+    2026-10-30 Place the colour control immediately before the OET-RV entry.
+    2026-10-30 Preserve James in modernised name alternatives and KJB comparisons.
+    2026-10-30 Add reference resources supported by entity tags and explicit topic selections.
+    2026-11-01 Direct omitted footnotes and cross-references to the full parallel entry.
+    2026-11-01 Pass the current reference to the common version and mode navigation.
+    2026-11-01 Prefer available sections for version links beside verse text.
 """
 from pathlib import Path
 import os
@@ -54,15 +61,18 @@ from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
+from studyReferences import passageReferenceMaterial
 from Bibles import getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_GHT_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createParallelVersePages import getPlainText
+from bibleNavigation import preferredReadingHref
 from createSectionPages import findSectionNumber
 from versification import navigationVersification, parallelVersePassage, versePortionHtml
-from navigation import navigationBookList
+from navigation import navigationBookList, verseNavigationFirstVerses
+from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 # from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
@@ -70,7 +80,7 @@ from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSH
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-26' # by RJH
+LAST_MODIFIED_DATE = '2026-10-30'
 SHORT_PROGRAM_NAME = "createVerseListPages"
 PROGRAM_NAME = "OpenBibleData createVerseListPages functions"
 PROGRAM_VERSION = '0.2.3'
@@ -238,6 +248,11 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'VerseList', state, currentBBB=BBB )
 
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
+    displayedVersions = [version for version in parallelVersions
+        if not state.TEST_VERSIONS_ONLY or version in state.TEST_VERSIONS_ONLY]
+    firstVerses = verseNavigationFirstVerses(BBB, numChapters, displayedVersions, state, requireVerseZeroText=True)
+    interlinearFirstVerses = (verseNavigationFirstVerses(BBB, numChapters, ('OET-LV','OET-RV'), state, requireVerseZeroText=True)
+        if BBB in state.booksToLoad['OET'] else {})
 
     vLinksList = []
     detailsLink = f''' <a title="Show details about these works" href="{'../'*(BBBLevel)}AllDetails.htm#Top">©</a>'''
@@ -249,40 +264,44 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
 
-            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
+            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{firstVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
+                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V{firstVerses[chp]}.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
 
-            introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
-            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
-            rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
-                    else f' <a title="Next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
+            firstVerse = firstVerses.get(c, 0)
+            introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter heading" href="C{c}V0.htm#__ID__">I</a> ' if c>0 and firstVerse==0 else ''}'''
+            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{firstVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
+            rightCLink = f' <a title="Go to first chapter" href="C1V{firstVerses[1]}.htm#__ID__">►</a>' if c==-1 \
+                    else f' <a title="Next chapter" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters \
                     else ''
             numVerses = 0 if c == -1 else referenceBible.getNumVerses(BBB, c)
             if numVerses is None: # something unusual
                 logging.error( f"createVerseListPagesForBook: no verses found for {BBB} {C}" )
                 continue
             verseEntriesForChapterMap = {} # (versionAbbreviation, C) -> {V: (entries, context)} bulk-fetched per chapter
-            for v in range( 0, numVerses+1 ):
+            for v in range(firstVerse, numVerses+1):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
                 # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
-                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
+                                for vv in ([0] if c>0 and firstVerse==0 else []) + list(range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1)) if vv!=v] )}</p><!--vsLst-->'''
                 greekWords = {}; greekVersionKeysHtmlSet = set()
 
                 # The following all have a __ID__ string than needs to be replaced
                 if v > 3:
-                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V1.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
-                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
+                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V{firstVerse}.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
+                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>firstVerse \
                         else f'<a title="Previous chapter (last verse)" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
+                        else '<a title="Previous page (book intro)" href="Intro.htm#__ID__">←</a> ' if c==1 \
                         else ''
-                # NOTE below: C1V0 may not exist in the version but usually there's uW TNs for 1:0
-                rightVLink = f' <a title="Next page is first chapter intro" href="C1V0.htm#__ID__">→</a>' if c==-1 \
+                rightVLink = f' <a title="Next page (first chapter)" href="C1V{firstVerses[1]}.htm#__ID__">→</a>' if c==-1 \
                         else f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
+                        else f' <a title="Next chapter (first verse)" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">→</a>' if c<numChapters \
                         else ''
-                parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top">║</a>'''
-                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+                parallelFilename = 'Intro.htm' if c==-1 else f'C{C}V{v}.htm'
+                parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/{parallelFilename}#Top">║</a>'''
+                hasInterlinearPage = c in interlinearFirstVerses and v>=interlinearFirstVerses[c]
+                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if hasInterlinearPage else ''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
 
@@ -417,6 +436,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                 elif versionAbbreviation == 'OET-LV':
                                     textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations( f"VerseListTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"VerseListFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"VerseListFN={parRef}", footnotesHtml)
                                     assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV simple BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
+                                elif versionAbbreviation == 'GHT':
+                                    textHtml = do_GHT_HTMLcustomisations( f'VerseListTxt={parRef}', textHtml )
                                 elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
                                     textHtmlBSB = textHtml # Save it for later comparison
                                 elif versionAbbreviation == 'MSB' and textHtml: # assuming BSB comes BEFORE MSB
@@ -477,7 +498,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                                                             allowOptions=True ) # Can return words like 'hateth/hates'
                                     if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                         modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                                .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
+                                                                .replace( 'Yames', 'James' ).replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yew', 'Jew' ) \
                                                                 .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yubilee', 'Jubilee' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                     modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
 
@@ -501,7 +522,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                         cleanedModernisedKJB1769TextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
                                                                                 .replace( '⇔ ', '' )
                                                                                 .replace( '<br> ', '') # (with en-space) after Psalm titles
-                                                                                .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
+                                                                                .replace( 'J', 'Y' ).replace( 'Yames', 'James' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
                                                                                 .replace( '<span class="wj">', '' ).replace( '</span>', '' )
                                                                                 .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
                                                                                 .strip() ) # Not sure why there's so many superfluous spaces in this text ???
@@ -677,18 +698,11 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     #     footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenSRGNT( BBB, C, V, footnoteFreeTextHtml, verseEntryList, state )
                                     # Add an extra link to the CNTR collation page
                                     collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[sourceBBB]}{sourceC.zfill(3)}{sourceV.zfill(3)}'
-                                    try:
-                                        # NOTE: We close the previous paragraph, but leave the key paragraph open
-                                        keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
-    <br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong).</small>'''
-                                    except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
-                                        keysHtml = ''
                                     if textHtml:
                                         textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
                                     if SRtranscription:
                                         textHtml = f'''{textHtml}
     <BR>  ({SRtranscription.replace('<br>','  ')})'''
-                                    textHtml = f'{textHtml}{keysHtml}'
 
                                 elif versionAbbreviation == 'UHB':
                                     if sourceBBB=='PSA' and 'class="d"' in textHtml:
@@ -716,13 +730,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     # assert checkHtml( f'brightenedUHB0 {parRef}', textHtml, segmentOnly=True )
                                     uhbTranscription = grammaticalKeysHtmlList = None
                                     collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.bos_to_osis_book_code(sourceBBB)}&c={sourceC}&v={sourceV}'
-                                    try:
-                                        keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
-    <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                    except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
-                                        keysHtml = ''
                                     textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
-                                    textHtml = f'{textHtml}{keysHtml}'
                                     # assert checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
 
                                 if textHtml:
@@ -797,10 +805,10 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     #     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     #     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                     #         assert '</div>' in textHtml
-                                    #         vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
+                                    #         vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     #     else: # no <div>s so should be ok to put inside a paragraph
                                     #         assert '</div>' not in textHtml
-                                    #         vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                    #         vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                     # elif versionAbbreviation=='OET-RV':
                                     if versionAbbreviation=='OET-RV':
                                         # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case). Also ensure both 'OET-RV' and 'OET' work as # ids on the URL
@@ -816,35 +824,35 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                             assert '</div>' not in textHtml
                                             vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span id="OET"></span><span id="C{sourceC}V{sourceV}" class="wrkName"><a id="C{sourceC}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET</a> <small>(<a id="V{sourceV}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{sourceBBB}_S{sectionNumber}.htm#V{sourceV}">OET-RV</a>)</small></span> {textHtml}</p>'''
                                     elif versionAbbreviation=='Wycl': # Just add a bit about it being translated from the Latin (not the Greek)
-                                        versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                        versionNameLink = preferredReadingHref(BBBLevel, versionAbbreviation, sourceBBB, sourceC, sourceV, state)
                                         assert '<div' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
                                         vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                     else: # for all the others
-                                        versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                        versionNameLink = preferredReadingHref(BBBLevel, versionAbbreviation, sourceBBB, sourceC, sourceV, state)
                                         if textHtml.startswith( "(Same as " ):
                                             assert versionAbbreviation in SECOND_PAIRED_VERSIONS
                                             versionAbbreviation1 = FIRST_PAIRED_VERSIONS[SECOND_PAIRED_VERSIONS.index(versionAbbreviation)]
                                             versionNameLink1 = f'''{'../'*BBBLevel}{versionAbbreviation1}/details.htm#Top''' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation1}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
-                                            # vHtml = f'''<p id="{versionAbbreviation}" class="closeSimpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                            parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
-                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
+                                            # vHtml = f'''<p id="{versionAbbreviation}" class="closeSimpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                            parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
+                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
                                             continue # Nothing else to add for (this identical verse for) this version
                                         elif '<div ' in textHtml: # it might be a book intro XXXor footnotesXXX wrong it seems
                                             assert '</div>' in textHtml
                                             assert sourceChapter == -1 # Book intro
                                             # print( f"{parRef} {versionAbbreviation} {textHtml[textHtml.index('<div'):]}")
-                                            vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
+                                            vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                         else: # no <div>s so should be ok to put inside a paragraph
                                             assert '</div>' not in textHtml
                                             vHtml = f'''<p id="{versionAbbreviation}" class="{'closeSimpleVerse' if versionAbbreviation in ('OET-LV','UST','MSB','BLB','WMBB','KJB-1611')
-                                                                                        else 'simpleVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                                                                        else 'simpleVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
 
                                 else: # no textHtml -- can include verses that are not in the OET-LV
                                     # if parRef in ancientRefsToPrint: print( f"zzzz {versionAbbreviation} {parRef} No textHtml" )
                                     if sourceChapter==-1 or sourceVerse==0: # For these edge cases, we don't want the version abbreviation appearing
                                         vHtml = ''
                                     else:
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*BBBLevel}OET/missingVerses.htm">◘</a></p>'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'passage'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*BBBLevel}OET/missingVerses.htm">◘</a></p>'''
 
                                 if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
                                     greekVersionKeysHtmlList = []
@@ -887,7 +895,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                 elif sourceBBB in thisBible:
                                     # print( f"No {c}:{v} verse in {versionAbbreviation} {BBB} in {thisBible}"); assert False, "We want to stop here"
                                     warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} {sourceC}:{sourceV} verse available'
-                                    versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{sourceBBB}_{sourceAdjC}.htm#V{sourceV}'''
+                                    versionNameLink = preferredReadingHref(BBBLevel, versionAbbreviation, sourceBBB, sourceC, sourceV, state)
                                     vHtml = f'''<p id="{versionAbbreviation}" class="simpleVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
                                     logging.warning( warningText )
                                 else:
@@ -896,6 +904,13 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     logging.warning( warningText )
 
                         if vHtml:
+                            # Simple view keeps note tooltips, but omits the note bodies.
+                            # Open the full parallel entry instead of a nonexistent local note.
+                            parallelFilename = 'Intro.htm' if c == -1 else f'C{C}V{V}.htm'
+                            noteDestination = f"{'../'*BBBLevel}par/{BBB}/{parallelFilename}#{versionAbbreviation}"
+                            vHtml = re.sub(r'href="#((?:fn|xr)[^"]+)"',
+                                lambda match: match[0] if f'id="{match[1]}"' in vHtml
+                                else f'href="{noteDestination}"', vHtml)
                             vHtml = versePortionHtml(vHtml, versionAbbreviation, nativeRef, (BBB,C,V), portionNumber, combinedLabel)
                             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                             assert checkHtml( f'VerseList vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
@@ -914,18 +929,25 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
-                top = makeTop( BBBLevel, None, 'simpleVerse', None, state ) \
+                top = makeTop( BBBLevel, None, 'simpleVerse', None, state, (BBB,C,V) ) \
                         .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, parallel, verse, list, view, display, {ourTidyBBB}' )
-                if BBB in state.booksToLoad['OET']:
+                if hasInterlinearPage:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
+                colourClasses = {name for names in re.findall(r'\bclass="([^"]*)"', parallelHtml) for name in names.split()}
+                colourButton = ('<p class="key"><button type="button" id="coloursButton" title="Hide grammatical colours" '
+                    'onclick="hide_show_colours()">C</button> Grammatical colours</p>'
+                    if colourClasses.intersection(GREEK_CASE_CLASS_KEY_DICT) or colourClasses.intersection(HEBREW_CASE_CLASS_KEY_DICT) else '')
+                if colourButton:
+                    colourButtonPosition = max(0, parallelHtml.find('<p id="OET-RV"'))
+                    parallelHtml = f'{parallelHtml[:colourButtonPosition]}{colourButton}\n{parallelHtml[colourButtonPosition:]}'
                 parallelHtml = f'''{top}<!--verse list page-->
 {adjBBBLinksHtml}
 {chapterLinksParagraph}
 {vLinksPar}
 <h1>Simple verse list for {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
-{parallelHtml}{NEWLINE if parallelHtml else ''}{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
+{passageReferenceMaterial(BBBLevel,(BBB,C,V),state.navigationVersification,state)}{parallelHtml}{NEWLINE if parallelHtml else ''}{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, None, 'simpleVerse' )}'''
                 assert checkHtml( f'VerseList {parRef}', parallelHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
@@ -946,7 +968,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # Create index page for this book
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
-    top = makeTop( BBBLevel, None, 'simpleVerse', None, state ) \
+    top = makeTop( BBBLevel, None, 'simpleVerse', None, state, (BBB,) ) \
             .replace( '__TITLE__', f"{ourTidyBBB} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
     # For Psalms, we don't list every single verse
@@ -967,7 +989,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # print( f"\n{chapterLinksParagraph=}" )
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, None, 'simpleVerse', None, state ) \
+    top = makeTop( level, None, 'simpleVerse', None, state, (BBB,) ) \
             .replace( '__TITLE__', f"{ourTidyBBB} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
     # For Psalms, we don't list every single verse

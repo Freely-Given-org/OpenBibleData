@@ -14,7 +14,7 @@ The preliminary static website can currently be viewed (in an iFrame) at
 [OpenEnglishTranslation.Bible](https://OpenEnglishTranslation.Bible/) at the <em>Reader</em> link
 or directly at [Freely-Given.org/OBD](https://Freely-Given.org/OBD/).
 
-Currently the static website is approx 300 GB with around 1.3 million separate pages
+Currently the static website is approx 400 GB with around 4.4 million separate pages
 and includes almost forty Bible translations along with multiple Hebrew and Greek originals,
 and then parallel and interlinear verse pages with two sets of notes for translators,
 related/parallel section pages, topic pages, and reference pages including two Bible dictionaries.

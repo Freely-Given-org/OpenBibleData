@@ -141,7 +141,7 @@ span.qt { font-style:italic; }
 span.sc { font-size:0.8em; } /* Small caps */
 span.sig { font-family:cursive; }
 span.rem { font-size:0.8em; color:grey; }
-span.wh { font-style:italic; }
+span.wh {} /* Hebrew word */
 span.qs { font-style:italic; } /* Selah */
 span.qac { color:darkOrchid; font-style:italic; } /* Acrostic letter */
 span.jmp {}

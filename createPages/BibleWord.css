@@ -1,4 +1,9 @@
 body.container {}
+/* 2026-10-31 Bounded occurrence lists and filters also fit narrow screens. */
+#occurrenceFilters label { display:block; margin:0.4em 0; }
+#occurrenceFilters select, #occurrenceFilters input { max-width:100%; }
+#occurrenceRows { overflow-wrap:anywhere; }
+#occurrenceRows li { margin-bottom:0.5em; }
 div.header {}
 div.footer { margin:50px; }
 
@@ -95,6 +100,18 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 span.wj { color:saddlebrown; }
 
 /* For our Hebrew Strongs pages */
+/* 2026-10-30: Keep BDB prose continuous and make its nested senses readable. */
+div.BDB { max-width:75em; line-height:1.6; }
+/* Indented refinements reuse the class declarations read by loadCSSStyles. */
+  .BDB p { margin-top:0.4em; margin-bottom:0.4em; }
+  .BDB ul { list-style:none; padding-left:1.6em; margin-top:0.4em; margin-bottom:0.6em; }
+  .BDB li.Sense { margin-bottom:0.6em; }
+  .BDB span.senseNum { vertical-align:baseline; font-size:1em; color:inherit; margin-right:0.4em; }
+  .BDB span.word, .BDB span.foreign { unicode-bidi:isolate; }
+  .BDB span.word { font-size:1.1em; }
+  .BDB span.Em, .BDB span.Asp { font-style:italic; }
+  .BDB span.ref { background-color:transparent; }
+  .BDB span.ref a { text-decoration:underline; text-underline-offset:0.15em; }
 p.Key { font-weight:bold; }
 span.HebrewWord {}
 span.Def { font-weight:bold; }
@@ -123,3 +140,9 @@ span.ndORD { font-size:.75em; } /* text-decoration:overline; text-decoration-sty
 span.sig { font-family:cursive; }
 
 span.ul { color:darkGrey; }
+div.dcWordTable { overflow-x: auto; max-width: 100%; }
+  div.dcWordTable td { overflow-wrap: anywhere; }
+/* 2026-10-31 Optional native DC prologue excerpts. */
+div.bookIntro {}
+p.is1 { font-weight:bold; font-size:1.3em; }
+p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }

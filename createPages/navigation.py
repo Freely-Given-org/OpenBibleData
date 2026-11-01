@@ -11,11 +11,16 @@ CHANGELOG:
     2026-10-23 Preserve RV-native destinations in combined OET section pages.
     2026-10-24 Centralise OET/traditional book ordering, abbreviations and names.
     2026-10-26 Include declared titles and source Psalm headings in verse navigation.
+    2026-10-30 Allow study views to require actual verse-zero text before linking or building it.
+    2026-11-01 Let OET previous/next book controls skip books hidden by the 66-book preference.
+    2026-11-01 Keep version-switching index links free of unmappable introductory anchors.
+    2026-11-01 Resolve combined OET chapter links against RV numbering and stored verse bridges.
 """
 import logging
 import re
 
 import bos_books_codes_py
+from BibleOrgSys.BibleOrgSysGlobals import BOOKLIST_66
 from openbibledata_rust import getOETTidyBBB, getOETBookName
 from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus, VersificationMappingError
 from settings import reorderBooksForOETVersions
@@ -26,23 +31,28 @@ VERSE_BOOK_NAVIGATION_VIEWS = ('ParallelVerse', 'InterlinearVerse', 'VerseList',
                              'ParallelIndex', 'InterlinearIndex', 'VerseListIndex')
 
 
-def verseNavigationFirstVerses(BBB, numChapters, versions, state):
+def verseNavigationFirstVerses(BBB, numChapters, versions, state, *, requireVerseZeroText=False):
     """Start at zero for scripture titles, including unnumbered Psalm d headings.
 
     BOS declares titles that participate in verse-number mappings. Other Psalm
     headings (e.g. Psalm 11) are stored as chapter introductions; inspect their
     mapped source entries without treating ordinary introductions as verses.
+    With requireVerseZeroText, a declared address alone is insufficient: at
+    least one displayed translation must supply a heading or verse text.
     """
     firstVerses = {}
-    chapterCache = {}
     profile = state.navigationVersification
     for c in range(1, numChapters+1):
         reference = (BBB, str(c), '0')
         title = _mapReference(profile, profile, (*reference, None))
         firstVerses[c] = 0 if title.status == MappingStatus.EXACT else 1
-        if BBB != 'PSA' or firstVerses[c] == 0:
+        if not requireVerseZeroText and (BBB != 'PSA' or firstVerses[c] == 0):
             continue
+        firstVerses[c] = 1
+        chapterCache = {} # Bound temporary source entries to this chapter.
         for version in versions:
+            if version in ('OET','TOSN','TTN','SOTN','UTN'):
+                continue
             bible = state.preloadedBibles.get(version)
             if bible is None:
                 continue
@@ -50,8 +60,8 @@ def verseNavigationFirstVerses(BBB, numChapters, versions, state):
                 portions, _label = parallelVersePassage(version, bible, reference, state, chapterCache)
             except (KeyError, VersificationMappingError):
                 continue # This edition does not supply a heading at this address.
-            if any('\\d ' in entries if isinstance(entries, str)
-                   else any(entry.getMarker() == 'd' for entry in entries)
+            if any(bool(entries.strip()) if isinstance(entries, str)
+                   else any(entry.getMarker() in ('d','v~') and entry.getCleanText().strip() for entry in entries)
                    for _ref, entries, _context in portions):
                 firstVerses[c] = 0
                 break
@@ -81,6 +91,36 @@ def bookName(BBB, workAbbreviation):
     """Name for a book link's hover text, matching its containing page."""
     return (getOETBookName(BBB) if usesOETBookNames(workAbbreviation)
             else bos_books_codes_py.get_english_name_nr(BBB))
+
+
+def oetBookNavigationLinks(books, BBB, workAbbreviation, previousLink, nextLink, *, sectionIndex=False):
+    """Keep both display choices in the page; never restrict which pages are built.
+
+    A directly opened additional book still offers the nearest visible books
+    on either side. Other editions retain their original navigation.
+    """
+    if not usesOETBookNames(workAbbreviation):
+        return previousLink, nextLink
+    if BBB in books:
+        bookIndex = books.index(BBB)
+        before, after = books[:bookIndex], books[bookIndex+1:]
+    else: # Introductory matter can have a page without an entry in the book list.
+        before = ['index'] if 'index' in books else []
+        after = [book for book in books if book != 'index']
+    limitedLinks = []
+    for direction, candidates, original in (('Previous', reversed(before), previousLink), ('Next', iter(after), nextLink)):
+        target = next((book for book in candidates if book == 'index' or book in BOOKLIST_66), None)
+        if target is None:
+            limited = ''
+        else:
+            title = f'{direction} book: {bookAbbreviation(target, workAbbreviation)}' if sectionIndex \
+                else f'{direction} (book index)' if target == 'index' else f'{direction} book'
+            arrow = ('←' if direction == 'Previous' else '→') if sectionIndex else ('◄' if direction == 'Previous' else '►')
+            anchor = f'<a title="{title}" href="{target}.htm#Top">{arrow}</a>'
+            limited = f'{anchor} ' if direction == 'Previous' else f' {anchor}'
+        limitedLinks.append(original if limited == original else
+            f'<span data-oet-books="all">{original}</span><span data-oet-books="66">{limited}</span>')
+    return tuple(limitedLinks)
 
 
 def navigationBookList(books, state, pageType):
@@ -209,6 +249,10 @@ def mapHtmlLinks(html, sourceVersion, level, state, *, segmentType='', reference
                 # anchors. Their addresses are not the OET/eng chapter system.
                 return f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'
             ref = _pageReference(BBB,C,section,anchor,sourceVersion,state)
+            if versionBar and ref is None and anchor:
+                # Book indexes have no C-1V0 or verse-bridge anchors. Keep the
+                # available book destination when there is no verse to map.
+                return f'<a{before}href="{href.split("#", 1)[0]}#Top"{after}>{label}</a>'
             view = 'byDoc' if m[3] == 'Doc' else 'byC'
             # Section IDs are edition-specific, even with identical numbering.
             # Version switching uses the retained verse in a chapter page.
@@ -232,12 +276,21 @@ def mapHtmlLinks(html, sourceVersion, level, state, *, segmentType='', reference
             target, ref = pageVersion, (reference[0], m[1], m[2] or '1')
         if ref is None or target is None:
             return match[0]
-        refs = mappedReferences(ref, sourceVersion, target, state)
+        oetChapter = target == 'OET' and view == 'byC' and 'OET-RV' in state.BibleVersifications
+        refs = mappedReferences(ref, sourceVersion, 'OET-RV' if oetChapter else target, state)
         if not refs:
             return label
+        if oetChapter and hasattr(getattr(state, 'preloadedBibles', {}).get('OET-RV'), 'getPassageData'):
+            # The combined chapter's unprefixed anchors belong to the RV. A
+            # stored bridge has one anchor, and a Psalm heading may have none.
+            from referencePassages import passageContextHref
+            destinations = dict.fromkeys(href for r in refs
+                if (href := passageContextHref(level, r, 'OET', state)))
+            return ' / '.join(f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'
+                              for href in destinations) or label
         # Preserve links within a native edition, and stable same-system page
         # anchors. Only links crossing numbering systems need new destinations.
-        if (not canonical and _versionProfile(sourceVersion, state) == _versionProfile(target, state)
+        if (not canonical and not oetChapter and _versionProfile(sourceVersion, state) == _versionProfile(target, state)
                 and not getattr(state, 'BibleSourceBookLayouts', {}).get(sourceVersion)
                 and not getattr(state, 'BibleSourceBookLayouts', {}).get(target)):
             return f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0-1.0
 //! Pure-Rust port of the page chrome builders from `html.py`:
 //! `makeTop`, `_makeNavigationLinks`, `_makeWorkNavListParagraph`, and
 //! `makeViewNavListParagraph`.
@@ -8,6 +9,7 @@
 //!
 //! Byte-for-byte output fidelity with the original Python functions is
 //! guarded by createPages/golden_makeTop.py.
+//! Changelog: 2026-11-01 Adapt missing-book links after section-to-chapter rewrites.
 
 use std::collections::{HashMap, HashSet};
 
@@ -498,15 +500,16 @@ fn work_nav_list_core(
                 continue; // Should always be able to link to these
             }
             // Adapt the link up to the next higher-level folder
-            let mut replacement = "";
-            if let Some(ff) = file_or_folder {
-                if let Some(ix) = ff.find('/').filter(|&ix| ix > 0 && ix < ff.len() - 1) {
-                    replacement = &ff[..ix + 1];
-                }
-            } else {
+            if file_or_folder.is_none() {
                 return Err(PageChromeError::NoFilenameForAdaptation(entry));
             }
-            new_version_list.push(entry.replace(file_or_folder.unwrap(), replacement));
+            // The href may already have changed from bySec to byC. Replacing
+            // the original filename including its directory would then do nothing.
+            let href_start = entry.find("href=\"").ok_or_else(|| PageChromeError::MalformedEntry(entry.clone()))? + 6;
+            let href_end = href_start + entry[href_start..].find('"').ok_or_else(|| PageChromeError::MalformedEntry(entry.clone()))?;
+            let href = &entry[href_start..href_end];
+            let folder = href.rsplit_once('/').map_or(prefix.clone(), |(parent, _)| format!("{parent}/"));
+            new_version_list.push(entry.replacen(href, &folder, 1));
         } else {
             new_version_list.push(entry);
         }
@@ -815,6 +818,15 @@ mod tests {
         assert!(wrk.contains("href=\"../../UHB/byC/GEN_C1.htm\""));
         assert!(wrk.contains("href=\"../../OET/byC/GEN_C1.htm\""));
         assert!(!wrk.contains("\">GEN")); // sanity: entries link versions, not books
+    }
+
+    #[test]
+    fn test_missing_book_after_section_directory_rewrite() {
+        let mut cfg = test_config();
+        cfg.have_section_headings.remove("UHB");
+        let top = make_top_core(&cfg, 2, Some("T4T"), "section", Some("bySec/MRK.htm#C1V1")).unwrap();
+        assert!(top.contains("href=\"../../UHB/byC/\""));
+        assert!(!top.contains("UHB/byC/MRK"));
     }
 
     #[test]

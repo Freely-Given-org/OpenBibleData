@@ -74,6 +74,12 @@ CHANGELOG:
     2026-10-26 Restore missing book section indexes when accepting cached Bibles.
     2026-10-26 Read the sentence metadata profile and map page references to org,
                retaining complete groups and labelling unavailable metadata.
+    2026-10-27 Ignore all pickle variants when checking Bible source freshness.
+    2026-10-29 Merge the OET-LV DC sources and their word table; invalidate older two-folder caches.
+    2026-10-29 Apply explicit OET source identities to RV as well as LV, refreshing older RV caches.
+    2026-10-30 Render UTN lists and paragraphs, link individual verses to parallel pages,
+               and link passage ranges to their starting OET section.
+    2026-10-30 Preserve complete Tyndale scripture selections and add dictionary passage previews.
 """
 from datetime import datetime
 import os, os.path
@@ -82,7 +88,7 @@ import logging
 import json
 import re
 from functools import lru_cache
-from xml.etree.ElementTree import ElementTree, ParseError
+from xml.etree.ElementTree import ElementTree
 from xml.sax.saxutils import escape
 import shutil
 from collections import defaultdict
@@ -115,12 +121,13 @@ from versification import configureBibleVersification, _referenceLabel
 from html import checkHtml
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
+from utnMarkdown import livenUTNMarkdownLinks, formatUTNMarkdownBlocks
 
 
-LAST_MODIFIED_DATE = '2026-10-26' # by RJH
+LAST_MODIFIED_DATE = '2026-10-30' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.2'
+PROGRAM_VERSION = '1.1.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -227,19 +234,21 @@ def preloadVersions( state:State ) -> int:
                     for somePath in pickleFolderPath.iterdir():
                         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
                             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
-                        if somePath.is_file() and not str(somePath).endswith( state.PICKLE_FILENAME_END ):
+                        # Public, private and subset pickles are independent outputs,
+                        # not source edits that can invalidate another cached Bible.
+                        if somePath.is_file() and somePath.suffix != '.pickle':
                             fileMTime = somePath.stat().st_mtime # A large integer
                             if fileMTime > pickleMTime:
                                 pickleIsObsolete = True
                                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                                     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
                                 break
-                        elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
-                            if str(somePath).endswith ('derivedTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('derivedTexts/auto_edited_VLT_ESFM'):
+                        elif versionAbbreviation == 'OET-LV': # OT, DC and NT have separate folders
+                            if somePath.is_dir() and somePath.name in ('auto_edited_OT_ESFM','auto_edited_DC_ESFM','auto_edited_VLT_ESFM'):
                                 for someSubPath in somePath.iterdir():
                                     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
                                         dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
-                                    if someSubPath.is_file() and not str(someSubPath).endswith( state.PICKLE_FILENAME_END ):
+                                    if someSubPath.is_file() and someSubPath.suffix != '.pickle':
                                         fileMTime = someSubPath.stat().st_mtime # A large integer
                                         if fileMTime > pickleMTime:
                                             pickleIsObsolete = True
@@ -271,6 +280,14 @@ def preloadVersions( state:State ) -> int:
                                 continue
                             else: # for Bibles
                                 newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
+                                if (versionAbbreviation == 'OET-RV'
+                                    and hasattr(state, 'OET_SOURCE_BOOK_ALIASES')
+                                    and getattr(newBibleObj, '_OBDSourceBookAliases', None) != state.OET_SOURCE_BOOK_ALIASES):
+                                    raise SourceManifestMismatch('OET-RV cache predates the configured source book aliases')
+                                if (versionAbbreviation == 'OET-LV'
+                                    and 'OET-LV-DC' in state.BibleLocations
+                                    and getattr(newBibleObj, 'DCsourceFolder', None) != state.BibleLocations['OET-LV-DC']):
+                                    raise SourceManifestMismatch('OET-LV cache predates the configured DC source folder')
                                 if (versionAbbreviation in SUBSTITUTED_VERSIONS
                                     and getattr(newBibleObj, '_OBDSourceManifest', None)
                                         != sourceManifest(folderOrFileLocationPath)):
@@ -322,14 +339,16 @@ def preloadVersions( state:State ) -> int:
                         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
 
         if versionAbbreviation == 'OET-LV':
-            # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
+            # Load OT, DC and NT separately, then combine into one ESFM Bible object.
             thisBibleOT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-OT'], state )
             assert isinstance( thisBibleOT, ESFMBible.ESFMBible )
+            thisBibleDC = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-DC'], state )
+            assert isinstance( thisBibleDC, ESFMBible.ESFMBible )
             thisBibleNT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-NT'], state )
             assert isinstance( thisBibleNT, ESFMBible.ESFMBible )
             # print( f"{len(thisBibleOT)=} {len(thisBibleNT)=}" )
             thisBible = thisBibleOT
-            for bookObject in thisBibleNT:
+            for bookObject in (*thisBibleDC, *thisBibleNT):
                 # print( type(bookObject), bookObject.BBB )
                 assert bookObject.BBB not in thisBible.books
                 bookObject.containerBibleObject = thisBible
@@ -337,15 +356,21 @@ def preloadVersions( state:State ) -> int:
                 thisBible.books[bookObject.BBB] = bookObject
             # print( f"{len(thisBibleOT)=}" )
             # print( f"{len(thisBibleOT.ESFMWordTables)=}" )
-            for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
-                # print( f"{wordTableID=} {type(wordTable)=}")
-                thisBible.ESFMWordTables[wordTableID] = wordTable
+            # BOS resolves merged tables only for OT/NT, so load DC tables
+            # while their original source folder is still attached.
+            for wordTableID in thisBibleDC.ESFMWordTables:
+                if thisBibleDC.ESFMWordTables[wordTableID] is None:
+                    thisBibleDC.loadESFMWordFile(wordTableID)
+            for sourceBible in (thisBibleDC, thisBibleNT):
+                thisBible.ESFMWordTables.update(sourceBible.ESFMWordTables)
+                thisBible.ESFMColumnNameList.update(sourceBible.ESFMColumnNameList)
             # print( f"{len(thisBible.ESFMWordTables)=}" )
             # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
             thisBible.OTsourceFolder = thisBibleOT.sourceFolder
+            thisBible.DCsourceFolder = state.BibleLocations['OET-LV-DC']
             thisBible.NTsourceFolder = thisBibleNT.sourceFolder
             thisBible.sourceFolder = None
-            del thisBibleNT
+            del thisBibleDC, thisBibleNT
             state.preloadedBibles['OET-LV'] = thisBible
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
@@ -550,7 +575,28 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
         thisBible.loadAuxiliaryFiles = True
-        if 'ALL' in state.booksToLoad[versionAbbreviation]:
+        if versionAbbreviation in ('OET-RV','OET-LV'):
+            thisBible.preload()
+            # Explicit source aliases retain Greek Esdras/Daniel identities;
+            # generic USFM discovery does not recognise the source's DAG id.
+            sourceFiles = {}
+            for path in Path(folderOrFileLocation).glob(f'{versionAbbreviation}_*.ESFM'):
+                sourceBBB = path.stem.removeprefix(f'{versionAbbreviation}_')
+                BBB = state.OET_SOURCE_BOOK_ALIASES.get(sourceBBB, sourceBBB)
+                assert BBB not in sourceFiles, f'Duplicate {versionAbbreviation} source for {BBB}: {path}'
+                sourceFiles[BBB] = path.name
+            for BBB in sourceFiles:
+                assert bos_books_codes_py.is_valid_bos_book_code(BBB), f'Invalid {versionAbbreviation} book filename: {sourceFiles[BBB]}'
+            thisBible.availableBBBs = set(sourceFiles)
+            thisBible.possibleFilenameDict = sourceFiles
+            thisBible.maximumPossibleFilenameTuples = list(sourceFiles.items())
+            thisBible._OBDSourceBookAliases = state.OET_SOURCE_BOOK_ALIASES.copy()
+            requested = sourceFiles if 'ALL' in state.booksToLoad[versionAbbreviation] else state.booksToLoad[versionAbbreviation]
+            for BBB in requested:
+                if BBB in sourceFiles: # Other books belong to the other LV source folders.
+                    thisBible.loadBook(BBB, sourceFiles[BBB])
+            thisBible.lookForAuxiliaryFilenames()
+        elif 'ALL' in state.booksToLoad[versionAbbreviation]:
             thisBible.loadBooks() # So we can iterate through them all later
         else: # only load the specific books as we need them
             thisBible.preload()
@@ -1002,89 +1048,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, … )" )
 
-    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
-    searchStartIndex = 0
-    for _safetyCount in range( 870 ): # 54 was enough for TSN ACT 9:2
-        # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros, 800 for "Animals"
-        ixStart = html.find( 'href="?bref=', searchStartIndex )
-        if ixStart == -1: # none/no more found
-            break
-        ixCloseQuote = html.find( '"', ixStart+12 )
-        assert ixCloseQuote != -1
-        tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
-        if not tyndaleLinkPart and BBBorArticleName=='AlTaschith':
-            tyndaleLinkPart = 'Ps.58.1-2' # Fix encoding error
-        # print( f"{abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
-        if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
-            logging.critical( f"Ignoring Filament link in {abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
-            searchStartIndex = ixCloseQuote + 6
-            continue
-        tyndaleLinkPart = tyndaleLinkPart.replace( '–', '-' ) # Convert en-dash to hyphen, esp. for TOBD HoseaBookof : tyndaleLinkPart='Deut.27.9–29.29'
-        if '-' in tyndaleLinkPart: # then it's a verse range
-            if tyndaleLinkPart == 'Deut.31:30-32.44': tyndaleLinkPart = 'Deut.31.30-32.44' # Fix TTN encoding error in Psa 71:22
-            tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
-            tyndaleLinkPart = tyndaleLinkPart.split(',')[0] # Might also be a list (in the dict entries at least)
-            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
-            # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
-            # tBBB = english_name_to_bos_book_code( tBkCode )
-            if not tBBB:
-                if tBkCode=='Tb': tBBB = 'TOB'
-            assert tBBB
-            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else state.ALTERNATIVE_VERSION
-            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}''' # Because it's a range, we link to the chapter page
-            # print( f"   {ourNewLink=}" )
-        elif ',' in tyndaleLinkPart: # then it's a verse list (only found in dictionary entries)
-            tyndaleLinkPart = tyndaleLinkPart.split(',')[0]
-            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            assert tV.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
-            # tBBB = english_name_to_bos_book_code( tBkCode )
-            if not tBBB:
-                if tBkCode=='Tb': tBBB = 'TOB'
-            assert tBBB
-            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else state.ALTERNATIVE_VERSION
-            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}''' # Because it's a list, we link to the chapter page
-            # print( f"   {ourNewLink=}" )
-        elif tyndaleLinkPart.count( '.' ) == 1: # it's a chapter
-            tBkCode, tC = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
-            # tBBB = english_name_to_bos_book_code( tBkCode )
-            if not tBBB:
-                if tBkCode=='Tb': tBBB = 'TOB'
-            assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
-            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V1''' # Because it's a chapter, we link to the chapter page
-            # print( f"   {ourNewLink=}" )
-        else: # no hyphen or comma so it's not a range or list
-            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
-            # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
-            # tBBB = english_name_to_bos_book_code( tBkCode )
-            if not tBBB:
-                if tBkCode=='Tb': tBBB = 'TOB'
-            assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            ourNewLink = f'''{'../'*level}par/{tBBB}/C{tC}V{tV}.htm#Top''' # we link to the parallel verse page
-            # print( f"   {ourNewLink=}" )
-        html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
-        searchStartIndex = ixStart + 8
-    else: need_to_increase_Tyndale_bref_loop_counter
-
-    return html
+    from dictionaryPassages import livenTyndaleCitations
+    return livenTyndaleCitations(html,level,f'{abbrev}:{BBBorArticleName}',state,previews=abbrev=='TOBD')
 # end of Bibles.fixTyndaleBRefs
 
 
@@ -1093,7 +1058,6 @@ taOtherLinkRegEx = re.compile( 'rc://([^/]+?)/ta/man/(translate|checking)/(.+?)[
 tnHelpLinkRegEx = re.compile( '\\[(.+?)\\]\\(rc://\\*/tn/help/(.+?)\\)' )
 twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)\\]\\]' )
 twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
-markdownLinkRegex = re.compile( '\\[([^[]]*?)\\]\\(([^ ]*?)\\)' )
 NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
 def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str: # html
     """
@@ -1282,62 +1246,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     rest = f'{rest[:match.start()]}<a title="View uW TW article" href="https://Door43.org/u/unfoldingWord/en_tw/master/{noteClass}.html#{noteName}">{noteName}</a>{rest[match.end()-1:]}'
                     searchStartIndex = match.end() + 10 # Approx number of added characters
                 else: tn_tw_loop2_range_needs_increasing
-                # Replace markdown links with something more readable
-                searchStartIndex = 0
-                for _safetyCount in range( 100 ): # 45 wasn't enough for EXO 15:0, 94 wasn't enough for Lev 4:0
-                    match = markdownLinkRegex.search( rest, searchStartIndex )
-                    if not match: break
-                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found UTN markdown link {utnRef} {match=} {match.groups()=}" )
-                    newLink = match.group(1)
-                    if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
-                        # Probably something like: [13:20](../13/20.md)
-                        linkTarget = match.group(2)[3:-3]
-                        if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in UTN Rom 2:2
-                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Have scripture link {utnRef} {match.group(1)=} {linkTarget=}" )
-                        if linkTarget == 'front/intro':
-                            pass # TODO: We're being lazy here -- where do we find a book intro?
-                        elif linkTarget.count('/') == 2:
-                            lUUU, lC, lV = linkTarget.split( '/' ) # Something like '1TI' '01' '77'
-                            # Deal with book encoding issues in the uW notes
-                            if lUUU == 'i1kg': lUUU = '1Ki' # UTN Mat 17:0
-                            elif lUUU.lower() == '2kg': lUUU = '2Ki'
-                            assert len(lUUU) == 3, f"{lUUU=} {lC=} {lV=} {linkTarget=} from {utnRef} '{rest}'"
-                            lC = int(lC)
-                            try: lV = int(lV)
-                            except ValueError:
-                                if lV.startswith('.'): lV = int(lV[1:])
-                            lBBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code( lUUU )
-                            newLink = f'<a href="../{lBBB}/C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
-                        elif linkTarget.count('/') == 1:
-                            lC, lV = linkTarget.split( '/' ) # Something like '01' '17'
-                            lC = int(lC)
-                            try: lV = int(lV)
-                            except ValueError: # UTN EXO 4:20 has badly formatted link
-                                if lV.startswith('.'): lV = int(lV[1:])
-                            newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
-                        else:
-                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found UTN markdown link {utnRef} {match=} {match.groups()=}" )
-                            logging.error( f"formatUnfoldingWordTranslationNotes1 ({utnRef}) has unhandled markdown reference in '{rest}'" )
-                    elif match.group(2).startswith( './' ) and match.group(2).endswith( '.md' ):
-                        # Probably something like: [Mark 14:22–25](./22.md)
-                        linkTarget = match.group(2)[2:-3]
-                        # print( f"  Have scripture link {utnRef} {match.group(1)=} {linkTarget=}" )
-                        if linkTarget.count('/') == 0:
-                            lV = linkTarget
-                            newLink = f'<a href="C{C}V{lV}.htm#Top">{match.group(1)}</a>'
-                        else:
-                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found UTN markdown link {utnRef} {match=} {match.groups()=}" )
-                            logging.error( f"formatUnfoldingWordTranslationNotes2 ({utnRef}) has unhandled markdown reference in '{rest}'" )
-                    else:
-                        # e.g., From Ruth 3:9: [2:20](../02/20/zu5f)
-                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found UTN markdown link {utnRef} {match=} {match.groups()=}" )
-                        logging.error( f"formatUnfoldingWordTranslationNotes ({utnRef}) has unhandled markdown link in '{rest}'" )
-                    rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
-                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {utnRef} with {newLink=}, now {rest=}" )
-                    searchStartIndex = match.start() + len(newLink)
-                else:
-                    # logging.error( f"getContextVerseData found excess UTN markdown links in {_safetyCount} {utnRef} {rest=}" )
-                    raise ParseError( f"need_to_increase_max_MDLink_loop_count getContextVerseData found excess UTN markdown links in {_safetyCount} for {utnRef} {rest=}" )
+                rest = livenUTNMarkdownLinks( rest, level, BBB, C, V, state )
                 if BBB not in ('HAG','MAT'): # uW Hag 1:0, Mat 27:0 have formatting problems
                     assert 'rc://' not in rest, f"UTN {utnRef} {lastMarker=} {marker}='{rest}'"
                 while '**' in rest:
@@ -1355,64 +1264,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     assert '\\' not in rest, f"UTN {utnRef} {lastMarker=} {marker}='{rest}'"
                 # if utnRef=='RUT_2:0': print( f"\nUTN {utnRef} {rest=}" )
 
-                thisMarkdownHtml = ''
-                openPHtml = f'''<p class="UTN{'1' if lastMarker=='pi1' else ''}">'''
-                inParagraph = haveBlankLine = False
-                for line in rest.split( '\n' ):
-                    # print( f"  UTN {utnRef} {line=}" )
-                    if line.startswith( '#### '):
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h4>{line[5:]}</h4>"
-                    elif line.startswith( '####'):
-                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h4>{line[4:]}</h4>"
-                    elif line.startswith( '### '):
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h3>{line[4:]}</h3>"
-                    elif line.startswith( '###'):
-                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h3>{line[3:]}</h3>"
-                    elif line.startswith( '## '):
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h2>{line[3:]}</h2>"
-                    elif line.startswith( '##'):
-                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h2>{line[2:]}</h2>"
-                    elif line.startswith( '# '):
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h1>{line[2:]}</h1>"
-                    elif line.startswith( '#'):
-                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
-                        if inParagraph:
-                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
-                            inParagraph = False
-                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h1>{line[1:]}</h1>"
-                    elif line:
-                        if not inParagraph:
-                            thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}{openPHtml}"
-                            inParagraph = True
-                        thisMarkdownHtml = f'{thisMarkdownHtml}{line}'
-                    elif inParagraph:
-                        haveBlankLine = True
-                if inParagraph:
-                    thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                thisMarkdownHtml = formatUTNMarkdownBlocks( rest, utnRef )
                 # if utnRef=='RUT_2:0': print( f"\nUTN2 {utnRef} {thisMarkdownHtml}" )
                 assert checkHtml( f'UTN {utnRef}', thisMarkdownHtml, segmentOnly=True )
                 tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}{thisMarkdownHtml}'''
@@ -1542,7 +1394,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
             refCVpart = [f'{refCVpart[0]} {refCVpart[1]}'] # Put it back together again (and handle properly below)
         elif refBBB=='PSA' and ':' not in refCVpart[0] and refCVpart[1] in ('header',):
             refCVpart = [f'{refCVpart[0]}:0']
-    assert isinstance( refCVpart, list ) and len(refCVpart)==1 and isinstance( refCVpart[0], str ), f"{refBBB} {refCVpart=} from {givenRefString=}"
+    assert isinstance( refCVpart, list ) and len(refCVpart)==1 and isinstance( refCVpart[0], str ), f"{thisBible.abbreviation} {refBBB} {refCVpart=} from {givenRefString=}"
     refCVpart = refCVpart[0]
 
     verseEntryList, contextList = InternalBibleEntryList(), None

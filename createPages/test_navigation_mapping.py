@@ -7,6 +7,10 @@ CHANGELOG:
     2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-23 Distinguish shared OET/RV section links from version switching.
     2026-10-26 Cover unnumbered Psalm headings and their exact interlinear word rows.
+    2026-10-30 Check native Hebrew word filenames in both interlinear directions.
+    2026-10-30 Check local lexical links and the Greek source word in both orders.
+    2026-10-31 Check repeated single-chapter excerpts and their context links.
+    2026-11-01 Check original-language anchors used by interlinear translation notes.
 """
 import ast
 from collections import defaultdict
@@ -30,6 +34,8 @@ import navigation as nav
 import oetWords as words
 import versification as vf
 from oetPassages import _namespaceIds
+from lexicalLinks import interlinearReferenceCells
+from studyReferences import passageReferenceMaterial
 
 try:
     import openbibledata_rust as rust
@@ -48,6 +54,9 @@ def functionFromFile(filename, name, namespace):
 class NavigationTests(unittest.TestCase):
     def setUp(self):
         self.state = State()
+        # These mapping-only tests must not inherit other tests' loaded Bibles
+        # from State's class-level dictionary. Stored-anchor cases have fixtures.
+        self.state.preloadedBibles = {}
         self.addCleanup(vf._mapReference.cache_clear)
 
     def test_native_links_and_labels_with_idempotent_conversion(self):
@@ -61,6 +70,13 @@ class NavigationTests(unittest.TestCase):
         html = '<a href="../../OET-LV/byC/MAL_C4.htm">LV</a>'
         mapped = nav.mapHtmlLinks(html, 'OET', 2, self.state, versionBar=True)
         self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19', mapped)
+
+    def test_version_switch_intro_has_no_nonexistent_index_anchor(self):
+        for view in ('C', 'Sec'):
+            html = f'<a href="../../ULT/by{view}/GEN.htm#C-1V0">ULT</a>'
+            mapped = nav.mapHtmlLinks(html, 'OET-RV', 2, self.state, versionBar=True)
+            self.assertIn(f'ULT/by{view}/GEN.htm#Top', mapped)
+            self.assertNotIn('#C-1', mapped)
 
     def test_native_chapter_controls_to_english(self):
         html = '<a href="../../OET/byC/JOL_C4.htm#Top">OET</a><a href="JOL_C3.htm#Top">Previous</a>'
@@ -126,6 +142,7 @@ class WordMappingTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.state = State()
+        self.state.ALL_TEST_REFERENCE_PAGES_FLAG = True
         self.state.preloadedBibles = {}
         self.state.OETRefData = {'word_tables':{}, 'word_table_indexes':{}}
         logging.disable(logging.CRITICAL)
@@ -205,6 +222,22 @@ class WordMappingTests(unittest.TestCase):
         self.table()
         self.assertEqual(words.translationNoteQuoteData('MAL','4','1',self.state), ([],[]))
 
+    def test_repeated_single_chapter_excerpts_link_out_without_repeating_verse_ids(self):
+        for version in ('OET-LV','OET-RV'):
+            self.bible(version,'JUD','\\c 1\n\\v 10 A word.\n')
+        self.state.booksToLoad={version:['JDE'] for version in ('OET','OET-LV','OET-RV')}
+        namespace=dict(globals(),state=self.state,VersificationMappingError=vf.VersificationMappingError,
+            convertVerseEntryListToHtml=lambda *args,**kwargs:'<span id="V10"></span><a href="#V10">Return</a>',
+            do_OET_RV_HTMLcustomisations=lambda _,text:text,do_OET_LV_HTMLcustomisations=lambda _,text:text)
+        combined=''
+        for short in ('LV','RV'):
+            generate=functionFromFile('createOETReferencePages.py',f'get_OET_{short}_verse_HTML',namespace)
+            html=generate(2,'JDE','1','10')
+            self.assertIn(f'OET-{short}/byC/JDE_C1.htm#C1V10',html)
+            self.assertNotIn('href="#V10"',html)
+            combined+=html+html
+        self.assertNotIn('id="V10"',combined)
+
     @unittest.skipIf(rust is None, 'Build the OBD Rust extension for this integration test')
     def test_rust_note_matcher_uses_mapped_text_and_rows(self):
         self.bible('OET-LV','MAL','\\c 3\n\\v 1 Wrong¦1.\n\\v 19 voice¦2 God¦3.\n')
@@ -241,11 +274,13 @@ class WordMappingTests(unittest.TestCase):
         html = self.interlinearGenerator()(2,'MAL',4,1,self.state)
         self.assertNotIn('Wrong',html)
         self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19',html)
-        self.assertIn('ref/HebWrd/2.htm',html)
-        self.assertIn('ref/HebWrd/3.htm',html)
-        self.assertNotIn('ref/HebWrd/1.htm',html)
+        self.assertEqual(html.count('ref/HebWrd/MALc3v19w1.htm#Top'), 2)
+        self.assertEqual(html.count('ref/HebWrd/MALc3v19w2.htm#Top'), 2)
+        self.assertNotIn('ref/HebWrd/MALc3v1w1.htm',html)
+        self.assertNotRegex(html, r'ref/HebWrd/\d+\.htm')
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids),len(set(ids)))
+        self.assertIn('UHB', ids) # Translation-note comparisons link to this word table.
 
     def interlinearGenerator(self):
         namespace = dict(globals(), State=State, DEBUGGING_THIS_MODULE=False, NEWLINE='\n',
@@ -255,6 +290,7 @@ class WordMappingTests(unittest.TestCase):
             combinedPassageLabel=vf.combinedPassageLabel, _mapReference=vf._mapReference,
             parallelVersePassage=vf.parallelVersePassage,
             getGreekWordpageFilename=lambda n,s:f'{n}.htm',
+            getHebrewWordpageFilename=rust.getHebrewWordpageFilename,
             VersificationMappingError=vf.VersificationMappingError,
             getPositiveLeadingInt=lambda s:int(re.match(r'\d+',s)[0]),
             getFormattedSILOpenTranslationNotes=lambda *a:'', formatUnfoldingWordTranslationNotes=lambda *a:'',
@@ -280,8 +316,8 @@ class WordMappingTests(unittest.TestCase):
         self.assertIn('Director¦1. David¦2.', html)
         self.assertNotIn('Refuge¦3.', html)
         for n in (1,2):
-            self.assertIn(f'ref/HebWrd/{n}.htm', html)
-        self.assertNotIn('ref/HebWrd/3.htm', html)
+            self.assertIn(f'ref/HebWrd/PSAc11v1w{n}.htm#Top', html)
+        self.assertNotIn('ref/HebWrd/PSAc11v1w3.htm', html)
         self.assertNotIn('No OET-RV', html)
 
     @unittest.skipIf(rust is None, 'Build the OBD Rust extension for this integration test')
@@ -301,9 +337,12 @@ class WordMappingTests(unittest.TestCase):
                 self.assertIn('Combined passage: English ACT 19:40–41',html)
                 self.assertIn('native ACT 19:40',html)
                 self.assertNotIn('alignment unavailable',html)
+                self.assertEqual(html.count('id="SR-GNT"'),1)
                 self.assertIn('OET-LV/byC/ACT_C19.htm#C19V40',html)
                 for word in (1,2):
                     self.assertEqual(html.count(f'ref/GrkWrd/{word}.htm#Top'),2)
+                self.assertEqual(html.count('ref/GrkStrng/G3056.htm#Top'),2)
+                self.assertEqual(html.count('<li lang="el">λόγος</li>'),2)
 
 
 if __name__ == '__main__':

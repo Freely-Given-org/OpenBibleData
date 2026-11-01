@@ -71,6 +71,15 @@ CHANGELOG:
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-23 Use the configured destination in the search-index command.
     2026-10-24 Build version navigation in OET or traditional order with matching book labels.
+    2026-10-29 Load and validate the independent OET-LV DC word table.
+    2026-10-30 Create UHG and UGG details pages and list them immediately after UTN in AllDetails.
+    2026-10-30 Prepare lexical associations before dependent dictionary and reference pages.
+    2026-10-30 Prepare topic and tagged-entity associations for study views.
+    2026-10-31 Copy the shared occurrence-list filtering script with site assets.
+    2026-10-31 Include progressive reference-index filtering with the site assets.
+    2026-11-01 Always generate dictionary licence details independently of loaded study notes.
+    2026-11-01 Copy the common Bible navigation script with the site assets.
+    2026-11-01 Prepare every version's section destinations before any parallel pages.
 """
 from pathlib import Path
 import os
@@ -104,10 +113,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-10-24' # by RJH
+LAST_MODIFIED_DATE = '2026-11-01' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.5'
+PROGRAM_VERSION = '1.4.6'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -147,7 +156,7 @@ def _createSitePages() -> bool:
     state.OETRefData = {} # This is where we will store all our temporary ref data
     state.OETRefData['word_tables'] = {}
     lvBible = state.preloadedBibles['OET-LV']
-    assert len(lvBible.ESFMWordTables) == 2, f"{len(lvBible.ESFMWordTables)=}"
+    assert 2 <= len(lvBible.ESFMWordTables) <= 3, f"{len(lvBible.ESFMWordTables)=}"
     # print( f"{lvBible.ESFMWordTables=}" )
     for wordTableFilename in lvBible.ESFMWordTables:
         assert wordTableFilename.endswith( '.tsv' )
@@ -161,6 +170,9 @@ def _createSitePages() -> bool:
             assert columnHeaders == 'Ref\tRowType\tMorphemeRowList\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags' # If not, probably need to fix some stuff
         elif '_NT_' in wordTableFilename:
             assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
+        elif '_DC_' in wordTableFilename:
+            from oetDeuterocanon import DC_COLUMN_HEADERS
+            assert columnHeaders == DC_COLUMN_HEADERS, f'{wordTableFilename}: {columnHeaders!r}'
 
     # Make a BCV index to the OET word tables
     #   Each OET-LV word table is a list of raw TSV row strings (row 0 is the header).
@@ -176,6 +188,11 @@ def _createSitePages() -> bool:
     state.OETRefData['word_table_indexes'] = {}
     for wordTableFilename in lvBible.ESFMWordTables:
         state.OETRefData['word_table_indexes'][wordTableFilename] = build_word_table_index( state.OETRefData['word_tables'][wordTableFilename] )
+
+    from lexicalLinks import prepareLexicalAssociations
+    prepareLexicalAssociations(state)
+    from studyReferences import prepareStudyAssociations
+    prepareStudyAssociations(state)
 
     # Determine our inclusive list of books for all versions
     allBBBs = set()
@@ -244,6 +261,21 @@ def _createSitePages() -> bool:
     assert 'discoveryResults' in state.preloadedBibles['OET-LV'].__dict__
     createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
 
+    # Fix up any missing haveSectionHeadings discovery flags and prebuild each version's section lists
+    #   sequentially BEFORE we start creating pages using forked processes
+    #   (forked children inherit our state, but any changes they make to their copy are lost when they exit)
+    for versionAbbreviation, thisBible in state.preloadedBibles.items():
+        if versionAbbreviation not in ('TTN',) \
+        and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
+        assert 'discoveryResults' in thisBible.__dict__
+        if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
+            thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
+        if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN') \
+        and thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+            createSectionLists( 2, thisBible, state ) # Prebuild the section lists (see note above)
+
     # Do individual verse pages first because they give more detailed error messages for source Bible formatting errors
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
@@ -255,21 +287,6 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
 
     if state.CREATE_BOOK_AND_OTHER_PAGES_FLAG:
-        # Fix up any missing haveSectionHeadings discovery flags and prebuild each version's section lists
-        #   sequentially BEFORE we start creating pages using forked processes
-        #   (forked children inherit our state, but any changes they make to their copy are lost when they exit)
-        for versionAbbreviation, thisBible in state.preloadedBibles.items():
-            if versionAbbreviation not in ('TTN',) \
-            and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-            assert 'discoveryResults' in thisBible.__dict__
-            if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
-                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
-                thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
-            if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN') \
-            and thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-                createSectionLists( 2, thisBible, state ) # Prebuild the section lists (see note above)
-
         state.chaptersWithImages = defaultdict( list )
         # Parse every stylesheet on the parent side now, BEFORE any forked
         #   multiprocessing children are created, so they all inherit the same
@@ -447,9 +464,12 @@ def _createSitePages() -> bool:
                 count += 1
             shutil.copy2( 'Bible.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'Dict.js', state.DESTINATION_FOLDER )
+            shutil.copy2( 'referenceOccurrences.js', state.DESTINATION_FOLDER )
+            shutil.copy2( 'referenceIndex.js', state.DESTINATION_FOLDER )
+            shutil.copy2( 'bibleNavigation.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'theme.js', state.DESTINATION_FOLDER )
-            count += 3
+            count += 7
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
@@ -512,7 +532,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','TOSN','TOBD','UBS','THBD','BMM','OBI']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','UHG','UGG','TOSN','TOBD','UBS','THBD','BMM','OBI']:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
@@ -692,10 +712,12 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['SOTN','UBS','THBD','PLBL','HAP','BMM','OBI']:
-        if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
-            versionAbbreviation = 'TOBD' # Put this one in instead
-
+    detailsVersions = ['OET'] + list(state.preloadedBibles) + ['SOTN','TOBD','UBS','THBD','PLBL','HAP','BMM','OBI']
+    # The grammars are reference resources, so include them even when a reduced build omits UTN.
+    grammarIndex = detailsVersions.index('UTN') + 1 if 'UTN' in detailsVersions else len(detailsVersions)
+    detailsVersions[grammarIndex:grammarIndex] = ['UHG','UGG']
+    detailsVersions = list(dict.fromkeys('TOBD' if version == 'TTN' else version for version in detailsVersions))
+    for versionAbbreviation in detailsVersions:
         versionName =  state.BibleNames[versionAbbreviation]
 
         if 'OET' not in versionAbbreviation and versionAbbreviation not in ('TOBD',): # (These don't have a BibleLocation)
@@ -739,6 +761,8 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
         aboutLink = f'<a href="__LEVEL__{versionAbbreviation}/">{versionAbbreviation}</a>' \
                         if versionAbbreviation=='OET' or versionAbbreviation in state.preloadedBibles else versionAbbreviation
+        if versionAbbreviation in ('UHG','UGG'):
+            aboutLink = f'<a href="__LEVEL__ref/{versionAbbreviation}/index.htm#Top">{versionAbbreviation}</a>'
         detailsHtml = f'''{extraHTML}<h2>About the ‘{aboutLink}’</h2>{state.detailsHtml[versionAbbreviation]['about']}
 <h2>Copyright</h2>{state.detailsHtml[versionAbbreviation]['copyright']}
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}'''
@@ -920,7 +944,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
-<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 1.3 million of them) created for several main reasons:</p>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 4.4 million of them) created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)

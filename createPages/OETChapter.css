@@ -143,6 +143,7 @@ span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+small.versificationRef {}
 p.d { font-style:italic; }
 p.sp { font-weight:bold; } /* Speaker */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -167,7 +168,7 @@ span.sc { font-size:0.8em; } /* Small caps */
 span.qs { font-style:italic; } /* Selah */
 span.sig { font-family:cursive; }
 span.rem { font-size:0.8em; color:grey; }
-span.wh {}
+span.wh {} /* Hebrew word */
 
 span.OET-RV_chapterIntro {}
 span.OET-LV_verseTextChunk {}
@@ -199,7 +200,6 @@ span.xt {}
 
 /* OET specialist ADD subfields */
 span.addArticle { color:#b55f5f; }
-span.unusedArticle { color:lavender; }
 span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
@@ -214,6 +214,8 @@ span.addTradName { color:purple; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:#6b6b6b; }
+
+span.unusedArticle { color:lavender; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 

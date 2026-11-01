@@ -120,6 +120,8 @@ CHANGELOG:
     2026-10-23 Recognise small.class selectors in the Python CSS loader, matching Rust.
     2026-10-24 Add book-list colour groups and retain each selected book's group and size.
     2026-10-24 Apply consistent OET/traditional book navigation, retaining names for the selected book.
+    2026-11-01 Mark additional books in OET menus for the persistent 66/all display preference.
+    2026-11-01 Add shared Bible navigation with mapped version/mode destinations.
 """
 import logging
 import re
@@ -134,7 +136,7 @@ import openbibledata_rust
 
 from settings import State, state
 from openbibledata_rust import checkHtml as _rustCheckHtml
-from navigation import VERSE_BOOK_NAVIGATION_VIEWS, bookNavigationOrder, bookAbbreviation, bookName
+from navigation import VERSE_BOOK_NAVIGATION_VIEWS, usesOETBookNames, bookNavigationOrder, bookAbbreviation, bookName
 from openbibledata_rust import (
     do_OET_RV_HTMLcustomisations as _rustDo_OET_RV_HTMLcustomisations,
     do_OET_LV_HTMLcustomisations as _rustDo_OET_LV_HTMLcustomisations,
@@ -147,10 +149,10 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-31' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.12'
+PROGRAM_VERSION = '1.0.13'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -186,7 +188,7 @@ def _getPageChromeConfig( state:State ):
     return _pageChromeConfigCache[1]
 # end of html._getPageChromeConfig
 
-def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
+def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State, navigationReference:tuple=() ) -> str:
     """
     Create the very top part of an HTML page.
 
@@ -203,7 +205,10 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
     from navigation import mapHtmlLinks
+    from bibleNavigation import bibleNavigation,PAGE_MODES
     top = openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
+    if pageType in PAGE_MODES:
+        return bibleNavigation(top,level,versionAbbreviation,pageType,versionSpecificFileOrFolderName,state,navigationReference)
     return mapHtmlLinks(top, versionAbbreviation or 'OET', level, state, versionBar=True)
 # end of html.makeTop
 
@@ -246,7 +251,8 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         or workAbbrevPlus in OET_HTML_PLUS_LIST \
         or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
 
-    newList = (['TEST',workAbbrevPlus] if state.TEST_MODE_FLAG else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if state.TEST_MODE_FLAG else [])
+    prefix = (['TEST',workAbbrevPlus] if state.TEST_MODE_FLAG else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if state.TEST_MODE_FLAG else [])
+    newList = [' '.join(prefix)]
     bookLinks = {}
     for aLink in linksList:
         hrefMatch = re.search(r'href="([^"]+)"', aLink)
@@ -290,9 +296,14 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             contents = label
         else:
             contents = f'<a title="{bookName(BBB, workAbbrevPlus)}" href="{bookLinks[BBB]}">{label}</a>'
-        newList.append(f'<span class="{" ".join(bookClasses)}">{contents}</span>')
+        separator = ' ' if any(newList) else ''
+        if usesOETBookNames(workAbbrevPlus) and BBB not in BOOKLIST_OT39 and BBB not in BOOKLIST_NT27:
+            # Hide the separator with the book, avoiding gaps where omitted books were.
+            newList.append(f'<span class="{" ".join(bookClasses)}" data-oet-books="all">{separator}{contents}</span>')
+        else:
+            newList.append(f'{separator}<span class="{" ".join(bookClasses)}">{contents}</span>')
 
-    return f'''<p class="bkLst">{' '.join( newList )}</p><!--bkLst-->'''
+    return f'''<p class="bkLst">{''.join( newList )}</p><!--bkLst-->'''
 # end of html.makeBookNavListParagraph
 
 
@@ -481,7 +492,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     className = className.removesuffix( ',\n' )
                 assert ' ' not in className and ',' not in className, f"{className=}"
                 if lsStylesheetName != 'common.css':
-                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                    assert 'span' not in lsStyleDict[className], f"Duplicated entry in {lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                 lsStyleDict[className].append( 'span' )
                 lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'p.' ):

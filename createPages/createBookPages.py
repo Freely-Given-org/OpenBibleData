@@ -33,6 +33,8 @@ CHANGELOG:
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-24 Use traditional book abbreviations on other versions' document pages.
+    2026-11-01 Honour the OET 66/all book preference in previous/next document links.
+    2026-11-01 Mark the selected book in reading-page navigation.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -46,7 +48,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
 from settings import State, state, CNTR_BOOK_ID_MAP
-from navigation import bookAbbreviation
+from navigation import bookAbbreviation, oetBookNavigationLinks
 from oetPassages import renderOETSideBySideChunks
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -74,7 +76,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     This is the per-book body of createOETBookPages.
     Returns (True, BBB, the list of filenames written).
     """
-    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state, currentBBB=BBB )
     iBkList = ['index'] + state.BBBsToProcess['OET']
     processedFilenames = []
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
@@ -124,6 +126,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         except ValueError: # this BBB wasn't there in the list for this work
             bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
+        bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, 'OET', bkPrevNav, bkNextNav)
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {state.JAMES_NAME_NOTE_HTML_PARAGRAPH}
@@ -167,6 +170,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     bkIx = iBkList.index( BBB )
     bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
     bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+    bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, 'OET', bkPrevNav, bkNextNav)
 
     bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}
@@ -328,6 +332,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
+        selectedBookNavListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state, currentBBB=BBB)
         processedBBBs.append( BBB )
 
         try: # May give ValueError if this book doesn't not occur in this translation
@@ -337,6 +342,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         except ValueError: # this BBB wasn't there in the list for this work
             bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
+        bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, thisBible.abbreviation, bkPrevNav, bkNextNav)
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else '' if bos_books_codes_py.is_single_chapter_book(BBB) else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
@@ -371,7 +377,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = f'''{top}<!--book page-->
-{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{selectedBookNavListParagraph}
 {bkHtml}
 {makeBottom( level, thisBible.abbreviation, 'book' )}'''
         assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )

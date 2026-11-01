@@ -24,6 +24,7 @@ p.chLst {background-color:paleGreen; }
 .chLst a { text-decoration:none; }
 
 p.pageNav { text-align:center; font-size:1.8em; }
+p.dNav { text-align:center; font-size:1.8em; }
 
 /* For bkList class */
 span.XX { color:purple; }
@@ -77,3 +78,53 @@ p.FullKingdom { color:blue; }
 p.NorthernKingdom { color:purple; }
 p.SouthernKingdom { color:green; }
 p.BothKingdoms { color:orange; }
+
+/* 2026-10-31 OET passage previews on kingdom pages and reference indexes.
+ * Match the existing chapter/verse styles, including the full ADD family. */
+small.versificationRef {}
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
+span.d { color:sienna; }
+span.qs { font-style:italic; } /* Selah */
+span.li1 {}
+span.nd {}
+span.ndORD { font-size:.75em; }
+span.wj { color:saddlebrown; }
+span.sig { font-family:cursive; }
+span.ul { color:darkGrey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.unsure { text-decoration:underline; text-decoration-style:dotted; text-decoration-color:orange; }
+span.noLinkYet { background-color:darkgrey; color:white; }
+span.nominaSacra { text-decoration:underline; text-underline-offset:0px; text-decoration-color:#575959; }
+span.synonParr { vertical-align:super; font-size:0.8em; color:green; }
+span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; }
+span.synthParr { vertical-align:super; font-size:0.8em; color:blue; }
+
+span.addArticle { color:#b55f5f; }
+span.addCopula { color:#55847c; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:green; }
+span.addElided { color:#9c740b; }
+span.addOwner { color:darkOrchid; }
+span.addPronoun { color:darkgreen; }
+span.addReferent { color:darkblue; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:#807625; }
+span.addNegated { color:darkred; }
+span.addTradName { color:purple; }
+span.addReword { text-decoration:underline; text-decoration-style:dotted; text-decoration-color:#6b6b6b; }
+span.RVadd { color:#505050; }
+span.add { color:#6b6b6b; }
+
+/* Grammatical classes on links and spans, as in OETChapter.css. */
+.hebVrb {} /* { background-color:khaki; } */
+.hebNeg {} /* { background-color:crimson; } */
+.hebEl {} /* { background-color:powderBlue; } */
+.hebYhwh {} /* { background-color:paleGreen; } */
+.grkNom {} /* { background-color:lightgreen; } */
+.grkAcc {} /* { background-color:orange; } */
+.grkGen {} /* { background-color:pink; } */
+.grkDat {} /* { background-color:cyan; } */
+.grkVoc {} /* { background-color:orchid; } */
+.grkVrb {} /* { background-color:khaki; } */
+.grkNeg {} /* { background-color:crimson; } */

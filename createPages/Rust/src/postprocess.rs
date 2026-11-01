@@ -22,6 +22,8 @@
 //!
 //! Changelog:
 //!  2026-09-09: Initial port of the helpers listed above.
+//!  2026-10-30: Use supplied native Hebrew filenames for interlinear word links.
+//!  2026-10-30: Render shared local lexical and grammar cells prepared by Python.
 
 use std::collections::HashMap;
 
@@ -317,6 +319,7 @@ pub fn build_interlinear_word_rows(
     wordpage_filenames: &[String],
     lv_english: &HashMap<usize, Vec<String>>,
     rv_english: &HashMap<usize, Vec<String>>,
+    reference_cells: Option<&[Vec<String>]>,
 ) -> String {
     let mut parts: Vec<String> = Vec::new();
     let prefix_up = "../".repeat(level);
@@ -326,7 +329,8 @@ pub fn build_interlinear_word_rows(
             "<li><ol class=\"titles\">\n  <li lang=\"el\">Greek word</li>\n  <li lang=\"el_LEMMA\">Greek lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strongs</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">OET Gloss</li>\n  <li lang=\"en_GLOSS\">VLT Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_PERCENT\">Confidence</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
                 .to_string(),
         );
-        for (row, (&word_number, wpf)) in rows.iter().zip(word_numbers.iter().zip(wordpage_filenames)) {
+        for (index, (row, (&word_number, wpf))) in rows.iter().zip(word_numbers.iter().zip(wordpage_filenames)).enumerate() {
+            let cells = reference_cells.and_then(|all| all.get(index));
             let tags_html = build_tags_html(row.get(11).map(String::as_str).unwrap_or_default(), &prefix_up);
             let word_class = if row.get(7).map(String::as_str).unwrap_or_default() == "X" {
                 "word"
@@ -347,19 +351,23 @@ pub fn build_interlinear_word_rows(
             // Python: `row[8][:-1]` (drops a trailing G/S suffix from the
             // Strongs #, leaving the number for the BibleHub link).
             let row8_link = if row8.is_empty() { "" } else { &row8[..row8.len() - 1] };
+            let lemma = cells.and_then(|c| c.first()).map(String::as_str)
+                .unwrap_or_else(|| row.get(2).map(String::as_str).unwrap_or_default());
+            let strongs = cells.and_then(|c| c.get(1)).cloned().unwrap_or_else(||
+                format!("<a href=\"https://BibleHub.com/greek/{}.htm\">{}</a>", row8_link, row8));
+            let morphology = cells.and_then(|c| c.get(2)).cloned().unwrap_or_else(||
+                format!("{}{}", row.get(9).map(String::as_str).unwrap_or_default(), row.get(10).map(String::as_str).unwrap_or_default()));
             parts.push(format!(
-                "<li><ol class=\"{}\">\n  <li lang=\"el\">{}</li>\n  <li lang=\"el_LEMMA\">{}</li>\n  <li lang=\"en_TRANS\">{}{}{}</li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_STRONGS\"><a href=\"https://BibleHub.com/greek/{}.htm\">{}</a></li>\n  <li lang=\"en_MORPH\">{}{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_CAPS\">{}</li>\n  <li lang=\"en_TAGS\">{}</li>\n  <li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"{}ref/GrkWrd/{}#Top\">{}</a></li>\n</ol><!--{}--></li>",
+                "<li><ol class=\"{}\">\n  <li lang=\"el\">{}</li>\n  <li lang=\"el_LEMMA\">{}</li>\n  <li lang=\"en_TRANS\">{}{}{}</li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_STRONGS\">{}</li>\n  <li lang=\"en_MORPH\">{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_CAPS\">{}</li>\n  <li lang=\"en_TAGS\">{}</li>\n  <li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"{}ref/GrkWrd/{}#Top\">{}</a></li>\n</ol><!--{}--></li>",
                 word_class,
                 row.get(1).map(String::as_str).unwrap_or_default(),
-                row.get(2).map(String::as_str).unwrap_or_default(),
+                lemma,
                 untr_open,
                 lt_words,
                 untr_close,
                 rv_words,
-                row8_link,
-                row8,
-                row.get(9).map(String::as_str).unwrap_or_default(),
-                row.get(10).map(String::as_str).unwrap_or_default(),
+                strongs,
+                morphology,
                 row.get(5).map(String::as_str).unwrap_or_default(),
                 vlt_gloss,
                 caps,
@@ -375,7 +383,8 @@ pub fn build_interlinear_word_rows(
             "<li><ol class=\"titles\">\n  <li lang=\"he\">Hebrew word</li>\n  <li lang=\"he_LEMMA\">Hebrew lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strongs</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
                 .to_string(),
         );
-        for (row, &word_number) in rows.iter().zip(word_numbers) {
+        for (index, (row, (&word_number, wpf))) in rows.iter().zip(word_numbers.iter().zip(wordpage_filenames)).enumerate() {
+            let cells = reference_cells.and_then(|all| all.get(index));
             let tags_html = build_tags_html(row.get(18).map(String::as_str).unwrap_or_default(), &prefix_up);
             let gloss = pick_gloss(row);
             let strongs_list: Vec<String> = row
@@ -386,20 +395,24 @@ pub fn build_interlinear_word_rows(
                 .map(|nn| format!("<a href=\"https://BibleHub.com/hebrew/{}.htm\">{}</a>", nn, nn))
                 .collect();
             let caps = opt_or_dash(row.get(12).map(String::as_str).unwrap_or_default());
+            let lemma = cells.and_then(|c| c.first()).map(String::as_str)
+                .unwrap_or_else(|| row.get(2).map(String::as_str).unwrap_or_default());
+            let strongs = cells.and_then(|c| c.get(1)).cloned().unwrap_or_else(|| strongs_list.join(","));
+            let morphology = cells.and_then(|c| c.get(2)).cloned().unwrap_or_else(||
+                format!("{}-{}", row.get(16).map(String::as_str).unwrap_or_default(), row.get(5).map(String::as_str).unwrap_or_default()));
             parts.push(format!(
-                "<li><ol class=\"word\">\n  <li lang=\"he\">{}</li>\n  <li lang=\"he_LEMMA\">{}</li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_STRONGS\">{}</li>\n  <li lang=\"en_MORPH\">{}-{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_CAPS\">{}</li>\n  <li lang=\"en_TAGS\">{}</li>\n  <li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"{}ref/HebWrd/{}.htm#Top\">{}</a></li>\n</ol><!--word--></li>",
+                "<li><ol class=\"word\">\n  <li lang=\"he\">{}</li>\n  <li lang=\"he_LEMMA\">{}</li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_TRANS\"><b>{}</b></li>\n  <li lang=\"en_STRONGS\">{}</li>\n  <li lang=\"en_MORPH\">{}</li>\n  <li lang=\"en_GLOSS\">{}</li>\n  <li lang=\"en_CAPS\">{}</li>\n  <li lang=\"en_TAGS\">{}</li>\n  <li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"{}ref/HebWrd/{}#Top\">{}</a></li>\n</ol><!--word--></li>",
                 row.get(7).map(String::as_str).unwrap_or_default(),
-                row.get(2).map(String::as_str).unwrap_or_default(),
+                lemma,
                 join_english_words(lv_english.get(&word_number)),
                 join_english_words(rv_english.get(&word_number)),
-                strongs_list.join(","),
-                row.get(16).map(String::as_str).unwrap_or_default(),
-                row.get(5).map(String::as_str).unwrap_or_default(),
+                strongs,
+                morphology,
                 gloss,
                 caps,
                 tags_html,
                 prefix_up,
-                word_number,
+                wpf,
                 word_number,
             ));
         }
@@ -589,7 +602,7 @@ mod tests {
         lv.insert(1, vec!["In".to_string(), "beginning".to_string()]);
         let mut rv = HashMap::new();
         rv.insert(1, vec!["In".to_string(), "beginning".to_string()]);
-        let out = build_interlinear_word_rows(2, true, &rows, &numbers, &filenames, &lv, &rv);
+        let out = build_interlinear_word_rows(2, true, &rows, &numbers, &filenames, &lv, &rv, None);
         for expected_fragment in [
             "<ol class=\"titles\">",
             "<li lang=\"el\">λόγος</li>",
@@ -625,7 +638,7 @@ mod tests {
             "Nesting".to_string(),
             "L123".to_string(), // tags
         ]];
-        let out = build_interlinear_word_rows(3, false, &rows, &[55], &[], &HashMap::new(), &HashMap::new());
+        let out = build_interlinear_word_rows(3, false, &rows, &[55], &["GENc1v1w1.htm".into()], &HashMap::new(), &HashMap::new(), None);
         for expected_fragment in [
             "<ol class=\"titles\">",
             "<li lang=\"he\">בראשית</li>",
@@ -636,9 +649,25 @@ mod tests {
             "Location=<a title=\"View place details\" href=\"../../../ref/Loc/123.htm#Top\">123</a>",
             "</ol><!--word--></li>",
             "<li lang=\"en_TRANS\"><b>-</b></li>",
-            "<li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"../../../ref/HebWrd/55.htm#Top\">55</a></li>",
+            "<li lang=\"en_WORDNUM\"><a title=\"View word details\" href=\"../../../ref/HebWrd/GENc1v1w1.htm#Top\">55</a></li>",
         ] {
             assert!(out.contains(expected_fragment), "missing {expected_fragment:?} in {out}");
+        }
+    }
+
+    #[test]
+    fn interlinear_rows_use_verified_reference_cells_in_both_languages() {
+        let cells = vec![vec![
+            "<a href=\"lemma.htm#Top\">lemma</a>".into(),
+            "<a href=\"strong.htm#Top\">Strong’s</a>".into(),
+            "<a href=\"grammar.htm#Top\">morphology</a>".into(),
+        ]];
+        for nt in [false, true] {
+            let rows = vec![vec![String::new(); 19]];
+            let out = build_interlinear_word_rows(2, nt, &rows, &[1], &["word.htm".into()],
+                &HashMap::new(), &HashMap::new(), Some(&cells));
+            for cell in &cells[0] { assert!(out.contains(cell)); }
+            assert!(!out.contains("BibleHub.com"));
         }
     }
 }

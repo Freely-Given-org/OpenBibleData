@@ -136,6 +136,19 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 show the selected occurrence even when the example list is truncated.
     2026-10-23 Omit the verse-block separator when punctuation, notes, unused variants,
                 or unloaded TEST books have no focused verses.
+    2026-10-29 Add native DC chapter word details with independent source and gloss metadata.
+    2026-10-30 Link every Hebrew and Greek grammar page to its copyright and licence details.
+    2026-10-30 Link BDB citations using their original Hebrew numbering and retain readable XML formatting.
+    2026-10-30 Repair reference index, person/place navigation, top anchors and chapter citations.
+    2026-10-30 Restore grammar article and section references and validate contents targets.
+    2026-10-30 Add mapped OET grammar comparisons, verified word examples and local grammar destinations.
+    2026-10-30 Add reciprocal entity links, recorded passages and tagged words; correct swapped Abraham/Joseph references.
+    2026-10-30 Connect word, lemma and Strong’s pages to verified lexical resources.
+    2026-10-31 Sort Strong’s examples in OET order and link/highlight exact word occurrences.
+    2026-10-31 Add complete bounded occurrence lists, form/gloss filters and edition context links.
+    2026-10-31 Make indexes searchable, add glosses and dictionary destinations, and link available statistics books.
+    2026-11-01 Use occurrence filenames for Greek semantic referent links.
+    2026-11-01 Group searchable word spellings with readable occurrences and include DC Greek words.
   """
 from pathlib import Path
 import os
@@ -150,6 +163,16 @@ from functools import cache
 import docutils.core
 from docutils.parsers.rst import roles
 from docutils import nodes
+from grammarLinks import grammarReferenceRole, expandGrammarContents, addGrammarPassages, localiseGrammarLinks, grammarMorphologyExamples
+from referenceEntities import (loadReferenceEntities, entityRelationships, entityPassages,
+                               entityTaggedWords, entityRelatedResources, selectedPassageControls)
+from referencePassages import parseReferenceSelection, referenceCitationLink
+from referenceIndexes import (referenceIndexLinks,filterableIndex,lemmaIndexLink,strongIndexEntry,
+                              statisticsBookLink,transliterateIndexLinks,wordIndexRecord,
+                              groupWordIndex,wordIndex,dcWordIndexRecords)
+from lexicalLinks import lexicalResourceLinks, lemmaFilename,prepareLexicalAssociations
+from referenceOccurrences import (prepareStrongOccurrences,orderedReferences,occurrenceContextLinks,
+    createOccurrencePages,occurrenceBrowseLink,wordOccurrenceBrowseLink,lemmaOccurrenceSummary)
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
@@ -160,9 +183,10 @@ import bos_books_codes_py
 
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
-from navigation import mapHtmlLinks
+from navigation import mapHtmlLinks, referenceHref
+from versification import _mapReference
 from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
-from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
+from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus, VersificationMappingError
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
@@ -170,7 +194,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-10-23' # by RJH
+LAST_MODIFIED_DATE = '2026-10-30' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.8'
@@ -196,9 +220,9 @@ IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = (
     ('Hevel/Abel', 'Abel', ('GEN_4:2',)),
     ('Abram', 'Abraham', ('GEN_11:26',)),
     ('Lot', 'Lot', ('GEN_11:27',)),
-    ('Malki-Tsedek/Melchizedek', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Abraham', 'Abraham', ('GEN_30:24',)),
-    ('Yosef/Joseph (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Malki-Tsedek/Melchizedek', 'Melchisedec', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Abraham', 'Abraham', ('GEN_17:5',)),
+    ('Yosef/Joseph (one of twelve)', 'Joseph', ('GEN_30:24','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
     ('Mosheh/Moses', 'Moses', ('EXO_2:10',)),
     ('Aaron/Aharon', 'Aaron', ('EXO_4:14',)),
     ('Yehoshua/Joshua', 'Joshua', ('EXO_17:9',)),
@@ -871,6 +895,8 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages for OET…" )
 
+    createOccurrencePages(level+1,outputFolderPath/'Occurrences',state)
+
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing OT word forms for OET…" )
     # Here we create our Dicts and Lists that we'll make the reference pages from
@@ -958,6 +984,9 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 
     create_statistics_pages( level+1, outputFolderPath.joinpath( 'Stats/' ), state )
 
+    from oetDeuterocanon import createDCWordPages, DC_WORD_TABLE
+    createDCWordPages(level+1, outputFolderPath / 'DCWrd', state)
+
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
@@ -965,7 +994,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, reference, lists' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<h1 id="Top">Reference lists main contents page</h1>
+{referenceIndexLinks(level,state)}<h1 id="Top">Reference lists main contents page</h1>
 <h2>{state.SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/index.htm#Top">Hebrew words index</a> <a href="HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
@@ -973,7 +1002,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="GrkWrd/index.htm#Top">Greek words index</a> <a href="GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="GrkLem/index.htm#Top">Greek lemmas index</a> <a href="GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="UGG/index.htm#Top">Greek grammar index</a></p>
-<p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/index.htm#Top">Bible statistics</a></p>
 {makeBottom( level, None, 'referenceIndex' )}'''
@@ -1000,17 +1029,10 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    # Register the 'ref' role ---
-    def fallback_ref_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
-        # Cleans up Sphinx refs like "Click Here <target_label>" down to just "Click Here"
-        clean_text = text.split("<")[0].strip()
-        return [nodes.inline(rawtext, clean_text)], []
-
-    roles.register_local_role("ref", fallback_ref_role)
-
-
     # Provide context path to publish_string
     rst_folderpath = Path( '/srv/Bibles/unfoldingWordHelps/en_uhg/content/' )
+    referenceRole = grammarReferenceRole(rst_folderpath)
+    roles.register_local_role('ref', referenceRole)
     docutils_settings = {
         'report_level': 3 if state.TEST_MODE_FLAG else 5, # 1 shows every warning, 5 is completely quiet
         'halt_level': 5, # Prevents small warnings from breaking execution
@@ -1043,25 +1065,14 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
                 .replace( 'image:: images/', f'image:: {rst_folderpath}/images/' ) \
                 .replace( 'include:: includes/', f'include:: {rst_folderpath}/includes/' ) # This last one makes the include path absolute
             if rst_filename.stem == 'index':
-                rst_content = rst_content.replace( '.. toctree::\n   :maxdepth: 2\n', '' ) # Only Sphinx knows about that, not docutils
+                rst_content = expandGrammarContents(rst_content, rst_folderpath)
 
         # Convert the rst to html using docutils package
+        referenceRole.sourcePath = rst_filepath
         html_bytes = docutils.core.publish_string( source=rst_content, writer_name='html', settings_overrides=docutils_settings )
         html_text = html_bytes.decode( 'utf-8' )
 
         # Do our customisations
-        if rst_filename.stem == 'index':
-            there_yet = False
-            new_lines = []
-            for line in html_text.replace('</blockquote>','\n</blockquote>').split( '\n' ): # Implement a simple index structure
-                new_lines.append( line )
-                if line.startswith( '<blockquote>' ):
-                    there_yet = True
-                    continue
-                if not there_yet: continue
-                if ' ' not in line and '<' not in line and len(line)>=4:
-                    new_lines[-1] = f'<br><a href="{line}.htm#Top">{line}</a>'
-            html_text = '\n'.join( new_lines )
         # TODO: What should 'wordIndex' be below
         top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Grammar{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
@@ -1075,15 +1086,20 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.23: https://docutils.sourceforge.io/" />
 <title>&lt;string&gt;</title>''', f'''{top}
-<h1 id="Top">unfoldingWord Hebrew Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a></h1>''' ) \
+<h1 id="Top">unfoldingWord Hebrew Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a> <a title="Show details about this work" href="{'../'*level}UHG/details.htm#Top">©</a></h1>''' ) \
                     .replace( '</body>\n</html>', makeBottom( level, None, 'word' ) ) # TODO: What should 'word' be???
 
+        if rst_filename.stem=='index':
+            html_text = html_text.replace('</h1>','</h1>'+referenceIndexLinks(level,state,includeCore=True),1)
+        html_text = addGrammarPassages(html_text,level,f'UHG/{rst_filename.name}',state)
+        html_text = html_text.replace('</body>',grammarMorphologyExamples(f'UHG/{rst_filename.name}',level,state)+'</body>')
         # Save the HTML file
         html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ).replace( 'fihtm', 'first' ) )
         with open( html_filepath, 'wt', encoding='utf-8' ) as uhgHtmlFile:
             uhgHtmlFile.write( html_text )
         num_pages += 1
 
+    localiseGrammarLinks(outputFolderPath,outputFolderPath.parent)
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Hebrew grammar pages." )
     return True
@@ -1101,17 +1117,11 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    # Register the 'ref' role ---
-    def fallback_ref_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
-        # Cleans up Sphinx refs like "Click Here <target_label>" down to just "Click Here"
-        clean_text = text.split("<")[0].strip()
-        return [nodes.inline(rawtext, clean_text)], []
-
-    roles.register_local_role("ref", fallback_ref_role)
-
-
     # Provide context path to publish_string
     rst_folderpath = Path( '/srv/Bibles/unfoldingWordHelps/en_ugg/content/' )
+    referenceRole = grammarReferenceRole(rst_folderpath,
+        {'../UHG/': Path('/srv/Bibles/unfoldingWordHelps/en_uhg/content/')})
+    roles.register_local_role('ref', referenceRole)
     docutils_settings = {
         'report_level': 3 if state.TEST_MODE_FLAG else 5, # 1 shows every warning, 5 is completely quiet
         'halt_level': 5, # Prevents small warnings from breaking execution
@@ -1139,42 +1149,14 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
                 .replace( 'image:: images/', f'image:: {rst_folderpath}/images/' ) \
                 .replace( 'include:: includes/', f'include:: {rst_folderpath}/includes/' ) # This last one makes the include path absolute
             if rst_filename.stem == 'index':
-                rst_content = rst_content.replace( '.. toctree::\n   :maxdepth: 2\n', '' ) # Only Sphinx knows about that, not docutils
+                rst_content = expandGrammarContents(rst_content, rst_folderpath)
 
         # Convert the rst to html using docutils package
+        referenceRole.sourcePath = rst_filepath
         html_bytes = docutils.core.publish_string( source=rst_content, writer_name='html', settings_overrides=docutils_settings )
         html_text = html_bytes.decode( 'utf-8' )
 
         # Do our customisations
-        if rst_filename.stem == 'index':
-            there_yet = False
-            new_lines = []
-            for line in html_text.replace('</blockquote>','\n</blockquote>').split( '\n' ): # Implement a simple index structure
-                if 'system-message' in line \
-                or 'Unexpected indentation' in line or 'unexpected unindent' in line \
-                or '<dl class' in line or '</dl>' in line:
-                    continue # These docutils error and warning lines will simply be omitted
-                new_lines.append( line )
-                if not there_yet and line.startswith( '<blockquote>' ):
-                    there_yet = True
-                    continue
-                if not there_yet: continue
-                if line.startswith( '<blockquote>' ) or line.startswith( '</blockquote>' ): # don't want multiples of these
-                    new_lines.pop()
-                    continue
-                if line.startswith( '</div>'):
-                    there_yet = False
-                    new_lines.insert( -1, '</blockquote>' ) # Put one back in because we deleted them all
-                    continue
-                if '&lt;' in line: # It's a second level content line
-                    line = line.replace( '<dd>', '' ).replace( '</dd>', '' ) # Not sure what these mean?
-                    entry_name, link_name = line.replace( '&gt;', '' ).split( ' &lt;' )
-                    new_lines[-1] = f'<br>  <a href="{link_name}.htm#Top">{entry_name}</a>'
-                else: # it's a main level content line
-                    line = line.replace( '<p>', '' ).replace( '</p>', '' ) \
-                                .replace( '<dt>', '' ).replace( '</dt>', '' ) # Not sure what these mean?
-                    new_lines[-1] = f'<br><a href="{line}.htm#Top">{line}</a>'
-            html_text = '\n'.join( new_lines )
         # TODO: What should 'wordIndex' be below
         top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Greek Grammar{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
@@ -1188,15 +1170,20 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.23: https://docutils.sourceforge.io/" />
 <title>&lt;string&gt;</title>''', f'''{top}
-<h1 id="Top">unfoldingWord Greek Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a></h1>''' ) \
+<h1 id="Top">unfoldingWord Greek Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a> <a title="Show details about this work" href="{'../'*level}UGG/details.htm#Top">©</a></h1>''' ) \
                     .replace( '</body>\n</html>', makeBottom( level, None, 'word' ) ) # TODO: What should 'word' be???
 
+        if rst_filename.stem=='index':
+            html_text = html_text.replace('</h1>','</h1>'+referenceIndexLinks(level,state,includeCore=True),1)
+        html_text = addGrammarPassages(html_text,level,f'UGG/{rst_filename.name}',state)
+        html_text = html_text.replace('</body>',grammarMorphologyExamples(f'UGG/{rst_filename.name}',level,state)+'</body>')
         # Save the HTML file
         html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ).replace( 'fihtm', 'first' ) )
         with open( html_filepath, 'wt', encoding='utf-8' ) as uggHtmlFile:
             uggHtmlFile.write( html_text )
         num_pages += 1
 
+    localiseGrammarLinks(outputFolderPath,outputFolderPath.parent)
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Greek grammar pages." )
     return True
@@ -1621,7 +1608,13 @@ def get_OET_LV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
         text = convertVerseEntryListToHtml(level, 'OET-LV', nativeRef, 'dictVerse', context, entries,
             basicOnly=True, state=state, livenWordLinks=True)
         text = do_OET_LV_HTMLcustomisations(f'DictVerse={nativeRef}', text).replace('<br>', ' ')
-        parts.append(f'<p class="LVVerseText"><b>OET-LV</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
+        from referencePassages import passageContextHref,_externaliseExcerptJumps
+        text = re.sub(r' id="(?:C\d+)?V\d+[a-z]*"','',text)
+        text = re.sub(r'href="#V(\d+[a-z]*)"',lambda match:f'href="#C{nativeRef[1]}V{match[1]}"',text)
+        text = _externaliseExcerptJumps(text,level,nativeRef[0],'OET-LV',state)
+        href = passageContextHref(level,nativeRef,'OET-LV',state)
+        label = f'<a data-vref="mapped" href="{href}">OET-LV</a>' if href else 'OET-LV'
+        parts.append(f'<p class="LVVerseText"><b>{label}</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
     return ''.join(parts)
 # end of createOETReferencePages.get_OET_LV_verse_HTML
 
@@ -1644,19 +1637,26 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
         text = convertVerseEntryListToHtml(level, 'OET-RV', nativeRef, 'dictVerse', context, entries,
             basicOnly=True, state=state, livenWordLinks=True)
         text = do_OET_RV_HTMLcustomisations(f'DictVerse={nativeRef}', text)
-        parts.append(f'<p class="RVVerseText"><b>OET-RV</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
+        from referencePassages import passageContextHref,_externaliseExcerptJumps
+        text = re.sub(r' id="(?:C\d+)?V\d+[a-z]*"','',text)
+        text = re.sub(r'href="#V(\d+[a-z]*)"',lambda match:f'href="#C{nativeRef[1]}V{match[1]}"',text)
+        text = _externaliseExcerptJumps(text,level,nativeRef[0],'OET-RV',state)
+        href = passageContextHref(level,nativeRef,'OET-RV',state)
+        label = f'<a data-vref="mapped" href="{href}">OET-RV</a>' if href else 'OET-RV'
+        parts.append(f'<p class="RVVerseText"><b>{label}</b>: {text} <small>({nativeRef[0]} {nativeRef[1]}:{nativeRef[2]})</small></p>')
     return ''.join(parts)
 # end of createOETReferencePages.get_OET_RV_verse_HTML
 
 
-def get_focused_OET_verse_HTML( level:int, BBB:str, C:str, V:str, wordPath:str ) -> tuple[str,str]:
+def get_focused_OET_verse_HTML( level:int, BBB:str, C:str, V:str, wordPath:str|tuple[str,...] ) -> tuple[str,str]:
     """Bold the exact source-word links, including every part of a split English gloss.
 
     Keep highlighting outside the verse caches: two examples in the same verse can
     focus different occurrences. RV portions may have different verse numbers, but
     their word links still identify the original LV word. Unaligned text stays as is.
     """
-    wordLink = re.compile(r'<a\b[^>]*\bhref="[^"<>]*/' + re.escape(wordPath)
+    paths = (wordPath,) if isinstance(wordPath,str) else wordPath
+    wordLink = re.compile(r'<a\b[^>]*\bhref="[^"<>]*/(?:' + '|'.join(re.escape(path) for path in paths) + ')'
                           + r'#Top"[^>]*>.*?</a>', re.DOTALL)
     return tuple(wordLink.sub(lambda match: f'<b>{match[0]}</b>', verseHtml)
                  for verseHtml in (get_OET_LV_verse_HTML(level, BBB, C, V),
@@ -1710,8 +1710,9 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     # Now make a page for each Hebrew word (including the note pages)
     numWordPagesMade = 0
-    wordLinksForIndex:list[str] = [] # Used below to make an index page
+    wordLinksForIndex:list[dict] = [] # Successful word pages, with searchable context
     state.OETRefData['usedHebLemmasSet'], state.OETRefData['usedHebStrongsSet'] = set(), set() # Used in next functions to make lemma and Strongs pages
+    BibleOrgSysGlobals.maxProcesses = int( 3 * BibleOrgSysGlobals.maxProcesses / 4 ) # Reduce this now because we're getting memory issues here
     if BibleOrgSysGlobals.maxProcesses > 1 \
     and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different processes
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
@@ -1744,12 +1745,12 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         assert len(results) == len(parameters)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
-        for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename) in zip( results, taskMetaList ):
+        for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename), parametersForWord in zip( results, taskMetaList, parameters ):
             state.OETRefData['usedHebStrongsSet'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
             state.OETRefData['usedHebLemmasSet'].update( usedLemmas ) # Used in next function to make lemma pages
             if result:
                 if rowType!='seg' and 'note' not in rowType:
-                    wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
+                    wordLinksForIndex.append(wordIndexRecord('Heb',output_filename,hebrewWord,parametersForWord[3].split('\t')))
                 numWordPagesMade += 1
     else: # no multi-processing
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
@@ -1770,7 +1771,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                             if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
             if create_Hebrew_word_page( level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state ):
                 if rowType!='seg' and 'note' not in rowType:
-                    wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
+                    wordLinksForIndex.append(wordIndexRecord('Heb',output_filename,hebrewWord,columns_string.split('\t')))
                 numWordPagesMade += 1
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
@@ -1781,8 +1782,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
-    wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
-    indexText = ' '.join( wordLinksForIndex )
+    wordGroups = groupWordIndex(wordLinksForIndex,transliterate_Hebrew)
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm#Top">Transliterated Hebrew words index</a></p>
@@ -1794,8 +1794,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
+<h1 id="Top">Hebrew Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
+{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1809,7 +1809,6 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
-    indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
@@ -1821,8 +1820,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Transliterated Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
+<h1 id="Top">Transliterated Hebrew Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
+{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,transliterated=True)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2012,7 +2011,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
             level, BBB, C, V, f'HebWrd/{getHebrewWordpageFilename(hh,state)}'))
     word_output_filenames = {'words':f'words/{word_output_filename}', 'verses':f'verses/{word_output_filename}','both':f'both/{word_output_filename}' }
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
-<p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
+{lexicalResourceLinks(level,'Heb',state,wordFields=columns_string.split(chr(9)))}<p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
 <br> {translationFields}{capsField if state.TEST_MODE_FLAG else ''}
 <br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>{f'{NEWLINE}{focusedVerses}' if focusedVerses else ''}
@@ -2026,12 +2025,13 @@ This is all part of the commitment of the <em>Open English Translation</em> team
     if rowType!='seg' and 'note' not in rowType:
         other_count = 0
         thisWordNumberList = state.OETRefData['OTFormUsageDict'][(hebrewWord,morphology)]
+        wordsHtml += wordOccurrenceBrowseLink(level,'Heb',columns_string.split('\t'),state)
         if numWordOETGlossesList > 1:
             wordGlossesStr = convert_Hebrew_word_gloss_spans( ', '.join(wordOETGlossesStrList) )
             assert '\\' not in wordGlossesStr
         if len(thisWordNumberList) > 100: # too many to list
             maxWordsToShow = 50
-            wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList)-1:,} uses of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
+            wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if numWordOETGlossesList > 1:
                 wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
@@ -2283,7 +2283,7 @@ def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:
 
             if len(thisLemmaRowsList) > 100: # too many to list
                 maxWordsToShow = 50
-                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList)-1:,} uses of Hebrew root <small>(lemma)</small> ‘{thisLemmaStr}’ ({transliterate_Hebrew(thisLemmaStr)}) in the Hebrew originals</h2>"
+                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList):,} uses of Hebrew root <small>(lemma)</small> ‘{thisLemmaStr}’ ({transliterate_Hebrew(thisLemmaStr)}) in the Hebrew originals</h2>"
             else: # we can list all uses of the word
                 maxWordsToShow = 100
                 lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Hebrew root <small>(lemma)</small> ‘{thisLemmaStr}’ ({transliterate_Hebrew(thisLemmaStr)}) in the Hebrew originals</h2>"
@@ -2363,12 +2363,13 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
         usedMorphologies = set()
 
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
-<p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
+{lexicalResourceLinks(level,'Heb',state,lemma=hebLemma)}<p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(hebLemmaFormsList)==1 else f'{len(hebLemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getHebrewWordpageFilename(getFirstHebrewWordNumber(heb,morph), state)}#Top">{heb}</a> <small>({state.OETRefData["OTLemmaFormsCountDict"][(hebLemma,heb,morph)]:,}, {morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in hebLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if numHebLemmaOETGlossesList==1 else f'{numHebLemmaOETGlossesList:,} different ways'}: {tidy_Hebrew_lemma_gloss(', '.join(hebLemmaOETGlossesStrList))}.</p>'''
 
 
+        lemmasHtml += lemmaOccurrenceSummary(level,'Heb',hebLemma,state)
         lemmasHtml = f"{lemmasHtml}\n{_make_hebrew_lemma_HTML_segment(hebLemma, hebLemmaWordRowsList, level, usedMorphologies)}" # Make all the Hebrew lemma pages
 
         # Consider related lemmas, e.g., with or without prefix
@@ -2387,7 +2388,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
                         hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][this_second_lemma]
                         # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][this_second_lemma] )
                         # lemmaGlossesList = sorted( state.OETRefData['OTLemmaOETGlossesDict'][this_second_lemma] )
-                        this_second_lemma_link = f'<a title="Go to lemma page" href="{this_second_lemma}.htm#Top">{this_second_lemma}</a>'
+                        this_second_lemma_link = f'<a title="Go to lemma page" href="{lemmaFilename("Heb",this_second_lemma)}#Top">{this_second_lemma}</a>'
                         if len(this_extended_lemma_list) == 1:
                             lemmasHtml = f"{lemmasHtml}\n<h1>Other possible lexically-related lemmas</h1>"
                         lemmasHtml = f'''{lemmasHtml}
@@ -2673,8 +2674,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             continue # Don't make this page
         transliteratedLemma = transliterate_Hebrew( hebLemma ) # needed for the filename hack below
         prevLI, nextLI = prevUsedIndexes[lemmaIndex], nextUsedIndexes[lemmaIndex]
-        prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaList[prevLI])}.htm#Top">←</a></b> ' if prevLI is not None else ''
-        nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaList[nextLI])}.htm#Top">→</a></b>' if nextLI else ''
+        prevLink = f'<b><a title="Previous lemma" href="{lemmaFilename("Heb",lemmaList[prevLI])}#Top">←</a></b> ' if prevLI is not None else ''
+        nextLink = f' <b><a title="Next lemma" href="{lemmaFilename("Heb",lemmaList[nextLI])}#Top">→</a></b>' if nextLI is not None else ''
         parameters.append( (level, lemmaIndex, hebLemma, prevLink, nextLink, outputFolderPath,
                             f"{'pitggām' if hebLemma=='פִּתְגָּם' else transliteratedLemma}.htm") )
         taskMetaList.append( (parameters[-1][6], hebLemma) )
@@ -2703,7 +2704,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 
     for n,(result,(ll_output_filename,hebLemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {ll_output_filename} {hebLemma}"
-        lemmaLinks.append( f'<a href="{ll_output_filename}">{hebLemma}</a>')
+        lemmaLinks.append(lemmaIndexLink(ll_output_filename,hebLemma,state.OETRefData['OTLemmaGlossDict'][hebLemma]))
         # if n % 2_000 == 0:
         #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
@@ -2729,7 +2730,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
-<p class="note">{indexText}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2744,7 +2745,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
-    indexText = transliterate_Hebrew( indexText )
+    indexText = transliterateIndexLinks(indexText,transliterate_Hebrew)
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
@@ -2757,7 +2758,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
-<p class="note">{indexText}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2898,7 +2899,7 @@ def _make_greek_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:i
 
             if len(thisLemmaRowsList) > 100: # too many to list
                 maxWordsToShow = 50
-                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList)-1:,} uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
+                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList):,} uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
             else: # we can list all uses of the word
                 maxWordsToShow = 100
                 lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
@@ -2952,7 +2953,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
-    wordLinksForIndex:list[str] = [] # Used below to make an index page
+    wordLinksForIndex:list[dict] = [] # Successful word pages, with searchable context
     state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
     grkWordTable = state.OETRefData['word_tables'][GreekWordFileName]
     testFilterFlag = state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG
@@ -3010,11 +3011,11 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         assert len(results) == len(parameters)
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
-        for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord)) in enumerate( zip(results,taskMetaList), start=1 ):
+        for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord),parametersForWord) in enumerate( zip(results,taskMetaList,parameters), start=1 ):
             assert result, f"{n} {output_filename} {greekWord}"
             state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
             state.OETRefData['usedGrkLemmas'].update( usedLemmas ) # Used in next function to make lemma pages
-            wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
+            wordLinksForIndex.append(wordIndexRecord('Grk',output_filename,greekWord,parametersForWord[2].split('\t')))
             numWordPagesMade += 1
     else: # no multi-processing
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -3022,7 +3023,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         for n,oneParameterSet in enumerate( parameters, start=1 ):
             output_filename, greekWord = taskMetaList[n-1]
             if create_Greek_word_page( *oneParameterSet, state ):
-                wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
+                wordLinksForIndex.append(wordIndexRecord('Grk',output_filename,greekWord,oneParameterSet[2].split('\t')))
                 numWordPagesMade += 1
             if n % 40_000 == 0:
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -3036,8 +3037,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
-    wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
-    indexText = ' '.join( wordLinksForIndex )
+    wordLinksForIndex.extend(row for row in dcWordIndexRecords(state,'../DCWrd/') if row['language']=='Greek')
+    wordGroups = groupWordIndex(wordLinksForIndex,transliterate_Greek)
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
@@ -3049,8 +3050,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
+<h1 id="Top">Greek Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
+{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3065,7 +3066,6 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
-    indexText = transliterate_Greek( indexText )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
@@ -3077,8 +3077,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
+<h1 id="Top">Transliterated Greek Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
+{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,transliterated=True)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3223,9 +3223,9 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
                 elif tagPrefix == 'G':
                     semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
                 elif tagPrefix == 'F':
-                    semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm#Top">Word #{tag}</a>'''
+                    semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{getGreekWordpageFilename(int(tag), state)}#Top">Word #{tag}</a>'''
                 elif tagPrefix == 'R':
-                    semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm#Top">Word #{tag}</a>'''
+                    semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{getGreekWordpageFilename(int(tag), state)}#Top">Word #{tag}</a>'''
                 else:
                     logging.critical( f"Unknown '{tagPrefix}' word tag in {gg}: {columns_string}")
                     unknownTag
@@ -3251,7 +3251,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
             focusedVerses = '\n'.join(get_focused_OET_verse_HTML(
                 level, BBB, C, V, f'GrkWrd/{getGreekWordpageFilename(gg,state)}'))
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+{lexicalResourceLinks(level,'Grk',state,wordFields=columns_string.split(chr(9)))}<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
@@ -3268,9 +3268,10 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             if numWordOETGlossesList > 1:
                 wordOETGlossesStr = tidyGlossOfGreekWord( ', '.join( wordOETGlossesStrList ) )
             thisWordNumberList = state.OETRefData['NTFormUsageDict'][(greekWord,roleLetter,morphology)]
+            wordsHtml += wordOccurrenceBrowseLink(level,'Grk',columns_string.split('\t'),state)
             if len(thisWordNumberList) > 100: # too many to list
                 maxWordsToShow = 50
-                wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList)-1:,} uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
+                wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                 if numWordOETGlossesList > 1:
                     wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
                     if wordVLTGlossesList != wordOETGlossesList:
@@ -3529,7 +3530,10 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     for n,(result,(output_filename,lemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {output_filename} {lemma}"
-        lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
+        label = prepareLexicalAssociations(state)['lemmaLabels'].get(('Grk',lemma),lemma)
+        glosses = sorted(state.OETRefData['NTLemmaOETGlossesDict'][lemma],
+            key=lambda gloss:(-state.OETRefData['NTLemmaOETGlossesCountDict'].get((lemma,gloss),0),gloss))
+        lemmaLinks.append(lemmaIndexLink(output_filename,label,glosses))
         # if n % 1_000 == 0:
         #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
@@ -3554,7 +3558,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
-<p class="note">{indexText}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3569,7 +3573,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
-    indexText = transliterate_Greek( indexText)
+    indexText = transliterateIndexLinks(indexText,transliterate_Greek)
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
@@ -3582,7 +3586,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
-<p class="note">{indexText}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3615,13 +3619,14 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         usedRoleLetters, usedMorphologies = set(), set()
 
         lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
-<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
+{lexicalResourceLinks(level,'Grk',state,lemma=lemma)}<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
         if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
             lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
 
+        lemmasHtml += lemmaOccurrenceSummary(level,'Grk',lemma,state)
         lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(lemma, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}"
 
         # Consider related lemmas, e.g., with or without prefix
@@ -3751,15 +3756,76 @@ def _create_Greek_lemma_page_MP( parameters ): # Used by create_Greek_lemma_page
 
 NUM_STRONGS_INDEX_ENTRIES = 60
 
+
+def livenBDBReferences( html:str, level:int, entryKey:str, state:State ) -> str:
+    """Link BOS-rendered OSIS citations, preserving BDB's printed labels.
+
+    BDB uses original Hebrew numbering (BOS 'org'), independent of the
+    displayed translations. A range links to its beginning; malformed or
+    unmappable source references remain readable instead of guessing a URL.
+    """
+    def replace(match):
+        osis, label = match.groups()
+        referencePattern = r'([1-3]?[A-Za-z]+)\.([1-9][0-9]*)(?:\.([1-9][0-9]*)(?:![a-z])?)?'
+        parsed = re.fullmatch(referencePattern + r'(?:-' + referencePattern + r')?', osis)
+        if parsed is None:
+            logging.warning(f'BDB {entryKey}: cannot link malformed Scripture reference {osis!r}')
+            return match[0]
+        try:
+            BBB = bos_books_codes_py.osis_book_code_to_bos_book_code(parsed[1], strict=True)
+        except KeyError:
+            logging.warning(f'BDB {entryKey}: unknown OSIS book in {osis!r}')
+            return match[0]
+        result = _mapReference('org', state.navigationVersification,
+                               (BBB, parsed[2], parsed[3] or '1', None))
+        if result.status != MappingStatus.EXACT:
+            logging.warning(f'BDB {entryKey}: no exact Scripture mapping for {osis!r}: {result.status}')
+            return match[0]
+        links = []
+        for reference in result.references:
+            if state.TEST_MODE_FLAG and reference[0] not in state.TEST_BOOK_LIST:
+                continue
+            href = referenceHref(level, reference, view='par' if parsed[3] else 'byC')
+            links.append(f'<a title="View {osis}" data-vref="mapped" href="{href}">{label}</a>')
+        return match[0].replace(f'>{label}</span>', f'>{" / ".join(dict.fromkeys(links))}</span>') if links else match[0]
+
+    return re.sub(r'<span class="ref" data-osis="([^"]+)" title="[^"]*">(.*?)</span>', replace, html)
+
+
 _strongsPageBibleLexicon:BibleLexicon|None = None # Set by the create_*_Strongs_pages functions below for access by their forked children
+
+def strongOccurrenceExamples(level, code, state):
+    """Link native headings and highlight every matching source word in an example."""
+    from oetPassages import _namespaceIds
+    from referencePassages import _externaliseExcerptJumps
+    references = prepareStrongOccurrences(state).get(code,{})
+    ordered = orderedReferences(references)
+    step = (len(ordered)+49)//50 if len(ordered)>100 else 1
+    chosen = ordered[::step]
+    description = f'Showing {len(chosen)} of {len(ordered):,} recorded verses, in OET book order.' if step>1 else f'Recorded in {len(ordered):,} verses, in OET book order.'
+    bits = [f'<p class="note">{description}</p>']
+    language = 'Heb' if code.startswith('H') else 'Grk'
+    if browseLink:=occurrenceBrowseLink(level,language,'strong',code,state):
+        bits.append(f'<p class="note">{browseLink} by book, form or gloss.</p>')
+    filename = getHebrewWordpageFilename if language=='Heb' else getGreekWordpageFilename
+    for reference in chosen:
+        BBB,C,V = re.split('[_:]',reference)
+        paths = tuple(f'{language}Wrd/{filename(row,state)}' for row in references[reference])
+        bits.append(f'<p class="vRef">{occurrenceContextLinks(level,reference,state)}</p>')
+        if not state.TEST_MODE_FLAG or BBB in state.preloadedBibles['OET-RV']:
+            lv,rv = get_focused_OET_verse_HTML(level,BBB,C,V,paths)
+            for version,text in (('OET-LV',lv),('OET-RV',rv)):
+                text = _namespaceIds(text,f'{code}_{reference.replace(":","_")}_{version}_')
+                bits.append(_externaliseExcerptJumps(text,level,BBB,version,state))
+    return ''.join(bits)
+
 
 def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:int, indexDistance:int,
                                 outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> tuple[bool,str|None]:
     """
     Create one individual Hebrew Strongs number page.
 
-    Returns a (result,indexEntryHtml) 2-tuple where indexEntryHtml is only non-None when this
-        strongsNumber is one of those to be listed in the folder's index page.
+    Returns (result,indexEntryHtml), with an index entry for every populated number.
     """
     strongsStr = str( strongsNumber )
     strongsLetterNumberStr = f'H{strongsStr}'
@@ -3778,6 +3844,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
     assert checkHtml( f'Strongs-{strongsLetterNumberStr}', middle, segmentOnly=True )
     bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
     if bdDrBrEntry:
+        bdDrBrEntry = livenBDBReferences( bdDrBrEntry, level, strongsLetterNumberStr, state )
         assert checkHtml( f'BrDrBr-{strongsLetterNumberStr}', bdDrBrEntry, segmentOnly=True )
         middle = f'''{middle}
 <h2>Brown, Driver, Briggs lexicon entry</h2>
@@ -3785,32 +3852,9 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
     # Liven internal Strongs references
     middle = livenStrongsRefs( middle )
 
-    indexEntryHtml = None
-    if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
-        strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
-        assert isinstance( strongsWordEntry, tuple ) # heb,morph,pronunciation,transliteration,none
-        strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[3]})'
-        indexEntryHtml = f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>'
+    indexEntryHtml = strongIndexEntry(strongsLetterNumberStr,bibleLexicon)
 
-    numRefs = len( state.OETRefData['OTStrongsRefs'][strongsStr] )
-    if numRefs > 500:
-        sMod = 20
-        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}:</p>']
-    elif numRefs > 120:
-        sMod = 10
-        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}:</p>']
-    else:
-        sMod = None
-        versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
-    for ss,sRef in enumerate( state.OETRefData['OTStrongsRefs'][strongsStr] ):
-        if sMod is None or ss % sMod == 0: # The first one is always displayed
-            sBBB, sCV = sRef.split( '_', 1 )
-            sC, sV = sCV.split( ':', 1 )
-            sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
-            if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
-                sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
-                sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
-                versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
+    versesHtml = [strongOccurrenceExamples(level,strongsLetterNumberStr,state)]
 
     pageHtml = f'''{top}
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
@@ -3825,7 +3869,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
 <p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+{lexicalResourceLinks(level,'Heb',state,strong=strongsLetterNumberStr)}<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
@@ -3860,6 +3904,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
+    prepareStrongOccurrences(state) # Prepare once before forking page workers.
     indexList = []
     finalStrongsNumber = 8674
     # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
@@ -3924,7 +3969,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
-<ul>{'\n'.join(indexList)}</ul>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -3942,8 +3987,7 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
     """
     Create one individual Greek Strongs number page.
 
-    Returns a (result,indexEntryHtml) 2-tuple where indexEntryHtml is only non-None when this
-        strongsNumber is one of those to be listed in the folder's index page.
+    Returns (result,indexEntryHtml), with an index entry for every populated number.
     """
     strongsStr = str( strongsNumber )
     strongsLetterNumberStr = f'G{strongsNumber}'
@@ -3962,33 +4006,9 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
     # Liven internal Strongs references
     if middle: middle = livenStrongsRefs( middle )
 
-    indexEntryHtml = None
-    if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
-        strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
-        if strongsWordEntry:
-            assert isinstance( strongsWordEntry, tuple ) # grk,transliteration,OTHER
-            strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[1]})'
-            indexEntryHtml = f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>'
+    indexEntryHtml = strongIndexEntry(strongsLetterNumberStr,bibleLexicon)
 
-    numRefs = len( state.OETRefData['NTStrongsRefs'][strongsStr] )
-    if numRefs > 500:
-        sMod = 20
-        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}.</p>']
-    elif numRefs > 120:
-        sMod = 10
-        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}.</p>']
-    else:
-        sMod = None
-        versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
-    for ss,sRef in enumerate( state.OETRefData['NTStrongsRefs'][strongsStr] ):
-        if sMod is None or ss % sMod == 0: # The first one is always displayed
-            sBBB, sCV = sRef.split( '_', 1 )
-            sC, sV = sCV.split( ':', 1 )
-            sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
-            if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
-                sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
-                sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
-                versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
+    versesHtml = [strongOccurrenceExamples(level,strongsLetterNumberStr,state)]
 
     pageHtml = f'''{top}
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
@@ -4003,7 +4023,7 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
 <p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+{lexicalResourceLinks(level,'Grk',state,strong=strongsLetterNumberStr)}<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
@@ -4038,6 +4058,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
+    prepareStrongOccurrences(state) # Prepare once before forking page workers.
     indexList = []
     finalStrongsNumber = 5624
     # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
@@ -4102,7 +4123,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
-<ul>{'\n'.join(indexList)}</ul>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -4131,6 +4152,11 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
+    entities = loadReferenceEntities(THEOGRAPHIC_INPUT_FOLDER_PATH,state)
+    selectedReferences = defaultdict(list)
+    for _name,personID,citations in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
+        if personID: selectedReferences['P'+personID].extend(citations)
+
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
         peopleDict = json.load( people_file )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -4145,12 +4171,10 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 
     # Now make a page for each person
     personLinks:list[str] = []
-    for n,(personKey,entry) in enumerate( peopleDict.items() ):
-        if personKey == '__HEADERS__': continue
-        if personKey == '__COLUMN_HEADERS__': continue
-
-        previousLink = f'''<a title="Previous person" href="{peopleKeys[n-3][1:]}.htm#Top">←</a>''' if n>3 else ''
-        nextLink = f'''<a title="Next person" href="{peopleKeys[n-1][1:]}.htm#Top">→</a>''' if n<len(peopleDict)-1 else ''
+    for n,personKey in enumerate( peopleKeys ):
+        entry = peopleDict[personKey]
+        previousLink = f'''<a title="Previous person" href="{peopleKeys[n-1][1:]}.htm#Top">←</a>''' if n else ''
+        nextLink = f'''<a title="Next person" href="{peopleKeys[n+1][1:]}.htm#Top">→</a>''' if n+1<len(peopleKeys) else ''
 
         personName = entry['displayTitle']
         bornYear = f"{entry['birthYear']}" if entry['birthYear'] else ''
@@ -4162,9 +4186,13 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
         bornStr = f' Born: {bornYear}' if bornYear else '' # These are em-spaces
         diedStr = f' Died: {diedYear}' if diedYear else ''
 
-        bodyHtml = f'''<h1>{personName.replace( "'", '’' )}</h1>
-<p class="personName">{livenMD(level, entry['dictText'])}</p>
+        bodyHtml = f'''<h1 id="Top">{personName.replace( "'", '’' )}</h1>
+<p class="personName">{livenMD(level, entry['dictText'],state,personKey)}</p>
 <p class="personGender">{entry['gender']}{bornStr}{diedStr}</p>'''
+        bodyHtml += entityRelationships(personKey,level,entities)
+        bodyHtml += entityPassages(personKey,level,entities,state,selectedReferences.get(personKey,()))
+        bodyHtml += entityTaggedWords(personKey,level,entities,state)
+        bodyHtml += entityRelatedResources(personKey,level,state)
 
         # Now put it all together
         output_filename = f"{personKey[1:]}.htm"
@@ -4172,7 +4200,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
                                     .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm#Top">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm#Top">IC</a> <a title="Go to all people index" href="index.htm">⌂</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm#Top">IA</a> <a title="Go to important people chronological index" href="importantPeopleChronologicalIndex.htm#Top">IC</a> <a title="Go to all people index" href="index.htm">⌂</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'person' )}'''
@@ -4202,7 +4230,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">All Bible People Index ({len(personLinks):,})</h1>
-<p class="note">{' '.join(personLinks)}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(personLinks)+'</p>')}
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4241,7 +4269,7 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 
     # Now make the important people CHRONOLOGICAL list
     personLinksStrings = []
-    for personNameBit, personRefName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
+    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST):
         # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
         personPageLinkPart = None
         if personRefName in peopleKeys:
@@ -4259,18 +4287,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         #             if name2 in peopleKeys: personPageLinkPart = name2
         personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
 
-        personRefLinks = []
-        for personRef in personRefList:
-            BBB, CV = personRef.split('-')[0].split( '_', 1 )
-            C, V = CV.split( ':', 1 )
-            s = findSectionNumber( 'OET-RV', BBB, C, V, state )
-            tidyBBB = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-            personRefLink = f'''<a title="Go to first scripture section for person" href="{'../'*level}OET/bySec/{BBB}_S{s}.htm#C{C}V{V}">{tidyBBB} {C}:{V}</a>'''
-            personRefLinks.append( personRefLink )
-        fullPersonLink = f'{personPageLink} {", ".join(personRefLinks)}'
+        fullPersonLink = f'<p class="note">{personPageLink}</p>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
         # print( f"        {fullPersonLink=}" )
         # personLinks.append( (personName,fullPersonLink) )
-        personLinksStrings.append( f'<p class="note">{fullPersonLink}</p>' )
+        personLinksStrings.append( f'<div>{fullPersonLink}</div>' )
 
     # Create this second index page for this folder (there's already one for ALL people)
     filename = 'importantPeopleChronologicalIndex.htm'
@@ -4302,7 +4322,7 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 
     # Now make the important people ALPHABETICAL list
     personLinksString, lastPersonName = '', 'Anyone' # Must start with 'A' so don't get extra line spaces before first entry
-    for personNameBit, personRefName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
+    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):
         # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
         personPageLinkPart = None
         if personRefName in peopleKeys:
@@ -4320,18 +4340,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         #             if name2 in peopleKeys: personPageLinkPart = name2
         personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
 
-        personRefLinks = []
-        for personRef in personRefList:
-            BBB, CV = personRef.split('-')[0].split( '_', 1 )
-            C, V = CV.split( ':', 1 )
-            s = findSectionNumber( 'OET-RV', BBB, C, V, state )
-            tidyBBB = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-            personRefLink = f'''<a title="Go to first scripture section for person" href="{'../'*level}OET/bySec/{BBB}_S{s}.htm#C{C}V{V}">{tidyBBB} {C}:{V}</a>'''
-            personRefLinks.append( personRefLink )
-        fullPersonLink = f'{personPageLink} {", ".join(personRefLinks)}'
+        fullPersonLink = f'<p class="note">{personPageLink}</p>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
         # print( f"        {fullPersonLink=}" )
         # personLinks.append( (personName,fullPersonLink) )
-        personLinksString = f'{personLinksString}{' ' if personNameBit[0]==lastPersonName[0] else '<br><br>'}{fullPersonLink}'
+        personLinksString += f'<div>{fullPersonLink}</div>'
         lastPersonName = personNameBit
 
     # Create this third index page for this folder (there's already one for ALL people)
@@ -4352,7 +4364,7 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Important Bible People Alphabetical Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
-<p class="note">{personLinksString}</p>
+<div>{personLinksString}</div>
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4375,6 +4387,8 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
+    entities = loadReferenceEntities(THEOGRAPHIC_INPUT_FOLDER_PATH,state)
+
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_Places.json' ), 'rb' ) as locations_file:
         locationsDict = json.load( locations_file )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -4389,12 +4403,10 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
         placeKeys.append( placeKey )
 
     # Now make a page for each location
-    for n,(placeKey,entry) in enumerate( locationsDict.items() ):
-        if placeKey == '__HEADERS__': continue
-        if placeKey == '__COLUMN_HEADERS__': continue
-
-        previousLink = f'''<a title="Previous location" href="{placeKeys[n-3][1:]}.htm#Top">←</a>''' if n>3 else ''
-        nextLink = f'''<a title="Next location" href="{placeKeys[n-1][1:]}.htm#Top">→</a>''' if n<len(locationsDict)-1 else ''
+    for n,placeKey in enumerate( placeKeys ):
+        entry = locationsDict[placeKey]
+        previousLink = f'''<a title="Previous location" href="{placeKeys[n-1][1:]}.htm#Top">←</a>''' if n else ''
+        nextLink = f'''<a title="Next location" href="{placeKeys[n+1][1:]}.htm#Top">→</a>''' if n+1<len(placeKeys) else ''
 
         placeName = entry['displayTitle']
         commentStr = f" {entry['comment']}" if entry['comment'] else ''
@@ -4404,10 +4416,14 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
                         if entry['kjvName']==entry['esvName'] else \
                        f'''<p class="locationVersions">KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
 
-        bodyHtml = f'''<h1>{placeName.replace( "'", '’' )}</h1>
-<p class="locationName">{livenMD(level, adjustedArticleText)}</p>
+        bodyHtml = f'''<h1 id="Top">{placeName.replace( "'", '’' )}</h1>
+<p class="locationName">{livenMD(level, adjustedArticleText,state,placeKey)}</p>
 <p class="locationType">{entry['featureType']}{f"/{entry['featureSubType']}" if entry['featureSubType'] else ''}{f' {commentStr}' if commentStr else ''}</p>
 {locationVersions}'''
+        bodyHtml += entityRelationships(placeKey,level,entities)
+        bodyHtml += entityPassages(placeKey,level,entities,state)
+        bodyHtml += entityTaggedWords(placeKey,level,entities,state)
+        bodyHtml += entityRelatedResources(placeKey,level,state)
 
         # Now put it all together
         output_filename = f"{placeKey[1:]}.htm"
@@ -4445,7 +4461,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index ({len(locationLinks):,})</h1>
-<p class="note">{' '.join(locationLinks)}</p>
+{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(locationLinks)+'</p>')}
 {makeBottom( level, None, 'locationIndex' )}'''
     assert checkHtml( 'locationIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4509,7 +4525,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     chapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
         if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
-            chapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+            chapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{statisticsBookLink(level,BBB,bkName,state)}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     chapters66Html = f'''<table style="width:95%;">
 <tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
@@ -4520,7 +4536,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     chaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
         if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_deuterocanon_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
-            chaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+            chaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{statisticsBookLink(level,BBB,bkName,state)}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     chaptersHtml = f'''<table style="width:95%;">
 <tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
@@ -4532,7 +4548,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     sortedChapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
         if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
-            sortedChapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+            sortedChapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{statisticsBookLink(level,BBB,bkName,state)}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     sortedChapters66Html = f'''<table style="width:95%;">
 <tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
@@ -4543,7 +4559,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     sortedChaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
         if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_deuterocanon_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
-            sortedChaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+            sortedChaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{statisticsBookLink(level,BBB,bkName,state)}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     sortedChaptersHtml = f'''<table style="width:95%;">
 <tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
@@ -4598,7 +4614,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>
-<h1 id="Top">Bible Statistics Index</h1>
+{referenceIndexLinks(level,state)}<h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
 {makeBottom( level, None, 'statisticsIndex' )}'''
     assert checkHtml( 'statisticsIndex', indexHtml )
@@ -4611,7 +4627,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
 
 mdLinkRegex = re.compile( '\\[(.+?)\\]\\((.+?)\\)' )
-def livenMD( level:int, mdText:str ) -> str:
+def livenMD( level:int, mdText:str, state=None, sourceName='' ) -> str:
     """
     Take markdown style links like '[Gen. 35:16](/gen#Gen.35.16)'
         from person and location pages
@@ -4641,10 +4657,17 @@ def livenMD( level:int, mdText:str ) -> str:
             assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
             OSISBkCode, C = mdLinkTarget.split( '.' )
             BBB = bos_books_codes_py.osis_book_code_to_bos_book_code( OSISBkCode )
-            ourLinkTarget = f'{BBB}.htm#C{C}'
-        ourLink = f'<a title="View OET reference" href="{ourLinkTarget}">{readableRef}</a>'
+            ourLinkTarget = referenceHref(level, (BBB, C, '1'), 'OET')
+        # Validate source citations even when building without loaded passages.
+        try: references = parseReferenceSelection(BBB,f'{C}:{V}' if mdLinkTarget.count('.')==2 else C,'eng')
+        except (ValueError,KeyError) as error:
+            logging.warning('Entity %s: cannot link article citation %r (%s): %s',sourceName,readableRef,mdLinkTarget,error)
+            ourLink = readableRef
+        else:
+            ourLink = (referenceCitationLink(level,references[0],'eng','OET',readableRef,state) if state is not None
+                       else f'<a title="View OET reference" href="{ourLinkTarget}">{readableRef}</a>')
         mdText = f'''{mdText[:match.start()]}{ourLink}{mdText[match.end():]}'''
-        searchStartIndex = match.end() + 10 # We've added at least that many characters
+        searchStartIndex = match.start() + len(ourLink)
         count += 1
     return mdText
 # end of createOETReferencePages.livenMD function

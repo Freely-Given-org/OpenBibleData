@@ -35,10 +35,18 @@ CHANGELOG:
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
     2024-04-29 TOSN and UBS dictionaries have been moved into state (rather than global variables in this module)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-10-30 Generate UBS dictionary indexes and introductions with working article navigation.
+    2026-10-30 Index UBS entries by their actual lemmas instead of the literal word Lemma.
+    2026-10-30 Link UBS entries to local lexical resources and related dictionary entries.
+    2026-10-30 Add complete Tyndale scripture comparisons and reciprocal entity links.
+    2026-10-30 Display readable UBS senses with original-numbered OET examples and internal domain links.
+    2026-10-31 Add English glosses, filtering and reference-index navigation to UBS indexes.
 """
 import os.path
 import logging
 from xml.etree.ElementTree import ElementTree
+from xml.sax.saxutils import escape
+from urllib.parse import quote
 import json
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -48,9 +56,11 @@ import bos_books_codes_py
 from settings import State, state
 from html import makeTop, makeBottom, checkHtml
 from openbibledata_rust import getOETTidyBBB
+from ubsDictionary import renderUBSEntry
+from referenceIndexes import referenceIndexLinks
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-30' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.48'
@@ -577,6 +587,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     """
     """
     from Bibles import fixTyndaleBRefs
+    from dictionaryPassages import tyndaleEntityLinks
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
@@ -622,7 +633,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 {lettersParagraph}
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
-{article}
+{tyndaleEntityLinks(articleLinkName,level,state)}{article}
 {makeBottom( level, None, 'dictionaryEntry' )}'''
         assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
@@ -676,6 +687,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
+{referenceIndexLinks(level,state,includeCore=True)}
 {state.TOBDData['Intro']}
 {makeBottom( level, None, 'dictionaryIntro' )}'''
     assert checkHtml( 'DictionaryIntro', introHtml )
@@ -699,9 +711,9 @@ even though it was originally designed to supplement the <i>New Living Translati
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
 <h1>UBS Dictionary of New Testament Greek <small>{UBS_detailsLink}</small></h1>
-<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Grk/">here</a>.</p><!--note-->
+<p class="note"><a href="{'../'*(level)}UBS/Grk/index.htm#Top">Browse Greek definitions, related entries and OET passage examples.</a></p><!--note-->
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
-<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p><!--note-->
+<p class="note"><a href="{'../'*(level)}UBS/Heb/index.htm#Top">Browse Hebrew definitions, related entries and OET passage examples.</a></p><!--note-->
 {makeBottom( level, None, 'dictionaryMainIndex' )}'''
     assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -883,7 +895,7 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
         # print( f"\n\n{n}: {entry}")
         assert entry['MainId'] not in state.UBS_GNT_ID_INDEX
         assert entry['Lemma'] not in state.UBS_GNT_LEMMA_INDEX
-        state.UBS_GNT_ID_INDEX[entry['MainId']] = state.UBS_GNT_LEMMA_INDEX['Lemma'] = n
+        state.UBS_GNT_ID_INDEX[entry['MainId']] = state.UBS_GNT_LEMMA_INDEX[entry['Lemma']] = n
         for b, baseForm in enumerate( entry['BaseForms'] ):
             # print( f"  {b}: {type(baseForm)} {baseForm=}" )
             if baseForm['Inflections']:
@@ -946,7 +958,7 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
         # print( f"\n\n{n}: {entry}")
         assert entry['MainId'] not in state.UBS_HEB_ID_INDEX
         assert entry['Lemma'] not in state.UBS_HEB_LEMMA_INDEX
-        state.UBS_HEB_ID_INDEX[entry['MainId']] = state.UBS_HEB_LEMMA_INDEX['Lemma'] = n
+        state.UBS_HEB_ID_INDEX[entry['MainId']] = state.UBS_HEB_LEMMA_INDEX[entry['Lemma']] = n
         for b, baseForm in enumerate( entry['BaseForms'] ):
             # print( f"  {b}: {type(baseForm)} {baseForm=}" )
             if baseForm['Inflections']:
@@ -984,26 +996,58 @@ def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
 # end of Bibles.createUBSDictionaryPages
 
 
-BOOK_NUM_TABLE = { '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', 
-                  '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '066':'REV', }
-def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
-    """
-    """
-    lexRefsHtmlList = []
-    for fullLexRef in lexRefs:
-        # print( f"{fullLexRef=}")
-        lexRef, lexRefExtra = fullLexRef[0:14], fullLexRef[14:]
-        assert len(lexRef) == 14
-        assert lexRef.isdigit()
-        bkNum, C, V, last5Digits = int(lexRef[0:3]), int(lexRef[3:6]), int(lexRef[6:9]), lexRef[9:]
-        BBB = bos_books_codes_py.get_bos_book_code_from_reference_number( bkNum )
-        ourTidyBBB = getOETTidyBBB( BBB )
-        # TODO: We're not yet using last5Digits, e.g., '00046', or lexRefExtra, e.g., '{N:001}'
-        lexLink = f'''<a href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{ourTidyBBB} {C}:{V}</a>'''
-        lexRefsHtmlList.append( f'''{lexLink}''' )
-
-    return lexRefsHtmlList
+def getLexReferencesHtmlList(level,lexRefs,buildState=None) -> list[str]:
+    """Retain original numbering and complete mapping groups in legacy callers."""
+    from ubsDictionary import parseUBSReference
+    from dictionaryPassages import dictionarySelectionLinks
+    currentState=buildState if buildState is not None else state
+    result=[]
+    for raw in dict.fromkeys(lexRefs):
+        try:reference=parseUBSReference(raw)
+        except (ValueError,KeyError) as error:
+            logging.warning('UBS reference list %r: %s',raw,error)
+            result.append(escape(raw))
+            continue
+        result.append(dictionarySelectionLinks(level,(reference,),'org',currentState)
+                      or escape(f'{reference[0]} {reference[1]}:{reference[2]}'))
+    return result
 # end of Bibles.getLexReferencesHtmlList
+
+
+def createUBSNavigationPages(level, outputFolderPath, entries, language, state):
+    """Make the index and introduction targeted by every UBS article."""
+    title = ('UBS Dictionary of the Greek New Testament' if language == 'Greek'
+             else 'UBS Dictionary of Biblical Hebrew')
+    otherLanguage, otherFolder = ('Hebrew','Heb') if language == 'Greek' else ('Greek','Grk')
+    detailsHref = f"{'../'*level}UBS/details.htm#Top"
+    nav = (f'<p class="dNav"><a href="index.htm#Top">Index</a> '
+           f'<a href="intro.htm#Top">Introduction</a> '
+           f'<a href="../{otherFolder}/index.htm#Top">{otherLanguage} dictionary</a> '
+           f'<a href="{detailsHref}">Copyright and licence</a></p>')
+    from referenceIndexes import referenceIndexLinks,filterableIndex,ubsIndexEntry
+    nav += referenceIndexLinks(level,state,includeCore=True)
+    links = '\n'.join(ubsIndexEntry(entry) for entry in entries)
+    indexBody = (f'{nav}\n<h2>Entries ({len(entries):,})</h2>\n'
+                 +filterableIndex(level,f'<ul>\n{links}\n</ul>','li')) if entries else f'{nav}\n<p>No entries in this build.</p>'
+    introBody = (f'{nav}\n<p>This dictionary describes {language} words and their meanings in biblical passages. '
+        'Entries are organised by lemma, the dictionary form of a word. An entry may contain several base forms and senses.</p>\n'
+        '<p>Use the index to choose a lemma, or the previous and next links to browse neighbouring entries. '
+        'Passage controls open the OET Readers’ Version, Literal Version or both together. '
+        'Expand an example to read it here, or open the list of further passages for that sense.</p>\n'
+        '<p>The dictionaries cite original Hebrew and Greek verse numbers. OET links show the corresponding '
+        'numbers for each version. Related lexical entries can share identifiers without having identical meanings.</p>\n'
+        f'<p>See the <a href="{detailsHref}">source acknowledgements, copyright and licence</a> '
+        'for these United Bible Societies dictionaries.</p>')
+    for filename, pageType, heading, body in (
+        ('index.htm','dictionaryMainIndex',title,indexBody),
+        ('intro.htm','dictionaryIntro',f'{title} introduction',introBody),
+    ):
+        top = makeTop(level,None,pageType,None,state).replace('__TITLE__',heading).replace('__KEYWORDS__','Bible, dictionary, UBS')
+        html = f'{top}<h1 id="Top">{heading}</h1>\n{body}\n{makeBottom(level,None,pageType)}'
+        assert checkHtml(f'UBS {language} {filename}',html)
+        filepath = outputFolderPath/filename
+        assert not filepath.exists(), filepath
+        filepath.write_text(html,encoding='utf-8')
 
 
 def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None:
@@ -1032,44 +1076,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
         rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
-        entryHtml = f'<h2>{lemma}</h2>'
-        for key,data in entry.items():
-            if data is None or data=='' or data==[]: continue # Don't display blank stuff
-            if key == 'Lemma': continue # Already used that
-            if key == 'BaseForms':
-                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>:</p><ol>'''
-                for bf,bfEntry in enumerate( data ):
-                    bfEntryHtml = ''
-                    for bfKey,bfData in bfEntry.items():
-                        if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
-                        if bfKey in ('Inflections','LEXMeanings'):
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>:</p><ol>'''
-                            for lm,lmEntry in enumerate( bfData ):
-                                lmEntryHtml = ''
-                                for lmKey,lmData in lmEntry.items():
-                                    if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
-                                    if lmKey == 'LEXSenses':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>:</p><ol>'''
-                                        for ls,lsEntry in enumerate( lmData ):
-                                            lsEntryHtml = ''
-                                            for lsKey,lsData in lsEntry.items():
-                                                if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
-                                                lsEntryHtml = f'''{lsEntryHtml}<p class="GDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>'''
-                                            lmEntryHtml = f'''{lmEntryHtml}<li class="GDict">{lsEntryHtml}</li>'''
-                                        lmEntryHtml = f'''{lmEntryHtml}</ol>'''
-                                    elif lmKey == 'LEXReferences':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>'''
-                                    else:
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>'''
-                                bfEntryHtml = f'''{bfEntryHtml}<li class="GDict">{lmEntryHtml}</li>'''
-                            bfEntryHtml = f'''{bfEntryHtml}</ol>'''
-                        else:
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>'''
-                    entryHtml = f'''{entryHtml}<li class="GDict">{bfEntryHtml}</li>'''
-                entryHtml = f'''{entryHtml}</ol>'''
-            else:
-                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>'''
-
+        entryHtml = renderUBSEntry(level,'Grk',entry,state)
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"UBS Greek Dictionary Article{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
@@ -1085,6 +1092,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
             articleHtmlFile.write( articleHtml )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+    createUBSNavigationPages(level,outputFolderPath,state.UBS_GNT_DATA,'Greek',state)
 # end of Bibles.createUBSGreekDictionaryPages
 
 
@@ -1115,50 +1123,13 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
         rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
-        entryHtml = f'<h2>{lemma}</h2>'
-        for key,data in entry.items():
-            if data is None or data=='' or data==[]: continue # Don't display blank stuff
-            if key == 'Lemma': continue # Already used that
-            if key == 'BaseForms':
-                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>:</p><ol>'''
-                for bf,bfEntry in enumerate( data ):
-                    bfEntryHtml = ''
-                    for bfKey,bfData in bfEntry.items():
-                        if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
-                        if bfKey in ('Inflections','LEXMeanings'):
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>:</p><ol>'''
-                            for lm,lmEntry in enumerate( bfData ):
-                                lmEntryHtml = ''
-                                for lmKey,lmData in lmEntry.items():
-                                    if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
-                                    if lmKey == 'LEXSenses':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>:</p><ol>'''
-                                        for ls,lsEntry in enumerate( lmData ):
-                                            lsEntryHtml = ''
-                                            for lsKey,lsData in lsEntry.items():
-                                                if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
-                                                lsEntryHtml = f'''{lsEntryHtml}<p class="HDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>'''
-                                            lmEntryHtml = f'''{lmEntryHtml}<li class="HDict">{lsEntryHtml}</li>'''
-                                        lmEntryHtml = f'''{lmEntryHtml}</ol>'''
-                                    elif lmKey == 'LEXReferences':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>'''
-                                    else:
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>'''
-                                bfEntryHtml = f'''{bfEntryHtml}<li class="HDict">{lmEntryHtml}</li>'''
-                            bfEntryHtml = f'''{bfEntryHtml}</ol>'''
-                        else:
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>'''
-                    entryHtml = f'''{entryHtml}<li class="HDict">{bfEntryHtml}</li>'''
-                entryHtml = f'''{entryHtml}</ol>'''
-            else:
-                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>'''
-
+        entryHtml = renderUBSEntry(level,'Heb',entry,state)
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"UBS Hebrew Dictionary Article{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
         articleHtml = f'''{top}
-<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}UBS Dictionary of the Hebrew New Testament</h1>
+<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}UBS Dictionary of Biblical Hebrew</h1>
 {navLinks.replace('__ID__','Top')}
 {entryHtml.replace( f'{NEWLINE}</p>', '</p>' )}
 {makeBottom( level, None, 'dictionaryEntry' )}'''
@@ -1168,6 +1139,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
             articleHtmlFile.write( articleHtml )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+    createUBSNavigationPages(level,outputFolderPath,state.UBS_HEB_DATA,'Hebrew',state)
 # end of Bibles.createUBSHebrewDictionaryPages
 
 

@@ -36,6 +36,7 @@ CHANGELOG:
     2026-10-21 Check marked -ies plurals such as furi(es) against their full plural forms
     2026-10-23 Accept combined OET formatting titles and LV addition descriptions
     2026-10-26 Check LSV all-capitals words and possessives against normal dictionary forms
+    2026-10-29 Accept TraditionalName, GrkName, and RVName from the updated OET-RV names table
 """
 from pathlib import Path
 from csv import  DictReader
@@ -48,10 +49,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-26' # by RJH
+LAST_MODIFIED_DATE = '2026-11-01' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.82'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -70,7 +71,7 @@ assert OET_LV_NAMES_TSV_FILEPATH.is_file()
 EXPECTED_OET_LV_NAMES_TSV_HEADER = 'TraditionalName\tLVName'
 OET_RV_NAMES_TSV_FILEPATH = Path(__file__).parent.joinpath( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' ).resolve()
 assert OET_RV_NAMES_TSV_FILEPATH.is_file()
-EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tRVName\tExplained\tComment'
+EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tGrkName\tRVName\tExplained\tComment'
 
 
 # Globals
@@ -251,7 +252,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             # These contractions could have all been solved with a substitution rule,
             #   but doing it this way gives us a list of the contractions that are used in the OET
             'aren’t','Aren’t',
-                'can’t','Can’t', 'couldn’t','Couldn’t',
+                'can’t','Can’t', 'could’ve', 'couldn’t','Couldn’t',
                 'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
                 'hadn’t','hasn’t', 'haven’t','Haven’t',
                     'he’d','He’d', 'he’ll','He’ll', 'he’s','He’s',
@@ -321,7 +322,7 @@ def load_OET_LV_names() -> bool:
 OET_RV_NAMES_SET = set()
 def load_OET_RV_names() -> bool:
     """
-    Load the names we use from the tsv names table
+    Load traditional, Greek, and RV names from the first three TSV columns.
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_RV_NAMES_TSV_FILEPATH}…" )
@@ -339,12 +340,16 @@ def load_OET_RV_names() -> bool:
 
     # crossTestamentQuotes_tsv_rows = []
     dict_reader = DictReader(initialTSVLines, delimiter='\t' )
-    for n, row in enumerate(dict_reader):
-        rvName = row['RVName']
-        OET_RV_NAMES_SET.add( rvName )
-        if '-' in rvName: # Break up names like Beer-Sheva (as we split them below)
-            for rvNameBit in rvName.split( '-' ):
-                OET_RV_NAMES_SET.add( rvNameBit )
+    for row in dict_reader:
+        for nameColumn in ('TraditionalName','GrkName','RVName'):
+            name = row[nameColumn]
+            if not name:
+                continue
+            OET_RV_NAMES_SET.add( name )
+            if '-' in name: # Break up names like Beer-Sheva (as we split them below)
+                for nameBit in name.split( '-' ):
+                    if nameBit:
+                        OET_RV_NAMES_SET.add( nameBit )
 
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -941,72 +946,6 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 # end of spellCheckEnglish.spellCheckAndMarkHTMLText
 
 
-def printSpellCheckSummary( state ) -> None:
-    """
-    Prints some summary results
-    """
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
-
-    ethSet = set()
-    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
-        if versionAbbreviation not in ('Luth','ClVg'):
-            for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
-                if word.endswith( 'eth' ) or word.endswith( 'est' ):
-                    ethSet.add( word )
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
-
-    # BAD_*_WORD_LIST/SET include possible repeated pairs as well as spelling
-    # errors. Keep that collection format for multiprocessing, but do not mix
-    # the two categories in the spelling totals, unique counts, or percentages.
-    for language, checkedCount, misspellingCount, wordCounts, reports, reportedWords in (
-            ('ENGLISH', TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT,
-             BAD_ENGLISH_COUNTS, BAD_ENGLISH_WORD_LIST, BAD_ENGLISH_WORD_SET),
-            ('GERMAN', TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT,
-             BAD_GERMAN_COUNTS, BAD_GERMAN_WORD_LIST, BAD_GERMAN_WORD_SET),
-            ('LATIN', TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT,
-             BAD_LATIN_COUNTS, BAD_LATIN_WORD_LIST, BAD_LATIN_WORD_SET)):
-        if not checkedCount:
-            continue
-        percent = misspellingCount * 100 / checkedCount
-        percentageText = '<0.01%' if 0 < percent < 0.01 else f'{percent:.2f}%'
-        orderedWords = sorted(wordCounts, key=wordCounts.get, reverse=True)
-        wordsToShow = [(word, wordCounts[word]) for word in orderedWords if word.islower()][:14 if language=='ENGLISH' else 13]
-        if language=='GERMAN' and len(wordsToShow) < 12: # Include capitals, which can be ordinary German nouns.
-            wordsToShow = [(word, wordCounts[word]) for word in orderedWords
-                          if word not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
-        repeatedCount = len(reports) - misspellingCount
-        repeatedWords = reportedWords.difference(wordCounts)
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL {language} WORDS CHECKED = {checkedCount:,} BAD_{language} WORDS {misspellingCount:,} = {percentageText} ({len(wordCounts):,} unique){f': {sorted(wordCounts)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD {language} WORDS = {misspellingCount:,} WORST {language} WORDS {wordsToShow}" )
-            if repeatedCount:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    POSSIBLE REPEATED {language} WORDS = {repeatedCount:,} ({len(repeatedWords):,} unique pairs){f': {sorted(repeatedWords)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-
-    # for versionAbbreviation in ('OET-RV'Hebrew words index,): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
-    #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
-
-    for versionAbbreviation in ('OET-RV','OET-LV', 'KJB-1611', 'Wycl'): # Just out of curiousity # 'ULT','UST', 'BSB',
-        badDict = defaultdict(int)
-        for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
-            badDict[word] += 1
-        sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
-        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<30)]
-        if len(displayList)<30 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:30]] # Could cause some duplicates
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
-
-    totalWordsWithRef = 0
-    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
-        totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
-    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
-# end of spellCheckEnglish.printSpellCheckSummary()
-
-
 def collectSpellCheckResults() -> tuple:
     """
     Snapshot all our accumulated spell-check results so that they can be
@@ -1062,6 +1001,74 @@ def mergeSpellCheckResults( collectedResults ) -> None:
         TOTAL_LATIN_WORDS_CHECKED_COUNT += collectedTotalLatinWordsCheckedCount
         TOTAL_LATIN_MISSPELLING_COUNT += collectedTotalLatinMisspellingCount
 # end of spellCheckEnglish.mergeSpellCheckResults
+
+
+def printSpellCheckSummary( state ) -> None:
+    """
+    Prints some summary results
+    """
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
+
+    ethSet = set()
+    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
+        if versionAbbreviation not in ('Luth','ClVg'):
+            for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
+                if word.endswith( 'eth' ) or word.endswith( 'est' ):
+                    ethSet.add( word )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
+
+    # BAD_*_WORD_LIST/SET include possible repeated pairs as well as spelling
+    # errors. Keep that collection format for multiprocessing, but do not mix
+    # the two categories in the spelling totals, unique counts, or percentages.
+    for language, checkedCount, misspellingCount, wordCounts, reports, reportedWords in (
+            ('ENGLISH', TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT,
+             BAD_ENGLISH_COUNTS, BAD_ENGLISH_WORD_LIST, BAD_ENGLISH_WORD_SET),
+            ('GERMAN', TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT,
+             BAD_GERMAN_COUNTS, BAD_GERMAN_WORD_LIST, BAD_GERMAN_WORD_SET),
+            ('LATIN', TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT,
+             BAD_LATIN_COUNTS, BAD_LATIN_WORD_LIST, BAD_LATIN_WORD_SET)):
+        if not checkedCount:
+            continue
+        percent = misspellingCount * 100 / checkedCount
+        percentageText = '<0.01%' if 0 < percent < 0.01 else f'{percent:.2f}%'
+        orderedWords = sorted(wordCounts, key=wordCounts.get, reverse=True)
+        wordsToShow = [(word, wordCounts[word]) for word in orderedWords if word.islower()][:14 if language=='ENGLISH' else 13]
+        if language=='GERMAN' and len(wordsToShow) < 12: # Include capitals, which can be ordinary German nouns.
+            wordsToShow = [(word, wordCounts[word]) for word in orderedWords
+                          if word not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
+        repeatedCount = len(reports) - misspellingCount
+        repeatedWords = reportedWords.difference(wordCounts)
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL {language} WORDS CHECKED = {checkedCount:,} BAD_{language} WORDS {misspellingCount:,} = {percentageText} ({len(wordCounts):,} unique){f': {sorted(wordCounts)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD {language} WORDS = {misspellingCount:,} WORST {language} WORDS {wordsToShow}" )
+            if repeatedCount:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    POSSIBLE REPEATED {language} WORDS = {repeatedCount:,} ({len(repeatedWords):,} unique pairs){f': {sorted(repeatedWords)}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+
+    # for versionAbbreviation in ('OET-RV'Hebrew words index,): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
+    #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
+
+    for versionAbbreviation in ('OET-RV','OET-LV', 'KJB-1611'): # Just out of curiousity # 'ULT','UST', 'BSB', 'Wycl'
+        badDict = defaultdict(int)
+        for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
+            badDict[word] += 1
+        sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
+        NUM_TO_DISPLAY = 40
+        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<NUM_TO_DISPLAY)]
+        if len(displayList)<NUM_TO_DISPLAY and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:NUM_TO_DISPLAY]] # Could cause some duplicates
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
+
+    totalWordsWithRef = 0
+    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
+        totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
+# end of spellCheckEnglish.printSpellCheckSummary()
+
 
 if __name__ == '__main__':
     from multiprocessing import set_start_method, freeze_support

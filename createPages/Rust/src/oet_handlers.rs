@@ -1,5 +1,9 @@
 //! Rust port of `createPages/OETHandlers.py` (deleted 2026-08-25).
 //!
+//! CHANGELOG:
+//!     2026-10-29 Link DC glosses and unresolved Greek words to their own lexical data.
+//!     2026-10-31 Colour DC draft morphology only when every analysis agrees.
+//!
 //! The PyO3 wrappers that expose these functions to Python live in `lib.rs`
 //! (they pull rows out of `state.OETRefData` and build/inspect BOS
 //! `InternalBibleEntry` objects). Everything in this module is pure Rust so
@@ -55,6 +59,95 @@ pub const NARROW_NON_BREAK_SPACE: char = '\u{202F}';
 pub static LINKED_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new("([-¬A-za-z0-9,'’ḨŌⱤḩⱪşţʦⱱĀĒāēéīōūəʸʼˊ/()]+)¦([1-9][0-9]{0,5})").unwrap()
 });
+
+static DC_LINKED_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"([\p{L}\p{M}\p{N},'’ʼˊ/()¬-]+)¦([1-9][0-9]*)").unwrap()
+});
+
+// DC tables use STEPBible/Robinson codes, not the NT table's positional codes.
+// Match complete analyses: a compound such as "N-NSM + G2532=CONJ" is not
+// evidence that the entire source word is a nominative noun.
+static DC_VERB_MORPHOLOGY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^V-2?[PIFARLX][AMPEDONQX](?:[ISOM]-[123][SP]|P-[NGDAV][SP][MFN]|N)$").unwrap()
+});
+static DC_CASE_MORPHOLOGY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:[NATRCDKIXQ]-|[PF]-[123]?|S-[123][SP])([NGDAV])[SP][MFN]?(?:-(?:P|T|L|PG|LG|C|S|N|ATT|HEB))?$").unwrap()
+});
+
+/// An agreed display category is only a draft inference from attested forms;
+/// it is not a contextual parse. Missing/unknown/conflicting analyses abstain.
+fn dc_morphology_colour_class(bbb: &str, morphology: &str) -> Option<&'static str> {
+    // LAO is Latin. Its present table has no Latin morphology; Greek codes
+    // must never be transferred to it, even if one accidentally enters a row.
+    if bbb == "LAO" {
+        return None;
+    }
+    let mut agreed = None;
+    for analysis in morphology.split('|').map(str::trim) {
+        let class = if DC_VERB_MORPHOLOGY.is_match(analysis) {
+            "grkVrb"
+        } else if analysis == "PRT-N" {
+            "grkNeg"
+        } else {
+            let case = DC_CASE_MORPHOLOGY.captures(analysis)?;
+            match &case[1] {
+                "N" => "grkNom", "A" => "grkAcc", "G" => "grkGen",
+                "D" => "grkDat", "V" => "grkVoc", _ => return None,
+            }
+        };
+        if agreed.is_some_and(|previous| previous != class) {
+            return None;
+        }
+        agreed = Some(class);
+    }
+    agreed
+}
+
+/// DC rows have thirteen columns, independent of the Hebrew and NT schemas.
+/// Link unresolved Greek as well as English glosses, preserving their brackets.
+pub fn liven_dc_word_links(
+    text: &str, level: usize, bbb: &str,
+    get_row: &dyn Fn(i64) -> Result<String, String>,
+    colourise_word_classes: bool,
+) -> Result<String, String> {
+    let escape = |value: &str| value.replace('&', "&amp;").replace('<', "&lt;")
+        .replace('>', "&gt;").replace('"', "&quot;");
+    let mut result = String::with_capacity(text.len() * 2);
+    let mut last_end = 0;
+    for captures in DC_LINKED_WORD_REGEX.captures_iter(text) {
+        let matched = captures.get(0).unwrap();
+        let number: i64 = captures[2].parse().map_err(|e| format!("{bbb} DC word number: {e}"))?;
+        let row = get_row(number).map_err(|e| format!("OET-LV {bbb} DC word {number}: {e}"))?;
+        let fields: Vec<&str> = row.split('\t').collect();
+        let source_bbb = match bbb { "GES" => "ES1", "DNG" => "DAG", _ => bbb };
+        if fields.len() != 13 || !fields[0].starts_with(&format!("{source_bbb}_")) {
+            return Err(format!("OET-LV {bbb} DC word {number}: expected a 13-column {bbb} row, got {row:?}"));
+        }
+        let chapter = fields[0].split_once('_').unwrap().1.split_once(':')
+            .ok_or_else(|| format!("OET-LV {bbb} DC word {number}: invalid reference {}", fields[0]))?.0;
+        if chapter.is_empty() || !chapter.bytes().all(|c| c.is_ascii_digit()) {
+            return Err(format!("OET-LV {bbb} DC word {number}: invalid chapter {chapter:?}"));
+        }
+        let colour_class = if colourise_word_classes {
+            dc_morphology_colour_class(bbb, fields[3])
+        } else { None };
+        let draft_note = if colour_class.is_some() {
+            " — Draft grammatical colour: available form analyses agree; context unreviewed"
+        } else { "" };
+        let title = escape(&format!("{} — {} ({}){draft_note}", fields[1], fields[2], fields[3]));
+        let class_attribute = colour_class.map(|class| format!(" class=\"{class}\""))
+            .unwrap_or_default();
+        result.push_str(&text[last_end..matched.start()]);
+        result.push_str(&format!("<a title=\"{title}\" href=\"{}ref/DCWrd/{bbb}_C{chapter}.htm#W{number}\"{class_attribute}>{}</a>",
+            "../".repeat(level), escape(&captures[1])));
+        last_end = matched.end();
+    }
+    result.push_str(&text[last_end..]);
+    if result.contains('¦') {
+        return Err(format!("OET-LV {bbb}: unrecognised DC word link in {text:?}"));
+    }
+    Ok(result)
+}
 
 // ── getOETTidyBBB ───────────────────────────────────────────────────────────
 
@@ -1632,6 +1725,63 @@ mod tests {
     }
 
 // ── native single-pass ESFM wordlink livening ──────────────────────────
+
+    #[test]
+    fn dc_links_preserve_unresolved_greek_and_use_independent_rows() {
+        let row = "ODE_1:1w1\tλόγος\tλόγος\tN-NSM\tword\tword\tform-lexical\tSTEPBible\t[]\tODE_1:1\tsource.xml\t\t ";
+        let get_row = |number| if number == 123885 { Ok(row.to_string()) }
+            else { Err(format!("unexpected row {number}")) };
+        let html = liven_dc_word_links("⟦λόγος¦123885⟧ to¦123885_speak¦123885.", 2, "ODE", &get_row, true).unwrap();
+        assert!(html.starts_with("⟦<a title=\"λόγος — λόγος (N-NSM) — Draft grammatical colour:"));
+        assert!(html.contains("</a>⟧"));
+        assert_eq!(html.matches("../../ref/DCWrd/ODE_C1.htm#W123885").count(), 3);
+        assert_eq!(html.matches("class=\"grkNom\"").count(), 3);
+        assert!(!html.contains('¦'));
+        let plain = liven_dc_word_links("word¦123885", 2, "ODE", &get_row, false).unwrap();
+        assert!(!plain.contains("class="));
+        assert!(!plain.contains("Draft grammatical colour"));
+        assert!(plain.contains("DCWrd/ODE_C1.htm#W123885"));
+    }
+
+    #[test]
+    fn dc_links_translate_source_book_aliases_and_reject_wrong_book_rows() {
+        let get_row = |_| Ok("DAG_1:2w3\tλόγος\tλέγω\t\tword\tword\tlexical\tSource\t[]\tDAG_1:2\tsource.xml\t\t".to_string());
+        let html = liven_dc_word_links("word¦1", 2, "DNG", &get_row, true).unwrap();
+        assert!(html.contains("DCWrd/DNG_C1.htm#W1"));
+        let error = liven_dc_word_links("word¦1", 2, "PSS", &get_row, true).unwrap_err();
+        assert!(error.contains("OET-LV PSS DC word 1"));
+    }
+
+    #[test]
+    fn dc_colours_require_agreement_on_category_not_every_grammatical_feature() {
+        for (analyses, expected) in [
+            ("N-NSM", "grkNom"), ("N-ASF", "grkAcc"),
+            ("N-GPM | N-GPN", "grkGen"), ("T-DSM | T-DSN", "grkDat"),
+            ("N-VSM-T", "grkVoc"), ("P-2GS", "grkGen"),
+            ("S-2SASN", "grkAcc"), ("F-3DSM", "grkDat"),
+            ("V-2AAI-3S | V-AAP-NSM", "grkVrb"),
+            ("V-PAN", "grkVrb"), ("PRT-N", "grkNeg"),
+        ] {
+            assert_eq!(dc_morphology_colour_class("TOB", analyses), Some(expected), "{analyses}");
+        }
+        for analyses in ["", "None", "N-PRI", "A-NUI", "PREP", "ADV", "N-XYZ", "V-UNKNOWN",
+            "T-ASN | T-NSN | T-VSN", "V-PAI-2P | A-NPM", "N-NSM | CONJ",
+            "N-NSM | unknown", "N-NSM |", "PRT-N | PRT-I", "N-NSM + G2532=CONJ"] {
+            assert_eq!(dc_morphology_colour_class("TOB", analyses), None, "{analyses}");
+        }
+    }
+
+    #[test]
+    fn dc_colours_cover_additional_greek_books_but_do_not_infer_latin_grammar() {
+        for bbb in ["TOB", "JDT", "ESG", "WIS", "SIR", "BAR", "LJE", "S3Y", "SUS",
+            "BEL", "MA1", "MA2", "MA3", "MA4", "GES", "DNG", "MAN", "PS2", "PSS", "ODE", "LAO"] {
+            let source = match bbb { "GES" => "ES1", "DNG" => "DAG", _ => bbb };
+            let get_row = |_| Ok(format!("{source}_1:1w1\tword\tword\tN-NSM\tword\tword\tdraft\tsource\t[]\t{source}_1:1\tsource\t\t"));
+            let html = liven_dc_word_links("word¦1", 2, bbb, &get_row, true).unwrap();
+            assert!(html.contains(&format!("DCWrd/{bbb}_C1.htm#W1")));
+            assert_eq!(html.contains("class=\"grkNom\""), bbb != "LAO", "{bbb}");
+        }
+    }
 
     fn nt_row(ref_: &str, greek: &str, lemma: &str, prob: &str, strongs: &str, role: &str, morph: &str) -> String {
         // Real NT layout: 0Ref 1GreekWord 2SRLemma 3GreekLemma 4VLTGlossWords

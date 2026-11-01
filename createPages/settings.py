@@ -44,6 +44,12 @@ CHANGELOG:
     2026-10-23 Add historical notes for ClVg, Luth, Wycl, TNT, Cvdl, Gnva, and Bshps details pages.
     2026-10-23 Load private test destinations and translations from ignored local configuration.
     2026-10-24 Add historical notes for Wbstr, SLT, RV, Drby, YLT, DRA, ASV, Wymth, and JPS details pages.
+    2026-10-29 Include all sixteen OET-LV deuterocanonical books, including PSS and ODE.
+    2026-10-29 Restore omitted RV Greek/Latin Esdras, Greek Daniel and Psalm 151; share source aliases.
+    2026-10-29 Order apocrypha by narrative setting and related texts; place LAO after COL and GLS in back matter.
+    2026-10-30 Add attribution and licence details for the unfoldingWord Hebrew and Greek grammars.
+    2026-10-30 Use the reviewed Wycliffe Zefania LAO profile, including its 15-16 split.
+    2026-10-30 Load LAO in both OET versions, retaining its navigation position after COL.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -52,7 +58,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-30' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.3.0'
@@ -69,14 +75,14 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.3.0' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.90' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.4.3' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.93' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
-    TEST_DC_BOOK_LIST = []
+    TEST_DC_BOOK_LIST = ['TOB']
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Also controls loading substituted editions
@@ -90,7 +96,10 @@ class State:
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN']
+    # DC lists group source folders/word tables; LAO is displayed after COL below.
+    OET_RV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN','GES','LES','DNG','PS2','LAO']
+    OET_LV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN','GES','DNG','PS2','PSS','ODE','LAO']
+    OET_SOURCE_BOOK_ALIASES = {'ES1': 'GES', 'ES2': 'LES', 'DAG': 'DNG'} # Source filenames → BOS book identities
 
     SUBSTITUTED_VERSIONS_FOLDER = Path(__file__).resolve().parent.parent / '.cache' / 'substitutedVersions'
 
@@ -114,12 +123,19 @@ class State:
                             'EZR','EST','NEH', 'HAG','ZEC','MAL',
                             ]
     assert len(OET_OT_BOOK_ORDER) == 39
-    # The following are not necessarily all included in the OET
-    OET_APOCRYPHA_BOOK_ORDER = ['LAO',
-                            'GES','LES','ES1','ES2','ESG','DAG','DNG','PS2',
-                            'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
-                            'MA1','MA2','MA3','MA4',
-                            'GLS']
+    # Rough narrative-setting order, keeping related texts and source aliases together.
+    # WIS follows its Solomonic voice; JDT and the ODE anthology have no single historical slot.
+    # The following are not necessarily all included in the OET.
+    OET_APOCRYPHA_BOOK_ORDER = ['PS2','WIS',
+                            'TOB','MAN',
+                            'BAR','LJE',
+                            'DNG','DAG','SUS','PAZ','BEL',
+                            'GES','ES1','LES','ES2',
+                            'ESG','ESA','JDT',
+                            'MA3','SIR','MA1','MA2','MA4',
+                            'PSS','ODE']
+    assert set(OET_RV_DC_BOOK_LIST + OET_LV_DC_BOOK_LIST) <= set(OET_APOCRYPHA_BOOK_ORDER) | {'LAO'}
+    assert len(OET_APOCRYPHA_BOOK_ORDER) == len(set(OET_APOCRYPHA_BOOK_ORDER))
     # For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
     OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
                             'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
@@ -128,11 +144,14 @@ class State:
                             'JN1','JN2','JN3', 'REV']
     assert len(OET_NT_BOOK_ORDER) == 27
     # Having these books in our book order variables doesn't necessarily mean that the books exist
-    OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
+    OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLS','GLO','TDX','NDX','OTH','BAK']
+    # LAO belongs beside the Pauline letters in navigation, while the NT load list stays at 27 books.
+    OET_BOOK_ORDER.insert(OET_BOOK_ORDER.index('COL') + 1, 'LAO')
     assert len(OET_BOOK_ORDER) >= 88
+    assert len(OET_BOOK_ORDER) == len(set(OET_BOOK_ORDER))
 
     TEST_BOOK_LIST = ['INT','FRT'] + TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
-    OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
+    OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_LV_DC_BOOK_LIST + OET_NT_BOOK_ORDER
     OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_OT_BOOK_ORDER + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
 #     # TODO: What about 'INT' ?
 #     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
@@ -142,7 +161,7 @@ class State:
 
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
     VERSIONS_WITHOUT_OT = ['GHT','BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT']
-    VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEBBM', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
+    VERSIONS_WITH_APOCRYPHA = ( 'OET-RV','OET-LV', 'WEBBE','WEBBM', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
     ENGLISH_VERSIONS_WITH_MODERNISED_TEXT = ( 'RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl' )
 
     NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
@@ -220,9 +239,10 @@ class State:
         'RP-GNT': 'org', 'TC-GNT': 'org', 'JPS': 'org',
         'BrLXX': 'lxx', 'BrTr': 'lxx',
         'ClVg': 'vul', 'DRA': 'vul', 'Luth': 'Luther',
-        # This import has only GEN EXO LEV NUM DEU MAT MRK LUK JHN.
-        # Confirmed: MRK 9:1 begins the transfiguration (English MRK 9:2).
-        'Wycl': 'vul',
+        # The Zefania import includes LAO, with a distinct 15-16 division.
+        # The source profile preserves the previous vul mapping elsewhere,
+        # including MRK 9:1 = English MRK 9:2. See BOS WycliffeVersification.md.
+        'Wycl': 'Wycliffe-Zefania',
     })
     assert set(allPossibleBibleVersions) <= BibleVersifications.keys()
 
@@ -243,6 +263,7 @@ class State:
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','SOTN','UTN')
+    versionsWithoutTheirOwnPages += ('UHG','UGG') # Reference works have no Bible book/chapter views
 #     if not TEST_MODE_FLAG: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
@@ -270,6 +291,7 @@ class State:
         'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
         'OET-LV': '../../OpenEnglishTranslation--OET/derivedTexts/', # Only .pickle here
         'OET-LV-OT': '../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/', # No NT here
+        'OET-LV-DC': '../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_DC_ESFM/',
         'OET-LV-NT': '../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_VLT_ESFM/', # No OT here
         'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
         'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
@@ -424,6 +446,8 @@ class State:
         'TOBD': 'Tyndale Open Bible Dictionary (2023)',
         'SOTN': 'SIL Open Translator’s Notes (2024)',
         'UTN': 'unfoldingWord® Translation Notes (2023)',
+        'UHG': 'unfoldingWord® Hebrew Grammar',
+        'UGG': 'unfoldingWord® Greek Grammar',
         'UBS': 'United Bible Societies open-licenced resources (2023)',
         'THBD': 'Theographic Bible Database',
         'BMM': 'BibleMapper.com Maps',
@@ -685,7 +709,8 @@ You can read a lot more about the design of the <em>OET-LV</em> at <a href="http
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.
 The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''',
-                'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p><!--note-->''' },
+                'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p><!--note-->
+<p class="note">The deuterocanonical books are automatic lexical drafts in Greek word order. Grammar and context are unreviewed; unresolved Greek words appear in ⟦brackets⟧. Their word-detail pages preserve Greek forms, lexical glosses, source references and attribution. Alignment with the Readers’ Version has not yet been established.</p>''' },
         'GHT': {'about': '<p class="about">Garth’s Hyper-literal Translation (2025).</p>',
                 'copyright': '<p class="copyright">None claimed. Public domain.</p>',
                 'licence': '<p class="licence">Public domain. No licence required.</p>',
@@ -1072,6 +1097,16 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
+        'UHG': {'about': '<p class="about">unfoldingWord® Hebrew Grammar (UHG) is a reference grammar for Biblical Hebrew, organised around the morphology codes used by the Open Scriptures Hebrew Bible.</p>',
+                'copyright': '<p class="copyright">Copyright © 2019 by unfoldingWord.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> and the grammar’s contributors for creating this resource to assist Bible translators. The original work by unfoldingWord is available from <a href="https://www.unfoldingword.org/uhg">unfoldingword.org/uhg</a> and <a href="https://uhg.readthedocs.io/">Read the Docs</a>.</p>',
+                'notes': '<p class="note">These pages have been converted from the original reStructuredText source files, with formatting adjustments and navigation links for this site. Browse our <a href="__LEVEL__ref/UHG/index.htm#Top">Hebrew grammar index</a>.</p>' },
+        'UGG': {'about': '<p class="about">unfoldingWord® Greek Grammar (UGG) is a reference grammar for Biblical Greek, organised around the parsing codes used by the Bunning Heuristic Prototype underlying the unfoldingWord Greek New Testament.</p>',
+                'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> and the grammar’s contributors for creating this resource to assist Bible translators. The original work by unfoldingWord is available from <a href="https://ugg.readthedocs.io/">Read the Docs</a>.</p>',
+                'notes': '<p class="note">These pages have been converted from the original reStructuredText source files, with formatting adjustments and navigation links for this site. Browse our <a href="__LEVEL__ref/UGG/index.htm#Top">Greek grammar index</a>.</p>' },
         'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (2023).</p>',
                 'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2023 United Bible Societies.</p>
 <p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
@@ -1102,9 +1137,10 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
 #     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
 #         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
-    assert len(BibleVersions)+1 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}" # OET is a pseudo-version
-    assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
-    assert len(booksToLoad) >= len(BibleLocations) # OET is a pseudo-version
+    # Allow for OET's pseudo-version and LV's three auxiliary source folders.
+    assert len(BibleVersions)+2 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}"
+    assert len(BibleNames)-1 >= len(BibleLocations)
+    assert len(booksToLoad)+1 >= len(BibleLocations)
 
     preloadedBibles = {}
     sectionsLists = {}

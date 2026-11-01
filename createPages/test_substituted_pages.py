@@ -10,6 +10,8 @@ CHANGELOG:
     2026-10-21 Compare uncached/cold/warm pages and require zero warm substitutions.
     2026-10-24 Cover verse-list builds with and without study/translation notes.
     2026-10-26 Validate complete introduction pages with real, possibly empty metadata.
+    2026-10-30 Require empty chapter-introduction pages to be omitted from the verse-list view.
+    2026-10-30 Preserve James/Ya’akov in modernised introductions and verses in both page families.
 """
 from contextlib import ExitStack
 import json
@@ -126,6 +128,35 @@ class SubstitutedPageTests(unittest.TestCase):
         self.assertEqual(editions.substitutions, 0)
         self.assertGreater(editions.hits, 0)
 
+    def test_james_uses_rv_name_without_becoming_yames(self):
+        for version in cache.ENGLISH_VERSIONS:
+            folder = self.state.BibleLocations[version]
+            (folder / '41MRK.usfm').write_text(
+                '\\id MRK The King James Version of the Holy Bible\n\\h Mark\n'
+                '\\mt1 James and Iames\n\\c 1\n'
+                '\\v 1 James and Iames spoke.\n'
+                '\\v 2 James saw John.\n\\v 3 Iames stood.\n')
+            bible = USFMBible(folder, givenAbbreviation=version,
+                             versification=self.state.BibleVersifications[version])
+            bible.loadBooks()
+            bible._OBDSourceManifest = cache.sourceManifest(folder)
+            self.state.preloadedBibles[version] = bible
+        files, editions = self.render('james')
+        for version in cache.ENGLISH_VERSIONS:
+            fragments = [text for key, text in editions.entries[version].items()
+                         if key[0] == 'MRK_1:1']
+            self.assertTrue(fragments, version)
+            for text in fragments:
+                self.assertIn('James/Ya’akov and James/Ya’akov', text, version)
+                self.assertNotIn('Yames', text, version)
+        for family in ('par', 'lst'):
+            for filename in ('Intro.htm', 'C1V1.htm', 'C1V2.htm', 'C1V3.htm'):
+                with self.subTest(family=family, filename=filename):
+                    page = files[f'{family}/MRK/{filename}'].decode()
+                    self.assertIn('James/Ya’akov', page)
+                    self.assertNotIn('Yames', page)
+                    self.assertNotIn('James/Ya’akov/Ya’akov', page)
+
     def test_forked_page_builders_persist_and_reuse_every_result(self):
         baseline, _ = self.render('baseline', enabled=False)
         cold, editions = self.render('fork-cold', processes=2)
@@ -184,6 +215,9 @@ class SubstitutedPageTests(unittest.TestCase):
                         files, _ = self.render(f'intro-{processes}-{label}', processes=processes)
                     for family in ('par', 'lst'):
                         for filename in ('Intro.htm', 'C1V0.htm', 'C1V1.htm'):
+                            if family=='lst' and filename=='C1V0.htm':
+                                self.assertNotIn(f'{family}/MRK/{filename}', files)
+                                continue
                             page = files[f'{family}/MRK/{filename}'].decode()
                             self.assertNotIn('\n\n', page)
                             if filename == 'C1V1.htm':

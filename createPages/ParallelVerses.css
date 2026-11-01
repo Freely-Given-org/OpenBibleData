@@ -230,7 +230,7 @@ span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Heb
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 span.tl {}
-span.wh { font-style:italic; }
+span.wh {} /* Hebrew word */
 span.jmp {}
 
 /* NET Bible notes spans */
@@ -245,7 +245,6 @@ span.tgrk { color:grey; } /* transliteration */
 
 /* OET add spans */
 span.addArticle { color:#b55f5f; }
-/* span.unusedArticle { color:lavender; } */
 span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
@@ -260,6 +259,8 @@ span.addTradName { color:purple; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:#6b6b6b; }
+
+/* span.unusedArticle { color:lavender; } */
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 

@@ -179,6 +179,7 @@ span.noLinkYet { background-color:darkgrey; color:white }
 span.nominaSacra { text-decoration: underline; text-underline-offset: 0px; text-decoration-color: #575959; } /* text-decoration-thickness: 1px; text-decoration-skip-ink: auto; font-weight: 560; */
 span.nd {}
 /* span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
+span.qs { font-style:italic; } /* Selah */
 
 span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
@@ -229,3 +230,15 @@ span.xrText {}
 .grkVoc {} /* { background-color:orchid; } */
 .grkVrb {} /* { background-color:khaki; } */
 .grkNeg {} /* { background-color:crimson; } */
+
+/* OET-RV uses these for highlighting Psalm/Song segments */
+span.zr { background-color:thistle; }
+span.zrhilite { background-color:plum; }
+span.z1 { background-color:lemonchiffon; }
+span.z1hilite { background-color:#ffff22; }
+span.z2 { background-color:powderblue; }
+span.z2hilite { background-color:aquamarine; }
+span.z3 { background-color:palegreen; }
+span.z3hilite { background-color:greenyellow; }
+span.z4 { background-color:lightsalmon; }
+span.z4hilite { background-color:salmon; }

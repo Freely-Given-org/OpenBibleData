@@ -1,3 +1,6 @@
+#!/usr/bin/env -S uv run
+# SPDX-FileCopyrightText: © 2026 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: CC0-1.0
 """Offline passage and page-builder regressions, using real BOS ESFM text/indexes.
 
 The recording renderer exercises addresses, grouping, links and note isolation;
@@ -6,6 +9,9 @@ it does not replace the server's full-site HTML/layout validation.
 CHANGELOG:
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
     2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
+    2026-10-30 Cover topic ranges containing RV verse bridges and contextual lookup errors.
+    2026-11-01 Include the book-navigation helper when exercising isolated page builders.
+    2026-11-01 Accept the selected-book argument in isolated navigation fixtures.
 """
 import ast
 from collections import defaultdict
@@ -27,9 +33,11 @@ from BibleOrgSys.Reference.BibleVersificationMappings import (
     MappingStatus, VersificationMappingEngine, VersificationMappingError,
 )
 import bos_books_codes_py
+from bible_organisational_system import InternalBibleEntryList
 
 import oetPassages as op
-from navigation import mapHtmlLinks
+from navigation import mapHtmlLinks, oetBookNavigationLinks
+from createSectionPages import sectionChapterTarget
 import versification as vf
 from settings import State
 
@@ -54,8 +62,9 @@ class OETPassageTests(unittest.TestCase):
     def load(self, BBB, version, text):
         folder = self.root / f'{version}-{BBB}'
         folder.mkdir()
-        (folder / f'{BBB}.esfm').write_text(
-            f'\\id {BBB}\n\\h {BBB}\n\\mt1 {version} header.\n'
+        usfmBook = bos_books_codes_py.bos_book_code_to_usfm_abbrev(BBB).upper()
+        (folder / f'{usfmBook}.esfm').write_text(
+            f'\\id {usfmBook}\n\\h {BBB}\n\\mt1 {version} header.\n'
             f'\\is1 Introduction\n\\ip {version} introduction.\n{text}')
         bible = ESFMBible(folder, givenAbbreviation=version,
                          versification='eng' if version == 'OET-RV' else 'org')
@@ -209,7 +218,7 @@ class OETPassageTests(unittest.TestCase):
             ESFMBible=ESFMBible if section else SimpleNamespace(ESFMBible=ESFMBible),
             vPrint=lambda *a: None,dPrint=lambda *a: None,fnPrint=lambda *a: None,
             getOETTidyBBB=lambda b,**k: b,
-            makeBookNavListParagraph=lambda *a: '',
+            makeBookNavListParagraph=lambda *a,**kwargs: '',
             makeTop=lambda *a: '<html><body>',makeBottom=lambda *a: '</body></html>',
             checkHtml=lambda *a,**k: True,removeDuplicateCVids=lambda h: h,
             convertVerseEntryListToHtml=self.render,
@@ -223,12 +232,10 @@ class OETPassageTests(unittest.TestCase):
         exec(compile(ast.Module(body=[function],type_ignores=[]),str(source),'exec'),namespace)
         return namespace[name]
 
-    def test_topic_range_and_whole_chapter_use_mapped_passages(self):
-        rv = self.load('ISA','OET-RV','\\c 9\n\\p\n' + ''.join(f'\\v {v} RV-{v}.\n' for v in range(2,8)))
-        lv = self.load('ISA','OET-LV','\\c 9\n\\p\n' + ''.join(f'\\v {v} LV-{v}.\n' for v in range(1,8)))
-        self.state.preloadedBibles = {'OET-RV':rv,'OET-LV':lv}
+    def topicBuilder(self):
         namespace = dict(globals(), State=State, DEBUGGING_THIS_MODULE=False, NEWLINE='\n',
-            TOPIC_LIST=[('Advent','advent.htm',['ISA_9:2-7'])],
+            topicReferenceMaterial=lambda *args:'', # Associations are covered in test_study_references.
+            TOPIC_LIST=[],
             fnPrint=lambda *a:None, vPrint=lambda *a:None, dPrint=lambda *a:None,
             getOETTidyBBB=lambda b,*a,**k:b, makeTop=lambda *a:'<html>', makeBottom=lambda *a:'</html>',
             convertVerseEntryListToHtml=self.render, do_OET_RV_HTMLcustomisations=lambda _,h:h,
@@ -238,6 +245,14 @@ class OETPassageTests(unittest.TestCase):
         function=next(n for n in ast.parse(source.read_text()).body
                       if isinstance(n,ast.FunctionDef) and n.name=='createTopicPage')
         exec(compile(ast.Module(body=[function],type_ignores=[]),str(source),'exec'),namespace)
+        return namespace
+
+    def test_topic_range_and_whole_chapter_use_mapped_passages(self):
+        rv = self.load('ISA','OET-RV','\\c 9\n\\p\n' + ''.join(f'\\v {v} RV-{v}.\n' for v in range(2,8)))
+        lv = self.load('ISA','OET-LV','\\c 9\n\\p\n' + ''.join(f'\\v {v} LV-{v}.\n' for v in range(1,8)))
+        self.state.preloadedBibles = {'OET-RV':rv,'OET-LV':lv}
+        namespace = self.topicBuilder()
+        namespace['TOPIC_LIST']=[('Advent','advent.htm',['ISA_9:2-7'])]
         namespace['createTopicPage'](1,self.root,0,self.state)
         html=(self.root/'advent.htm').read_text()
         self.assertIn('LV-1.',html)
@@ -252,6 +267,65 @@ class OETPassageTests(unittest.TestCase):
         html=(self.root/'ending.htm').read_text()
         self.assertIn('LV-19.',html)
         self.assertIn('LV-24.',html)
+
+    def test_topic_ranges_include_each_stored_bridge_once(self):
+        rv = self.load('TI2','OET-RV','\\c 4\n\\p\n\\v 1-2 RV-opening.\n'
+                       '\\v 3 RV-middle.\n\\v 4-5 RV-ending.\n\\v 6 RV-excluded.\n')
+        lv = self.load('TI2','OET-LV','\\c 4\n\\p\n' +
+                       ''.join(f'\\v {v} LV-{v}.\n' for v in range(1,7)))
+        self.state.preloadedBibles = {'OET-RV':rv,'OET-LV':lv}
+        namespace = self.topicBuilder()
+        original, _ = rv.getContextVerseData(('TI2','4'))
+        original = [(e.getMarker(),e.getFullText()) for e in original]
+        for verses, labels, lvVerses in (
+                ('1-5', ['1-2','3','4-5'], range(1,6)),
+                ('2-5', ['1-2','3','4-5'], range(1,6)),
+                ('3-5', ['3','4-5'], range(3,6)),
+                ('1-4', ['1-2','3','4-5'], range(1,6)),
+                ('1-2', ['1-2'], range(1,3)),
+                ('2', ['1-2'], range(1,3))):
+            with self.subTest(verses=verses):
+                self.rendered.clear()
+                filename = f'topic-{verses}.htm'
+                namespace['TOPIC_LIST']=[('Discernment',filename,[f'TI2_4:{verses}'])]
+                namespace['createTopicPage'](1,self.root,0,self.state)
+                html = (self.root/filename).read_text()
+                rvLabels = [value for version, ref, entries in self.rendered
+                            if version == 'OET-RV' for marker,value in entries if marker == 'v']
+                self.assertEqual(rvLabels, labels)
+                for v in range(1,7):
+                    self.assertEqual(html.count(f'LV-{v}.'), int(v in lvVerses))
+                self.assertNotIn('RV-excluded.', html)
+                current, _ = rv.getContextVerseData(('TI2','4'))
+                self.assertEqual([(e.getMarker(),e.getFullText()) for e in current], original)
+
+    def test_topic_range_keeps_existing_partial_end_verse_convention(self):
+        rv = self.load('MIC','OET-RV','\\c 5\n\\p\n' +
+                       ''.join(f'\\v {v} RV-{v}.\n' for v in range(1,7)))
+        lv = self.load('MIC','OET-LV','\\c 5\n\\p\n' +
+                       ''.join(f'\\v {v} LV-{v}.\n' for v in range(1,7)))
+        self.state.preloadedBibles = {'OET-RV':rv,'OET-LV':lv}
+        namespace = self.topicBuilder()
+        namespace['TOPIC_LIST']=[('Advent','advent.htm',['MIC_5:2-5a'])]
+        namespace['createTopicPage'](1,self.root,0,self.state)
+        html = (self.root/'advent.htm').read_text()
+        self.assertIn('RV-5.', html)
+        self.assertNotIn('RV-6.', html)
+
+    def test_missing_topic_verse_reports_topic_edition_and_reference(self):
+        rv = self.load('TI2','OET-RV','\\c 4\n\\p\n\\v 1-2 Opening.\n\\v 4 Fourth.\n')
+        self.state.preloadedBibles = {'OET-RV':rv,'OET-LV':rv}
+        namespace = self.topicBuilder()
+        topic = 'Testing teaching and spiritual discernment'
+        filename = 'TestingTeachingAndSpiritualDiscernment.htm'
+        namespace['TOPIC_LIST']=[(topic,filename,['TI2_4:1-5'])]
+        with self.assertRaises(KeyError) as caught:
+            namespace['createTopicPage'](1,self.root,0,self.state)
+        notes = '\n'.join(getattr(caught.exception, '__notes__', ()))
+        for expected in (topic, filename, 'OET-RV', 'TI2_4:1-5'):
+            self.assertIn(expected, notes)
+        self.assertFalse((self.root/filename).exists())
+        self.assertEqual(self.rendered, [])
 
     def test_all_three_page_builders_use_mapped_malachi_passage(self):
         rv=self.load('MAL','OET-RV',''.join(
@@ -284,6 +358,10 @@ class OETPassageTests(unittest.TestCase):
                 self.assertIn('Native-3-24.',html)
                 self.assertIn('par/MAL/C4V1.htm',html)
                 self.assertNotIn('Unsolved versification',html)
+                if section:
+                    self.assertIn('href="MAL_S0.htm#Top"', html)
+                    self.assertIn('id="Top"', html)
+                    self.assertNotIn('href="MAL_S0.htm#C4"', html)
                 if filename!='createBookPages.py':
                     self.assertNotIn('Native-3-18.',html)
                     self.assertIn('OET-LV/byDoc/MAL.htm#C3V19',html)

@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-23 Cover exact occurrence highlighting and all four word/lemma page builders.
     2026-10-23 Validate punctuation, notes, unused variants, and unloaded TEST books.
+    2026-11-01 Check semantic referent links use the generated Greek occurrence filenames.
 """
 from collections import defaultdict
 from contextlib import ExitStack
@@ -205,6 +206,16 @@ class ReferencePageTests(unittest.TestCase):
         self.assertIn('Unused Greek word variant', html)
         self.assertNotIn('\n\n', html)
         self.assertNotIn('VerseText', html)
+
+    def test_greek_referent_tags_use_occurrence_filenames(self):
+        fields = self.greek.split('\t')
+        fields[-1] = 'F1;R1'
+        pages.create_Greek_word_page(2, 1, '\t'.join(fields), '', '', self.root,
+                                    'referents.htm', self.state, [], [])
+        html = (self.root/'referents.htm').read_text()
+        for title in ('Go to referent word', 'Go to referred word'):
+            self.assertIn(f'title="{title}" href="JHNc1v1w1.htm#Top"', html)
+        self.assertNotIn('href="1.htm#Top"', html)
 
 
 class ReferenceStyleTests(unittest.TestCase):

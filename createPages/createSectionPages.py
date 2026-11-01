@@ -66,6 +66,9 @@ CHANGELOG:
     2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
     2026-10-12 Map complete OET-RV passages to OET-LV with BOS before rendering side-by-side rows.
     2026-10-24 Use traditional book abbreviations on other versions' section pages and controls.
+    2026-11-01 Honour the OET 66/all book preference in previous/next section-index links.
+    2026-11-01 Select section chapters at the section start or an interior verse-one anchor.
+    2026-11-01 Mark the selected book on section pages and per-book indexes.
 """
 from pathlib import Path
 import os
@@ -79,7 +82,7 @@ from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
-from navigation import mapHtmlLinks, bookAbbreviation
+from navigation import mapHtmlLinks, bookAbbreviation, oetBookNavigationLinks
 from settings import State
 from oetPassages import renderOETLVPassage, oetLVSourceLink
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -378,6 +381,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
 
+        selectedBookNavListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state, currentBBB=BBB)
         numChapters = rvBible.getNumChapters( BBB )
         # chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
         # if numChapters >= 1:
@@ -396,8 +400,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 sectionChapterLinks.append( f'<a title="View document introduction" href="{BBB}_S1.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
                 C = str( c )
-                s = findSectionNumber( 'OET-RV', BBB, C, '1', state )
-                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{BBB}_S{s}.htm#C{C}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
+                target = sectionChapterTarget('OET-RV', BBB, C, state)
+                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{target}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
         else:
             c = '0' # TODO: for now
             # assert False, f"We want to stop here because OET-RV {BBB} has {numChapters} chapters" # FRT
@@ -492,7 +496,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{sectionFilename}#Top">OET</a>''',
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {sectionHtml}
@@ -510,7 +514,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         # Now make the section index file for this book
         BBBindex = availableBBBs.index( BBB )
         leftLink = f'<a title="Previous book: {getOETTidyBBB(availableBBBs[BBBindex-1])}" href="{availableBBBs[BBBindex-1]}.htm#Top">←</a> ' if BBBindex>0 else ''
-        rightLink = f' <a title="Next book: {getOETTidyBBB(availableBBBs[BBBindex-1])}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
+        rightLink = f' <a title="Next book: {getOETTidyBBB(availableBBBs[BBBindex+1])}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
+        leftLink, rightLink = oetBookNavigationLinks(availableBBBs, BBB, 'OET', leftLink, rightLink, sectionIndex=True)
         indexFilename = f'{BBB}.htm'
         indexFilepath = folder.joinpath( indexFilename )
         top = makeTop( level, 'OET', 'sectionIndex', f'bySec/{indexFilename}', state ) \
@@ -535,7 +540,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
         sectionHtml = f'''{top}<!--sections page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="pageNav" id="Top">{leftLink}{getOETTidyBBB( BBB, titleCase=True, allowFourChars=True, insertChar=' ', addNotes=True)} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
@@ -696,6 +701,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
 
+        selectedBookNavListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state, currentBBB=BBB)
         numChapters = thisBible.getNumChapters( BBB )
         # if numChapters >= 1:
         #     chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
@@ -714,8 +720,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                 sectionChapterLinks.append( f'<a title="View document introduction" href="{BBB}_S1.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
                 C = str( c )
-                s = findSectionNumber( thisBible.abbreviation, BBB, C, '1', state )
-                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{BBB}_S{s}.htm#C{C}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
+                target = sectionChapterTarget(thisBible.abbreviation, BBB, C, state)
+                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{target}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
         else:
             c = '0' # TODO: for now
             sectionChapterLinksParagraph = ''
@@ -735,7 +741,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             sectionHtml = f'<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} has NO section headings</h1>'
 
             sectionHtml = f'''{top}<!--no sections page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{sectionHtml}
 {makeBottom( level, thisBible.abbreviation, 'section' )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
@@ -813,7 +819,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
 {sectionChapterLinksParagraph}
@@ -829,6 +835,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         BBBindex = availableBBBs.index( BBB )
         leftLink = f'<a title="Previous book: {bookAbbreviation(availableBBBs[BBBindex-1], thisBible.abbreviation)}" href="{availableBBBs[BBBindex-1]}.htm#Top">←</a> ' if BBBindex>0 else ''
         rightLink = f' <a title="Next book: {bookAbbreviation(availableBBBs[BBBindex+1], thisBible.abbreviation)}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
+        leftLink, rightLink = oetBookNavigationLinks(availableBBBs, BBB, thisBible.abbreviation, leftLink, rightLink, sectionIndex=True)
         indexFilename = f'{BBB}.htm'
         indexFilepath = folder.joinpath( indexFilename )
         top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{indexFilename}', state ) \
@@ -856,7 +863,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             # NOTE: word 'Alternate ' is handled within the normalised reason names in the helper
             sectionHtmlBits += createNonOETSectionIndexParagraphs( state.sectionsListsForSections[thisBible.abbreviation][BBB], state )
         sectionHtml = f'''{top}<!--sections page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<p class="pageNav" id="Top">{leftLink}{ourTidyBBB} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
 {'\n'.join( sectionHtmlBits )}
@@ -894,6 +901,16 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages() finished processing {len(availableBBBs)} {thisBible.abbreviation} books: {availableBBBs}." )
     # return filenames
 # end of createSectionPages.createSectionPages
+
+
+def sectionChapterTarget(versionAbbreviation, BBB, C, state):
+    """Chapter starts can be heading-only sections without a chapter/verse anchor."""
+    sectionNumber = findSectionNumber(versionAbbreviation, BBB, C, '1', state)
+    if sectionNumber is None:
+        return f'../byC/{BBB}_C{C}.htm#Top'
+    section = state.sectionsListsForSections[versionAbbreviation][BBB][sectionNumber]
+    anchor = 'Top' if str(section[1]) == str(C) else f'C{C}V1'
+    return f'{section[9]}#{anchor}'
 
 
 def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> int|None:

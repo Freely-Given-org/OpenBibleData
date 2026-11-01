@@ -2,6 +2,10 @@
 //!
 //! CHANGELOG:
 //!     2026-10-23 Keep the section cache's source dict alive to prevent stale identity hits.
+//!     2026-10-29 Render DC word links against their own lexical table and reference pages.
+//!     2026-10-30 Accept verified lexical and grammar cells for interlinear rows.
+//!     2026-10-31 Route explicitly tagged RV words in DC books to the DC table too.
+//!     2026-10-31 Honour the grammatical-colour setting for DC word links.
 
 /// Use a faster/scalable allocator for this cdylib's Rust allocations when the
 /// `allocator-mimalloc` cargo feature is enabled (default: off).
@@ -652,8 +656,13 @@ fn convert_verse_entry_list_to_html_py<'py>(
             .and_then(|v| v.extract())
             .unwrap_or(false);
         let is_nt = bos_books_codes::is_new_testament_nr(bos_book_code);
+        let is_dc = matches!(versionAbbreviation, "OET-LV" | "OET-RV")
+            && state_obj.getattr("OET_LV_DC_BOOK_LIST")
+                .and_then(|books| books.contains(bos_book_code)).unwrap_or(false);
         let word_file_name = if is_nt {
             "OET-LV_NT_word_table.tsv"
+        } else if is_dc {
+            "OET-LV_DC_word_table.tsv"
         } else {
             "OET-LV_OT_word_table.tsv"
         };
@@ -682,6 +691,7 @@ fn convert_verse_entry_list_to_html_py<'py>(
         liven_ctx = Some(FusedLivenContext {
             level,
             is_nt,
+            is_dc,
             get_row,
             nfc_normalise,
             colourise_word_classes: colouriseWordClasses,
@@ -1278,6 +1288,7 @@ fn cached_nfc_normalise(unicodedata: &Bound<'_, PyAny>, s: &str) -> String {
 struct FusedLivenContext<'a> {
     level: usize,
     is_nt: bool,
+    is_dc: bool,
     get_row: Box<dyn Fn(i64) -> Result<String, String> + 'a>,
     nfc_normalise: Box<dyn Fn(&str) -> String + 'a>,
     colourise_word_classes: bool,
@@ -1294,6 +1305,10 @@ fn liven_fused_entry_text<'py>(
     bbb: &str,
     text: &str,
 ) -> PyResult<Option<String>> {
+    if ctx.is_dc {
+        return oet_handlers::liven_dc_word_links(text, ctx.level, bbb, ctx.get_row.as_ref(), ctx.colourise_word_classes)
+            .map(Some).map_err(err_to_pyerr);
+    }
     match oet_handlers::liven_esfm_word_links(
         text,
         ctx.level,
@@ -1351,7 +1366,7 @@ fn liven_oet_word_links_impl<'py>(
         return Err(PyAssertionError::new_err(format!("level={level}")));
     }
     let word_tables_count: usize = bible_object.getattr("ESFMWordTables")?.len()?;
-    if word_tables_count != 2 {
+    if !(2..=3).contains(&word_tables_count) {
         return Err(PyAssertionError::new_err(format!(
             "len(bibleObject.ESFMWordTables)={word_tables_count}"
         )));
@@ -1443,8 +1458,13 @@ fn liven_oet_word_links_impl<'py>(
     // state.OETRefData['word_tables'], so no link/title templates or column
     // names need to be passed around.
     let is_nt = bos_books_codes::is_new_testament_nr(bbb);
+    let is_dc = matches!(abbreviation.as_str(), "OET-LV" | "OET-RV")
+        && state.getattr("OET_LV_DC_BOOK_LIST")
+            .and_then(|books| books.contains(bbb)).unwrap_or(false);
     let word_file_name = if is_nt {
         "OET-LV_NT_word_table.tsv"
+    } else if is_dc {
+        "OET-LV_DC_word_table.tsv"
     } else {
         "OET-LV_OT_word_table.tsv"
     };
@@ -1467,6 +1487,7 @@ fn liven_oet_word_links_impl<'py>(
     let liven_ctx = FusedLivenContext {
         level,
         is_nt,
+        is_dc,
         get_row: Box::new(get_row),
         nfc_normalise: Box::new(nfc_normalise),
         colourise_word_classes,
@@ -1742,7 +1763,7 @@ fn remove_duplicate_fnids_py(where_from: &str, html: &str) -> String {
 
 /// PyO3 wrapper for `postprocess::build_interlinear_word_rows`.
 #[pyfunction(name = "buildInterlinearWordRows")]
-#[pyo3(signature = (level, nt, rows, word_numbers, wordpage_filenames, lv_english, rv_english))]
+#[pyo3(signature = (level, nt, rows, word_numbers, wordpage_filenames, lv_english, rv_english, reference_cells=None))]
 fn build_interlinear_word_rows_py(
     level: usize,
     nt: bool,
@@ -1751,6 +1772,7 @@ fn build_interlinear_word_rows_py(
     wordpage_filenames: Vec<String>,
     lv_english: std::collections::HashMap<usize, Vec<String>>,
     rv_english: std::collections::HashMap<usize, Vec<String>>,
+    reference_cells: Option<Vec<Vec<String>>>,
 ) -> String {
     postprocess::build_interlinear_word_rows(
         level,
@@ -1760,6 +1782,7 @@ fn build_interlinear_word_rows_py(
         &wordpage_filenames,
         &lv_english,
         &rv_english,
+        reference_cells.as_deref(),
     )
 }
 

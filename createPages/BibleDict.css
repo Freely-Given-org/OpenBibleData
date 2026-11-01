@@ -97,3 +97,59 @@ span.ital { font-style:italic; }
 span.hebrew { font-weight:bold; color:orange; }
 span.greek { font-weight:bold; color:darkgreen; }
 span.era { color:cornflowerblue; }
+
+/* 2026-10-31 OET passage previews in UBS and Tyndale dictionary articles.
+ * Match the existing chapter/verse styles; ADD styles follow below. */
+small.versificationRef {}
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
+span.d { color:sienna; }
+span.qs { font-style:italic; } /* Selah */
+span.li1 {}
+span.nd {}
+span.ndORD { font-size:.75em; }
+span.wj { color:saddlebrown; }
+span.sig { font-family:cursive; }
+span.ul { color:darkGrey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.unsure { text-decoration:underline; text-decoration-style:dotted; text-decoration-color:orange; }
+span.noLinkYet { background-color:darkgrey; color:white; }
+span.nominaSacra { text-decoration:underline; text-underline-offset:0px; text-decoration-color:#575959; }
+span.synonParr { vertical-align:super; font-size:0.8em; color:green; }
+span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; }
+span.synthParr { vertical-align:super; font-size:0.8em; color:blue; }
+
+/* OSHB classes on links and spans, as in OETChapter.css. */
+.hebVrb {} /* { background-color:khaki; } */
+.hebNeg {} /* { background-color:crimson; } */
+.hebEl {} /* { background-color:powderBlue; } */
+.hebYhwh {} /* { background-color:paleGreen; } */
+
+/* OET add spans */
+span.addArticle { color:#b55f5f; }
+/* span.unusedArticle { color:lavender; } */
+span.addCopula { color:#55847c; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:green; }
+span.addElided { color:#9c740b; }
+span.addOwner { color:darkOrchid; }
+span.addPronoun { color:darkgreen; }
+span.addReferent { color:darkblue; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:#807625; }
+span.addNegated { color:darkred; }
+span.addTradName { color:purple; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.add { color:#6b6b6b; }
+
+/* SR-GNT cases (also used for BSB and MSB) */
+/* Used in anchors and in spans */
+/* Not sure that we want chapters coloured */
+.grkNom {} /* { background-color:lightgreen; } */
+.grkAcc {} /* { background-color:orange; } */
+.grkGen {} /* { background-color:pink; } */
+.grkDat {} /* { background-color:cyan; } */
+.grkVoc {} /* { background-color:orchid; } */
+.grkVrb {} /* { background-color:khaki; } */
+.grkNeg {} /* { background-color:crimson; } */

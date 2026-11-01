@@ -41,6 +41,7 @@ CHANGELOG:
         page-chrome port (Related, Parallel, Interlinear, Simple, Topics,
         Reference, Dictionary, Search). 'simpleVerse' was added to the CASES
         matrix.
+    2026-11-01 Check base Rust chrome independently of the reference-aware navigation wrapper.
 """
 import unittest
 
@@ -376,6 +377,8 @@ def get_stub_state() -> State:
     if not hasattr( state, 'versionsWithoutTheirOwnPages' ):
         state.versionsWithoutTheirOwnPages = set()
     state.TEST_VERSIONS_ONLY = None
+    state.booksToLoad={version:['ALL'] for version in state.BibleVersions}
+    state.sectionsListsForSections={}
     return state
 
 
@@ -420,7 +423,10 @@ class TestMakeTopRustFidelity( unittest.TestCase ):
         for level, va, pt, ff in CASES:
             with self.subTest( level=level, va=va, pageType=pt, ff=ff ):
                 expected = _ref_makeTop( level, va, pt, ff, self.state )
-                actual = htmlModule.makeTop( level, va, pt, ff, self.state )
+                # Check the Rust base chrome independently of the Python Bible-
+                # navigation enhancement; its behaviour is covered separately.
+                actual = htmlModule.openbibledata_rust.make_top(
+                    htmlModule._getPageChromeConfig(self.state),level,pt,va,ff)
                 self.assertEqual( actual, expected )
 
     def test_makeTop_maps_version_links_at_changed_chapter_boundary(self):

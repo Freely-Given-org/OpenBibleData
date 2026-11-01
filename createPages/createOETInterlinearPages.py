@@ -50,6 +50,12 @@ CHANGELOG:
     2026-10-24 Keep traditional abbreviations alongside OET names for the selected book.
     2026-10-26 Include all Psalm headings in interlinear pages and verse/chapter navigation.
     2026-10-26 Add explained pages for alternate verse addresses after all ordinary pages finish.
+    2026-10-30 Require verse-zero text and hide links to omitted verse-list chapter introductions.
+    2026-10-30 Use native Hebrew occurrence filenames in both interlinear directions.
+    2026-10-30 Link lexical and morphology cells locally in both orders; correct reverse Hebrew Strong’s and Greek word columns.
+    2026-11-01 Anchor the original-language table for translation-note comparison links.
+    2026-10-30 Add passage-specific people, places, dictionary entries and topics.
+    2026-11-01 Pass the current reference to the common version and mode navigation.
 
 TODO:
     Add colour keys for LV and RV words
@@ -68,6 +74,8 @@ import bos_books_codes_py
 
 from versification import navigationVersification, _mapReference, combinedPassageLabel, parallelVersePassage
 from oetWords import passageWordRows
+from lexicalLinks import interlinearReferenceCells
+from studyReferences import passageReferenceMaterial
 from navigation import navigationBookList, referenceHref, verseNavigationFirstVerses
 from alternateVersePages import createAlternateVersePages
 from oetPassages import _namespaceIds
@@ -81,7 +89,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-10-26'
+LAST_MODIFIED_DATE = '2026-10-30'
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.70'
@@ -216,7 +224,10 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'InterlinearVerse', state, currentBBB=BBB )
 
     chapterLinks = []
-    firstVerses = verseNavigationFirstVerses(BBB, numChapters, ('OET-LV','OET-RV'), state)
+    firstVerses = verseNavigationFirstVerses(BBB, numChapters, ('OET-LV','OET-RV'), state, requireVerseZeroText=True)
+    displayedVersions = [version for version in state.BibleVersions
+        if not state.TEST_VERSIONS_ONLY or version in state.TEST_VERSIONS_ONLY]
+    verseListFirstVerses = verseNavigationFirstVerses(BBB, numChapters, displayedVersions, state, requireVerseZeroText=True)
     chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V{firstVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
             f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
@@ -246,7 +257,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{firstVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top">║</a>'''
-                verseListLink = f''' <a title="Simple verse list view" href="{'../'*BBBLevel}lst/{BBB}/C{C}V{v}.htm#Top">≡</a>'''
+                verseListLink = f''' <a title="Simple verse list view" href="{'../'*BBBLevel}lst/{BBB}/C{C}V{v}.htm#Top">≡</a>''' if v>=verseListFirstVerses[c] else ''
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBBBwithNotes} {C}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{verseListLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVerseInner( BBBLevel, BBB, c, v, state )
@@ -256,7 +267,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 filename = f'C{C}V{v}.htm'
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
-                top = makeTop( BBBLevel, None, 'interlinearVerse', None, state ) \
+                top = makeTop( BBBLevel, None, 'interlinearVerse', None, state, (BBB,C,str(v)) ) \
                         .replace( '__TITLE__', f"{ourTidyBBB} {C}:{v} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, interlinear, {ourTidyBBB}' ) \
                         .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top"''')
@@ -285,7 +296,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     # Create index page for this book
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
-    top = makeTop( BBBLevel, None, 'interlinearVerse', None, state ) \
+    top = makeTop( BBBLevel, None, 'interlinearVerse', None, state, (BBB,) ) \
             .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
@@ -308,7 +319,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, None, 'interlinearVerse', None, state ) \
+    top = makeTop( level, None, 'interlinearVerse', None, state, (BBB,) ) \
             .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
@@ -488,8 +499,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
     # Removed <li lang="en_PERCENT">{row[7]+'%' if row[7]=='X' else 'V'}</li>
-    ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
+    ivHtml = f'''{passageReferenceMaterial(level,(BBB,C,V),state.navigationVersification,state)}<h2 id="{'SR-GNT' if NT else 'UHB'}">{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
+    referenceCellsByWord = {}
     if nativeWordNumbers:
         # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
         # Display the interlinear blocks (per-word rows are built in Rust for speed)
@@ -498,10 +510,11 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             rowStr = wordTable[wordNumber]
             wordRows.append( rowStr.split( '\t' ) )
             wordNumbers.append( wordNumber )
-            wordpageFilenames.append( getGreekWordpageFilename(wordNumber, state ) if NT else f'{wordNumber}.htm' )
+            wordpageFilenames.append( getGreekWordpageFilename(wordNumber, state ) if NT else getHebrewWordpageFilename(wordNumber, state) )
+            referenceCellsByWord[wordNumber] = interlinearReferenceCells(level,'Grk' if NT else 'Heb',wordRows[-1],state)
         # The Rust port also emits the title row, tags (Person=/Location=),
         #   gloss selection, Strongs links, and word-number links
-        ivHtml = f'{ivHtml}{buildInterlinearWordRows( level, NT, wordRows, wordNumbers, wordpageFilenames, lvEnglishWordDict, rvEnglishWordDict )}'
+        ivHtml = f'{ivHtml}{buildInterlinearWordRows( level, NT, wordRows, wordNumbers, wordpageFilenames, lvEnglishWordDict, rvEnglishWordDict, [referenceCellsByWord[n] for n in wordNumbers] )}'
     # Now append the OET-RV
 #  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
     ivHtml = f'''{ivHtml}
@@ -579,10 +592,10 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                 reverseList.append( f'''<li><ol class="word">
   <li lang="en_TRANS">{'<span class="untr" title="Word typically omitted from English translations">' if row[4][0]=='¬' else '<b>'}{word}{'</span>' if row[4][0]=='¬' else '</b>'}</li>
   <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-  <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
-  <li lang="el">{row[6]}</li>
-  <li lang="el_LEMMA">{row[2]}</li>
-  <li lang="en_MORPH">{row[9]}-{row[10]}</li>
+  <li lang="en_STRONGS">{referenceCellsByWord[wordNumber][1]}</li>
+  <li lang="el">{row[1]}</li>
+  <li lang="el_LEMMA">{referenceCellsByWord[wordNumber][0]}</li>
+  <li lang="en_MORPH">{referenceCellsByWord[wordNumber][2]}</li>
   <li lang="en_GLOSS">{row[5]}</li>
   <li lang="en_GLOSS">{row[4]}</li>
   <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
@@ -605,18 +618,17 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                             tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
-                strongsList = [f'<a href="https://BibleHub.com/hebrew/{nn}.htm">{nn}</a>' for nn in row[3].split(',') if nn.isdigit()]
                 reverseList.append( f'''<li><ol class="word">
     <li lang="en_TRANS"><b>{word}</b></li>
     <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-    <li lang="en_STRONGS">{','.join(strongsList)}</li>
+    <li lang="en_STRONGS">{referenceCellsByWord[wordNumber][1]}</li>
     <li lang="he">{row[6]}</li>
-    <li lang="he_LEMMA">{row[2]}</li>
-    <li lang="en_MORPH">{row[16]}-{row[5]}</li>
+    <li lang="he_LEMMA">{referenceCellsByWord[wordNumber][0]}</li>
+    <li lang="en_MORPH">{referenceCellsByWord[wordNumber][2]}</li>
     <li lang="en_GLOSS">{row[11] or row[10] or row[9] or row[8]}</li>
     <li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
     <li lang="en_TAGS">{tagsHtml}</li>
-    <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+    <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{getHebrewWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
 </ol><!--word--></li>''' )
             lastWordNumber = wordNumber
     rivHtml = f'{rivHtml}{NEWLINE.join( reverseList )}'

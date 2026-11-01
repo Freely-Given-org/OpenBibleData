@@ -42,6 +42,8 @@ CHANGELOG:
     2026-10-16 Report worker failures promptly via BOS, including abnormal process exits.
     2026-10-16 Preload the BibleMapper index in the parent before forking chapter-page workers.
     2026-10-24 Use traditional book abbreviations on other versions' chapter pages.
+    2026-11-01 Retain the selected book when switching versions from its chapter index.
+    2026-11-01 Mark the selected book in reading-page navigation.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -82,7 +84,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     This is the per-book body of createOETSideBySideChapterPages.
     Returns (True, BBB, the list of filenames written).
     """
-    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state, currentBBB=BBB )
     filenames = []
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
@@ -276,7 +278,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     filename = f'{BBB}.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( level, 'OET', 'chapter', 'byC/', state ) \
+    top = makeTop( level, 'OET', 'chapter', f'byC/{BBB}.htm', state ) \
             .replace( '__TITLE__', f"OET {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
@@ -425,6 +427,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             logging.error( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
 
+        selectedBookNavListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state, currentBBB=BBB)
         BBBs.append( BBB )
         try: numChapters = thisBible.getNumChapters( BBB )
         except KeyError:
@@ -526,7 +529,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                         .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                                   f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{chapterHtml}
 {cNav}
@@ -549,12 +552,12 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             filenames.append( filename )
             filepath = folder.joinpath( filename )
             # BBBLinks.append( f'<a title="{bos_books_codes_py.get_english_name_nr(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
-            top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
+            top = makeTop( level, thisBible.abbreviation, 'chapter', f'byC/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
             chapterHtml = f'''{top}<!--chapters indexPage-->
-{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{selectedBookNavListParagraph}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
 {chapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
             assert checkHtml( f'{thisBible.abbreviation} chapter index', chapterHtml )
@@ -587,7 +590,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
-{navBookListParagraph}
+{selectedBookNavListParagraph}
 {chapterHtml}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )

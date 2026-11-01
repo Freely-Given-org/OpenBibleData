@@ -14,6 +14,12 @@ CHANGELOG:
     2026-10-24 Accept selected-book options in the navigation test doubles.
     2026-10-26 Supply shared chapter-start navigation to page-loop fixtures.
     2026-10-26 Include the alternate-address pass in parent page-builder fixtures.
+    2026-10-30 Check reversible Parallel navigation through chapter and book introductions.
+    2026-10-30 Cover later chapter introductions and unavailable study-view links.
+    2026-10-30 Check both backward shortcuts on Parallel verse 1 pages.
+    2026-10-30 Cover OET-RV Maccabees retrieval from English parallel-page addresses.
+    2026-10-30 Cover all Wycliffe LAO pages, combined 15-16 text, and cached declarations.
+    2026-11-01 Supply section-aware reading links to isolated page-loop fixtures.
 """
 import ast
 from collections import defaultdict
@@ -30,6 +36,7 @@ from unittest.mock import mock_open, patch
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.Formats.USFMBible import USFMBible
 from BibleOrgSys.Formats.ESFMBible import ESFMBible
+from BibleOrgSys.Formats.ZefaniaXMLBible import ZefaniaXMLBible
 from BibleOrgSys.Reference.BibleVersificationMappings import (
     MappingStatus, VersificationMappingEngine, VersificationMappingError,
 )
@@ -39,8 +46,10 @@ import bos_books_codes_py
 from bible_organisational_system import getSmallLeadingInt
 
 from settings import State
+from bibleNavigation import preferredReadingHref
 import versification as vf
 from navigation import navigationBookList, verseNavigationFirstVerses
+from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from alternateVersePages import createAlternateVersePages
 from parallel import runParallelPages
 from substitutedVersions import prepareSubstitutedVersions, saveSubstitutedVersions
@@ -112,8 +121,11 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(self.refs(('PSA','3','1'),luther,'Luth'),(('PSA','3','2',None),))
 
     def test_wycliffe_confirmed_mark_boundary_after_cache_loading(self):
-        wycliffe = pickle.loads(pickle.dumps(Bible()))
+        wycliffe = pickle.loads(pickle.dumps(Bible(versification='vul')))
         vf.configureBibleVersification(wycliffe, 'Wycl', self.state)
+        self.assertEqual(wycliffe.getVersificationSystemName(), 'Wycliffe-Zefania')
+        self.assertEqual(self.refs(('LAO','1','17'), wycliffe, 'Wycl'),
+                         (('LAO','1','17',None),))
         self.assertEqual(self.refs(('MRK','9','1'), wycliffe, 'Wycl'),
                          (('MRK','8','39',None),))
         self.assertEqual(self.refs(('MRK','9','2'), wycliffe, 'Wycl'),
@@ -175,6 +187,53 @@ class TextRetrievalTests(unittest.TestCase):
 
     def text(self, portion):
         return ' '.join(e.getCleanText() for e in portion[1])
+
+    def test_oet_rv_maccabees_text_is_available_on_english_parallel_page(self):
+        folder = Path(self.temp.name, 'ReadersVersion')
+        folder.mkdir()
+        (folder / 'OET-RV_MA1.ESFM').write_text(
+            '\\id 1MA\n\\h 1 Maccabees\n\\c 1\n\\p\n'
+            '\\v 1 Alexander fixture text.\n\\v 2 Following verse.\n')
+        state = State()
+        bible = vf.configureBibleVersification(ESFMBible(folder), 'OET-RV', state)
+        bible.preload()
+
+        portions, label = vf.parallelVersePassage(
+            'OET-RV', bible, ('MA1','1','1'), state, {})
+
+        self.assertEqual(len(portions), 1)
+        self.assertEqual(portions[0].reference, ('MA1','1','1'))
+        self.assertIn('Alexander fixture text.', self.text(portions[0]))
+        self.assertNotIn('Following verse.', self.text(portions[0]))
+        self.assertEqual(label, '')
+
+    def test_wycliffe_laodiceans_on_every_english_parallel_page(self):
+        path = Path(self.temp.name, 'wycliffe-fixture.xml')
+        words = {v:f'Laodiceans-{v}.' for v in range(1,21)}
+        words.update({15:'Qualities begin.',16:'Qualities finish. Retain the teaching.',17:'Peace follows.'})
+        path.write_text('<XMLBIBLE biblename="Synthetic Wycliffe fixture">'
+            '<BIBLEBOOK bnumber="84" bname="Epistle to the Laodiceans" bsname="EpLao">'
+            '<CHAPTER cnumber="1">' + ''.join(f'<VERS vnumber="{v}">{words[v]}</VERS>'
+            for v in range(1,21)) + '</CHAPTER></BIBLEBOOK></XMLBIBLE>')
+        state = State()
+        bible = vf.configureBibleVersification(ZefaniaXMLBible(path,'Synthetic fixture','Wycl'), 'Wycl', state)
+        bible.load()
+        cache = {}
+        for verse in range(1,21):
+            with self.subTest(verse=verse):
+                portions,label = vf.parallelVersePassage('Wycl',bible,('LAO','1',str(verse)),state,cache)
+                expected = (15,16) if verse in (15,16) else (verse,)
+                self.assertEqual(tuple(p.reference for p in portions),
+                                 tuple(('LAO','1',str(v)) for v in expected))
+                text = ' '.join(self.text(p) for p in portions)
+                for v in expected:
+                    self.assertIn(words[v],text)
+                if verse in (15,16):
+                    self.assertIn('Combined passage: English LAO 1:15–16',label)
+                    self.assertIn('native LAO 1:15–16',label)
+                    self.assertNotIn(words[17],text)
+                else:
+                    self.assertEqual(label,'')
 
     def test_titles_are_separate_from_verse_one(self):
         title, verse = vf.getVersePortions(self.bible,
@@ -319,7 +378,7 @@ class ParallelPageTests(unittest.TestCase):
         self.state.preloadedBibles = {'OET-RV': None}
         self.state.versionComments = {}
         self.state.versesWithImages = defaultdict(list)
-        self.state.booksToLoad = {'OET': []}
+        self.state.booksToLoad = {'OET': [],'OET-LV':['ALL'],'ASV':['ALL'],'Luth':['ALL']}
 
         def render(level, version, reference, kind, context, entries, **kwargs):
             self.rendered.append((version, reference))
@@ -341,6 +400,7 @@ class ParallelPageTests(unittest.TestCase):
             makeBottom=lambda *args: '</body></html>',
             checkHtml=lambda *args,**kwargs: True,
             getVerseMetaInfoHtml=lambda *args: '',
+            passageReferenceMaterial=lambda *args: '',
             convertVerseEntryListToHtml=render,
             getSubstitutedText=lambda state, version, reference, text, **kwargs: text,
             handleAndExtractFootnotes=lambda version,text: (text,text,''),
@@ -395,7 +455,7 @@ class ParallelPageTests(unittest.TestCase):
         self.assertIn(self.pageTitle + ' MAL 4:1', page)
         self.assertIn('Native verse 19.', page)
         self.assertNotIn('Native verse 1.', page)
-        self.assertIn('OET-LV/byC/MAL_C3.htm#V19', page)
+        self.assertIn('OET-LV/byC/MAL_C3.htm#C3V19', page)
         self.assertIn('(MAL 3:19)', page)
         self.assertIn(('OET-LV',('MAL','3','19')), self.rendered)
         self.assertTrue((self.output/'MAL/C4V6.htm').exists())
@@ -424,7 +484,7 @@ class ParallelPageTests(unittest.TestCase):
         self.assertNotIn('Next passage.', page)
         self.assertEqual(page.count('id="OET-LV"'), 1)
         self.assertEqual(page.count('id="OET-LV_part2"'), 1)
-        self.assertIn('GEN_C1.htm#V2', page)
+        self.assertIn('GEN_C1.htm#C1V2', page)
 
     def test_unsupported_alignment_is_visible_without_wrong_text(self):
         bible = self.load('MAL', '\\c 3\n\\p\n\\v 1 Wrong if used on page 4:1.\n')
@@ -477,12 +537,52 @@ class ParallelPageTests(unittest.TestCase):
                 self.assertIn('Combined passage: English ACT 19:40–41',page)
                 self.assertIn('native ACT 19:40; verse text cannot be split',page)
                 self.assertNotIn('alignment unavailable',page)
-                self.assertIn('OET-LV/byC/ACT_C19.htm#V40',page)
+                self.assertIn('OET-LV/byC/ACT_C19.htm#C19V40',page)
 
 
 class VerseListPageTests(ParallelPageTests):
     builder = 'createVerseListPages'
     pageTitle = 'Simple verse list for'
+
+
+class ParallelIntroductionNavigationTests(unittest.TestCase):
+    def test_all_chapter_previous_arrows_retrace_next_arrows(self):
+        fixture = ParallelPageTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        fixture.namespace['navigationVersification'] = lambda name: SimpleNamespace(
+            getNumChapters=lambda book:1 if book=='JDE' else 3, getNumVerses=lambda book,chapter:2)
+        for book, intro in (('GEN','\\ip Book introduction.\n'), ('MAT',''), ('MRK',''), ('JDE','')):
+            with self.subTest(book=book):
+                fixture.load(book, intro + '\\c 1\n\\p\n\\v 1 First verse.\n\\v 2 Second verse.\n')
+                fixture.runBook(book)
+                folder = fixture.output/book
+                filenames = ['Intro.htm'] + [f'C{c}V{v}.htm'
+                    for c in range(1, 2 if book=='JDE' else 4) for v in range(3)]
+                for anchor in ('Top','BottomNavs'):
+                    def arrows(filename):
+                        paragraph = re.search(fr'<p id="{anchor}" class="vNav">(.*?)</p>',
+                                              (folder/filename).read_text())[1]
+                        return {arrow:href for href,arrow in re.findall(
+                            r'<a[^>]*href="([^"]+)"[^>]*>([←→↨])</a>', paragraph)}
+                    for previous, current in zip(filenames,filenames[1:]):
+                        self.assertTrue((folder/previous).is_file())
+                        self.assertEqual(arrows(previous)['→'], f'{current}#{anchor}')
+                        backward = arrows(current)
+                        self.assertEqual(backward.get('←',backward.get('↨')), f'{previous}#{anchor}')
+                    self.assertNotIn('←', arrows('Intro.htm'))
+                    self.assertNotIn('↨', arrows('Intro.htm'))
+                    self.assertNotIn('↨', arrows('C1V1.htm'))
+                    for chapter in range(2, 2 if book=='JDE' else 4):
+                        self.assertEqual(arrows(f'C{chapter}V1.htm')['↨'], f'C{chapter-1}V2.htm#{anchor}')
+                        self.assertNotIn('↨', arrows(f'C{chapter}V2.htm'))
+                for filename in filenames:
+                    html = (folder/filename).read_text()
+                    if filename=='Intro.htm' or 'V0.' in filename:
+                        self.assertNotIn('title="Simple verse list view"',html)
+                        self.assertNotIn('title="Interlinear verse view"',html)
+                    else:
+                        self.assertIn('title="Simple verse list view"',html)
 
 
 class NavigationBookSelectionTests(unittest.TestCase):

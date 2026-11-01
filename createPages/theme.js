@@ -1,12 +1,17 @@
-// theme.js -- Site settings: colour scheme, verse-number position, text size,
+// SPDX-License-Identifier: CC0-1.0
+// theme.js -- Site settings: colour scheme, OET books, verse-number position, text size,
 // and the colour of Jesus'-words spans.
 // CHANGELOG: 2026-10-23 Keep C controls on reference pages and use position-neutral colour tooltips.
+// CHANGELOG: 2026-11-01 Remember whether OET menus display 66 or all available books.
 //
 // All settings are independent and combine freely (non-exclusive), unlike the
 // old Dropdown which forced a choice between "Left verse nums" and "Large
 // print". Each is stored as one field of a JSON object:
 //
 //   * theme   "system" | "light" | "dark"   -- colour scheme (data-theme)
+//   * books   "66" | "all"                  -- books offered in OET menus,
+//                                              including shared study views
+//                                              (data-books; default "all")
 //   * verses  "inline" | "left"             -- verse numbers in the text or
 //                                              in a left gutter (data-verses)
 //   * size    "standard" | "large" | "xlarge"
@@ -78,6 +83,7 @@
 
     var DEFAULTS = {
         theme: 'system',   // system | light | dark
+        books: 'all',      // 66     | all (OET menus only)
         verses: 'inline',  // inline  | left
         size: 'standard',  // standard| large | xlarge
         wj: 'brown',       // brown   | red | off
@@ -88,6 +94,7 @@
     };
     var ALLOWED = {
         theme: { system: true, light: true, dark: true },
+        books: { '66': true, all: true },
         verses: { inline: true, left: true },
         size: { standard: true, large: true, xlarge: true },
         wj: { brown: true, red: true, off: true },
@@ -204,6 +211,7 @@
         var theme = settings.theme === 'system' ? systemTheme() : settings.theme;
         theme = theme === 'dark' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-books', settings.books);
 
         document.documentElement.setAttribute(
             'data-verses',
@@ -311,6 +319,11 @@
         '      <label><input type="radio" name="obd-setting-theme" value="system">Automatic (follow the computer)</label>' +
         '      <label><input type="radio" name="obd-setting-theme" value="light">Light</label>' +
         '      <label><input type="radio" name="obd-setting-theme" value="dark">Dark</label>' +
+        '    </fieldset>' +
+        '    <fieldset>' +
+        '      <legend>Books in OET menus</legend>' +
+        '      <label><input type="radio" name="obd-setting-books" value="66">Display only the 66 Western Protestant ‘books’</label>' +
+        '      <label><input type="radio" name="obd-setting-books" value="all">Display all available ‘books’ <span class="settingsNote">(default)</span></label>' +
         '    </fieldset>' +
         '    <fieldset>' +
         '      <legend>Verse numbers</legend>' +
