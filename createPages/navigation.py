@@ -15,6 +15,7 @@ CHANGELOG:
     2026-11-01 Let OET previous/next book controls skip books hidden by the 66-book preference.
     2026-11-01 Keep version-switching index links free of unmappable introductory anchors.
     2026-11-01 Resolve combined OET chapter links against RV numbering and stored verse bridges.
+    2026-11-02 Prefer sections from reference material while preserving Bible chapter navigation.
 """
 import logging
 import re
@@ -285,7 +286,7 @@ def mapHtmlLinks(html, sourceVersion, level, state, *, segmentType='', reference
             # stored bridge has one anchor, and a Psalm heading may have none.
             from referencePassages import passageContextHref
             destinations = dict.fromkeys(href for r in refs
-                if (href := passageContextHref(level, r, 'OET', state)))
+                if (href := passageContextHref(level, r, 'OET', state, preferSections=segmentType=='reference')))
             return ' / '.join(f'<a{before}data-vref="mapped" href="{href}"{after}>{label}</a>'
                               for href in destinations) or label
         # Preserve links within a native edition, and stable same-system page

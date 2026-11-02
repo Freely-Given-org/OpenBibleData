@@ -1,0 +1,28 @@
+# Copy to privateSettings.toml (ignored by Git) and edit ONLY that local copy.
+# Choose your own folder name; do not put a real private destination in this example.
+destination_folder = "CHOOSE_A_LOCAL_FOLDER"
+
+# Without version tables, test builds use only the public edition definitions.
+# Add one table per private translation. Existing abbreviations override public
+# editions only in TEST mode. New abbreviations are appended unless `after` is set.
+# Source paths are relative to createPages/, or can be absolute paths.
+# Both USFM and USX sources are supported; these are full editions, not quote TSVs.
+#
+# [versions.LOCAL]
+# location = "/path/to/local/source/"
+# format = "USFM"                      # or "USX"
+# name = "Local translation"
+# language = "EN-UK"
+# versification = "eng"                # BOS profile for this source's numbering
+# after = "UST"                        # optional existing/earlier abbreviation
+# own_pages = false                    # optional; default preserves existing choice
+# testament = "NT"                     # optional: "OT", "NT", or "both"
+# books = ["MRK"]                      # optional; otherwise uses test book lists
+# [versions.LOCAL.details]
+# about = '<p class="about">Local translation.</p>'
+# copyright = '<p class="copyright">Local copyright statement.</p>'
+# licence = '<p class="licence">Private use only.</p>'
+#
+# For an existing abbreviation only location and format are required. Other
+# metadata is inherited unless overridden. Set own_pages=true to give a full
+# local replacement of a selected-verse edition its own chapter/book pages.

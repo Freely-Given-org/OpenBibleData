@@ -122,6 +122,9 @@ CHANGELOG:
     2026-10-24 Apply consistent OET/traditional book navigation, retaining names for the selected book.
     2026-11-01 Mark additional books in OET menus for the persistent 66/all display preference.
     2026-11-01 Add shared Bible navigation with mapped version/mode destinations.
+    2026-11-01 Remove external Pagefind stylesheet handling.
+    2026-11-01 Carry the current Bible version into Search links.
+    2026-11-01 Colour independent views together in the version selector.
 """
 import logging
 import re
@@ -205,11 +208,21 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
     from navigation import mapHtmlLinks
-    from bibleNavigation import bibleNavigation,PAGE_MODES
+    from bibleNavigation import bibleNavigation,colourIndependentViews,PAGE_MODES,pageReference
     top = openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
+    if versionAbbreviation:
+        from urllib.parse import urlencode
+        query = {'version': versionAbbreviation}
+        reference = navigationReference or pageReference(versionSpecificFileOrFolderName)
+        book = reference[0] if reference else None
+        if book and bos_books_codes_py.is_valid_bos_book_code(book):
+            query['fromBook'] = book
+        top = top.replace('Search.htm"', f'Search.htm?{urlencode(query).replace("&", "&amp;")}"')
     if pageType in PAGE_MODES:
-        return bibleNavigation(top,level,versionAbbreviation,pageType,versionSpecificFileOrFolderName,state,navigationReference)
-    return mapHtmlLinks(top, versionAbbreviation or 'OET', level, state, versionBar=True)
+        top=bibleNavigation(top,level,versionAbbreviation,pageType,versionSpecificFileOrFolderName,state,navigationReference)
+    else:
+        top=mapHtmlLinks(top, versionAbbreviation or 'OET', level, state, versionBar=True)
+    return colourIndependentViews(top)
 # end of html.makeTop
 
 
@@ -462,7 +475,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
-    with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
+    with open( lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
         lsStyleDict = defaultdict( list )
         for ssLine in ssFile:
             if ' + ' in ssLine: continue # Don't need these

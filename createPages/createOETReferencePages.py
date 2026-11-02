@@ -149,6 +149,12 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-10-31 Make indexes searchable, add glosses and dictionary destinations, and link available statistics books.
     2026-11-01 Use occurrence filenames for Greek semantic referent links.
     2026-11-01 Group searchable word spellings with readable occurrences and include DC Greek words.
+    2026-11-02 Expand important people, derive alphabetical aliases from the chronological selection,
+                and count distinct characters consistently in both indexes.
+    2026-11-02 Include names-table OET-RV aliases in all people, important people and location indexes.
+    2026-11-02 Move Greek word dictionary links below the main entry, before other uses.
+    2026-11-02 Enlarge important-person names and prefer sections for reference-page passage links.
+    2026-11-02 Add letter jumps above the important people alphabetical index.
   """
 from pathlib import Path
 import os
@@ -160,12 +166,14 @@ import unicodedata
 from time import time
 from parallel import runParallelPages
 from functools import cache
+from xml.sax.saxutils import escape
 import docutils.core
 from docutils.parsers.rst import roles
 from docutils import nodes
 from grammarLinks import grammarReferenceRole, expandGrammarContents, addGrammarPassages, localiseGrammarLinks, grammarMorphologyExamples
 from referenceEntities import (loadReferenceEntities, entityRelationships, entityPassages,
-                               entityTaggedWords, entityRelatedResources, selectedPassageControls)
+                               entityTaggedWords, entityRelatedResources, selectedPassageControls,
+                               entityIndexLinks, loadOETRVNameAliases, oetRVNameVariants)
 from referencePassages import parseReferenceSelection, referenceCitationLink
 from referenceIndexes import (referenceIndexLinks,filterableIndex,lemmaIndexLink,strongIndexEntry,
                               statisticsBookLink,transliterateIndexLinks,wordIndexRecord,
@@ -194,7 +202,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-10-30' # by RJH
+LAST_MODIFIED_DATE = '2026-11-02' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.8'
@@ -213,97 +221,224 @@ THEOGRAPHIC_INPUT_FOLDER_PATH = FG_folderpath.joinpath( 'Bible_speaker_identific
 
 
 IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = (
-    # Has the name (in chronological order), plus one or more verse references (that will be transformed into section link(s))
+    # One entry per character, in approximate narrative chronology, with selected English-numbered passages.
+    # Slash-separated names become alphabetical aliases. Qualifiers distinguish namesakes.
+    # IDs are explicit Theographic identities, NOT inferred from display names (e.g. Jacob is Israel).
+    # An empty ID means that no matching person record exists; the scripture passages remain available.
+    # Beginnings and patriarchs. Job's historical setting is uncertain.
     ('Adam', 'Adam', ('GEN_1:26',)),
     ('Havvah/Eve', 'Eve', ('GEN_3:20',)),
     ('Kayin/Cain', 'Cain', ('GEN_4:1',)),
     ('Hevel/Abel', 'Abel', ('GEN_4:2',)),
-    ('Abram', 'Abraham', ('GEN_11:26',)),
+    ('Seth', 'Seth', ('GEN_4:25',)),
+    ('Enoch', 'Enoch', ('GEN_5:21-24','HEB_11:5')),
+    ('Methuselah', 'Methuselah', ('GEN_5:25-27',)),
+    ('Noah', 'Noah', ('GEN_6:8-9','GEN_9:8-17')),
+    ('Shem', 'Shem', ('GEN_9:18-27',)),
+    ('Ham', 'Ham', ('GEN_9:18-27',)),
+    ('Japheth', 'Japheth', ('GEN_9:18-27',)),
+    ('Nimrod', 'Nimrod', ('GEN_10:8-12',)),
+    ('Abraham/Abram', 'Abraham', ('GEN_11:26','GEN_12:1-4','GEN_17:5')),
+    ('Sarah/Sarai', 'Sarah', ('GEN_11:29','GEN_17:15-16','GEN_21:1-7')),
     ('Lot', 'Lot', ('GEN_11:27',)),
+    ('Lot’s wife', '', ('GEN_19:15-26','LUK_17:32')),
     ('Malki-Tsedek/Melchizedek', 'Melchisedec', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Abraham', 'Abraham', ('GEN_17:5',)),
+    ('Hagar', 'Hagar', ('GEN_16:1-13',)),
+    ('Ishmael', 'Ishmael1', ('GEN_16:15-16','GEN_21:8-21')),
+    ('Isaac', 'Isaac', ('GEN_21:1-7','GEN_22:1-14')),
+    ('Rebekah', 'Rebekah', ('GEN_24:15-20','GEN_27:5-17')),
+    ('Esau', 'Esau', ('GEN_25:24-34',)),
+    ('Yakov/Jacob/Israel', 'Israel', ('GEN_25:26','GEN_28:10-17','GEN_32:24-30')),
+    ('Laban', 'Laban', ('GEN_29:13-30',)),
+    ('Leah', 'Leah', ('GEN_29:16-35',)),
+    ('Rachel', 'Rachel', ('GEN_29:9-12','GEN_30:22-24')),
+    ('Reuben', 'Reuben', ('GEN_29:32','GEN_37:21-22')),
+    ('Simeon (son of Jacob)', 'Simeon', ('GEN_29:33','GEN_34:25-31')),
+    ('Levi (son of Jacob)', 'Levi', ('GEN_29:34','GEN_34:25-31')),
+    ('Judah (son of Jacob)', 'Judah', ('GEN_29:35','GEN_44:18-34')),
+    ('Dinah', 'Dinah', ('GEN_30:21','GEN_34:1-5')),
     ('Yosef/Joseph (one of twelve)', 'Joseph', ('GEN_30:24','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Benjamin', 'Benjamin', ('GEN_35:16-18','GEN_44:1-17')),
+    ('Tamar (Judah’s daughter-in-law)', 'Tamar1', ('GEN_38:6','GEN_38:24-30')),
+    ('Potiphar', 'Potiphar', ('GEN_39:1-6',)),
+    ('Pharaoh (in Joseph’s time)', 'Pharaoh2', ('GEN_41:14-40',)),
+    ('Ephraim', 'Ephraim', ('GEN_41:52','GEN_48:8-20')),
+    ('Manasseh (son of Joseph)', 'Manasseh', ('GEN_41:51','GEN_48:8-20')),
+    ('Job', 'Job', ('JOB_1:1-5','JOB_42:1-6')),
+    # Exodus, wilderness and entry into Canaan.
+    ('Jochebed', 'Jochebed', ('EXO_2:1-3','EXO_6:20')),
+    ('Miriam', 'Miriam', ('EXO_15:20-21','NUM_12:1-15')),
+    ('Pharaoh’s daughter (who adopted Moses)', 'Daughter_of_Pharaoh', ('EXO_2:5-10',)),
     ('Mosheh/Moses', 'Moses', ('EXO_2:10',)),
     ('Aaron/Aharon', 'Aaron', ('EXO_4:14',)),
+    ('Pharaoh (of the Exodus)', 'Pharaoh', ('EXO_5:1-9','EXO_12:29-32')),
+    ('Jethro/Reuel', 'Jethro', ('EXO_2:16-21','EXO_18:13-24')),
+    ('Zipporah', 'Zipporah', ('EXO_2:21','EXO_4:24-26')),
     ('Yehoshua/Joshua', 'Joshua', ('EXO_17:9',)),
+    ('Caleb', 'Caleb', ('NUM_13:30','JOS_14:6-14')),
+    ('Korah', 'Korah', ('NUM_16:1-11',)),
     ('Bileam/Balaam', 'Balaam', ('NUM_22:5',)),
+    ('Rahab', 'Rahab', ('JOS_2:1-14','JOS_6:22-25')),
+    ('Achan', 'Achan', ('JOS_7:1','JOS_7:19-26')),
+    # Judges and the beginnings of the monarchy.
+    ('Ehud', 'Ehud', ('JDG_3:15-30',)),
+    ('Deborah (judge)', 'Deborah', ('JDG_4:4-10',)),
+    ('Barak', 'Barak', ('JDG_4:6-16',)),
+    ('Jael', 'Jael', ('JDG_4:17-22',)),
+    ('Gideon/Jerubbaal', 'Gideon', ('JDG_6:11-24','JDG_7:15-22')),
+    ('Jephthah', 'Jephthah', ('JDG_11:1-11','JDG_11:29-40')),
     ('Shimshon/Samson', 'Samson', ('JDG_13:24','HEB_11:32')),
+    ('Delilah', 'Delilah', ('JDG_16:4-21',)),
     ('Naomi', 'Naomi', ('RUT_1:2',)),
     ('Rut/Ruth', 'Ruth', ('RUT_1:4','MAT_1:5')),
+    ('Boaz', 'Boaz', ('RUT_2:1-12','RUT_4:9-13')),
+    ('Hannah', 'Hannah', ('SA1_1:9-20',)),
+    ('Eli', 'Eli', ('SA1_1:9-18','SA1_3:1-14')),
     ('Shemuel/Samuel', 'Samuel', ('SA1_1:20',)),
-    ('Shaul/Saul', 'Saul', ('SA1_9:1',)),
+    ('Shaul/Saul (king)', 'Saul', ('SA1_9:1',)),
+    ('Jonathan (son of Saul)', 'Jonathan', ('SA1_14:1-14','SA1_18:1-4')),
+    ('Abner', 'Abner', ('SA1_14:50','SA2_3:6-21')),
+    ('Jesse', 'Jesse', ('SA1_16:1-13',)),
     ('David', 'David', ('SA1_16:1',)),
+    ('Goliath', 'Goliath', ('SA1_17:4-11','SA1_17:40-50')),
+    ('Michal', 'Michal', ('SA1_18:20-29','SA1_19:11-17')),
+    ('Abigail (David’s wife)', 'Abigail', ('SA1_25:14-35',)),
+    ('Joab', 'Joab', ('SA2_2:13-17','SA2_18:9-15')),
+    ('Natan/Nathan (prophet)', 'Nathan', ('SA2_7:1-17','SA2_12:1-14')),
+    ('Mephibosheth (son of Jonathan)', 'Mephibosheth', ('SA2_9:1-13',)),
+    ('Bathsheba', 'Bathsheba', ('SA2_11:1-5','KI1_1:15-31')),
+    ('Uriah (the Hittite)', 'Uriah', ('SA2_11:6-17',)),
+    ('Tamar (David’s daughter)', 'Tamar', ('SA2_13:1-22',)),
+    ('Absalom', 'Absalom', ('SA2_15:1-12','SA2_18:9-18')),
     ('Shelomoh/Solomon', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Hezekiah', 'Hezekiah', ('KI2_16:20',)),
-    ('Yirmeyah/Jeremiah', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
-    ('Zekaryah/Zechariah', 'Zacharias', ('LUK_1:5',)),
-    ('Yeshua/Jesus', 'Jesus', ('LUK_2:21',)),
-    ('Yohan/John', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Queen of Sheba', 'Queen_of_Sheba', ('KI1_10:1-13',)),
+    # Divided kingdoms and their prophets. The dates of Joel and Obadiah are uncertain.
+    ('Rehoboam', 'Rehoboam', ('KI1_12:1-19',)),
+    ('Jeroboam (first king of northern Israel)', 'Jeroboam', ('KI1_11:26-40','KI1_12:25-33')),
+    ('Ahab', 'Ahab', ('KI1_16:29-33','KI1_21:1-16')),
+    ('Jezebel', 'Jezebel', ('KI1_16:31','KI1_21:5-16')),
+    ('Eliyyyah/Elijah', 'Elijah', ('KI1_17:1-7','KI1_18:20-40')),
+    ('Jehoshaphat (king)', 'Jehoshaphat', ('CH2_20:1-22',)),
+    ('Elisha', 'Elisha', ('KI1_19:19-21','KI2_2:9-15')),
+    ('Naaman', 'Naaman', ('KI2_5:1-14',)),
+    ('Jehu (king)', 'Jehu', ('KI2_9:1-13',)),
+    ('Athaliah', 'Athaliah', ('KI2_11:1-16',)),
+    ('Joash/Jehoash (king of Judah)', 'Joash3', ('KI2_11:1-12','KI2_12:1-16')),
+    ('Yoel/Joel (prophet)', 'Joel14', ('JOL_1:1','JOL_2:28-32')),
     ('Yonah/Jonah', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Amos', 'Amos', ('AMO_1:1','AMO_7:10-17')),
+    ('Hoshea/Hosea (prophet)', 'Hosea', ('HOS_1:1-9',)),
+    ('Isaiah', 'Isaiah', ('ISA_1:1','ISA_6:1-8')),
+    ('Mikah/Micah (prophet)', 'Micah3', ('MIC_1:1','MIC_6:6-8')),
+    ('Hezekiah', 'Hezekiah', ('KI2_16:20',)),
+    ('Manasseh (king of Judah)', 'Manasseh3', ('KI2_21:1-9','CH2_33:10-17')),
+    ('Nahum', 'Nahum', ('NAH_1:1-8',)),
+    ('Josiah', 'Josiah', ('KI2_22:1-13','KI2_23:1-3')),
+    ('Zefanyah/Zephaniah (prophet)', 'Zephaniah2', ('ZEP_1:1','ZEP_3:14-20')),
+    ('Yirmeyah/Jeremiah', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
+    ('Baruch (Jeremiah’s scribe)', 'Baruch', ('JER_36:4-8',)),
+    ('Habakkuk', 'Habakkuk', ('HAB_1:1-4','HAB_3:17-19')),
+    ('Ovadyah/Obadiah (prophet)', 'Obadiah12', ('OBA_1:1-4',)),
+    # Exile and return.
+    ('Nebuchadnezzar', 'Nebuchadnezzar', ('DAN_1:1-7','DAN_4:28-37')),
+    ('Ezekiel', 'Ezekiel', ('EZE_1:1-3','EZE_2:1-7')),
+    ('Daniel/Belteshazzar', 'Daniel', ('DAN_1:6-20','DAN_6:10-23')),
+    ('Shadrach/Hananiah', 'Shadrach', ('DAN_1:6-7','DAN_3:16-27')),
+    ('Meshach/Mishael', 'Meshach', ('DAN_1:6-7','DAN_3:16-27')),
+    ('Abednego/Azariah', 'Azariah', ('DAN_1:6-7','DAN_3:16-27')),
+    ('Belshazzar', 'Belshazzar', ('DAN_5:1-9','DAN_5:22-30')),
+    ('Darius (the Mede)', 'Darius3', ('DAN_5:31','DAN_6:1-9')),
+    ('Cyrus', 'Cyrus', ('EZR_1:1-4',)),
+    ('Zerubbabel', 'Zerubbabel', ('EZR_3:8-13','HAG_2:20-23')),
+    ('Haggai', 'Haggai', ('HAG_1:1-15',)),
+    ('Zekaryah/Zechariah (prophet)', 'Zechariah14', ('ZEC_1:1-6',)),
+    ('Ahasuerus/Xerxes', 'Ahasuerus', ('EST_1:1-8',)),
+    ('Vashti', 'Vashti', ('EST_1:9-22',)),
+    ('Esther/Hadassah', 'Esther', ('EST_2:5-9','EST_4:10-17')),
+    ('Mordecai', 'Mordecai', ('EST_2:5-7','EST_6:1-11')),
+    ('Haman', 'Haman', ('EST_3:1-6','EST_7:1-10')),
+    ('Ezra', 'Ezra', ('EZR_7:1-10','NEH_8:1-8')),
+    ('Nehemiah', 'Nehemiah', ('NEH_1:1-11','NEH_2:1-8')),
+    ('Malachi', 'Malachi', ('MAL_1:1','MAL_3:1-4')),
+    # Jesus's birth and ministry.
+    ('Herod (the Great)', 'Herod', ('MAT_2:1-18',)),
+    ('Zekaryah/Zechariah (father of John the Baptist)', 'Zacharias', ('LUK_1:5-25',)),
+    ('Elizabeth/Elisabeth', 'Elisabeth', ('LUK_1:5-7','LUK_1:39-45')),
+    ('Yosef/Joseph (Mary’s husband)', 'Joseph6', ('MAT_1:18-25',)),
+    ('Miryam/Mary (mother of Jesus)', 'Mary', ('LUK_1:26-38','LUK_2:1-20')),
+    ('Yohan/John (the Baptist)', 'John', ('LUK_1:57-66','MRK_1:1-8')),
+    ('Yeshua/Jesus', 'Jesus', ('LUK_2:21',)),
+    ('Simeon (at the temple)', 'Simeon2', ('LUK_2:25-35',)),
+    ('Anna', 'Anna', ('LUK_2:36-38',)),
+    ('Herod (Antipas)', 'Herod_Antipas', ('MRK_6:14-29','LUK_23:6-12')),
+    ('Herodias', 'Herodias', ('MRK_6:17-28',)),
+    ('Peter/Simon/Cephas (apostle)', 'Simon', ('MAT_4:18-20','MAT_16:13-19','JHN_21:15-19')),
+    ('Andrew', 'Andrew', ('JHN_1:40-42','JHN_6:8-9')),
+    ('James (son of Zebedee)', 'James', ('MRK_1:19-20','ACT_12:1-2')),
+    ('Yohan/John (apostle)', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Philip (apostle)', 'Philip1', ('JHN_1:43-46','JHN_14:8-11')),
+    ('Bartholomew', 'Bartholomew', ('MAT_10:2-4',)),
+    ('Thomas/Didymus', 'Thomas', ('JHN_11:16','JHN_20:24-29')),
     ('Matthew/Levi', 'Matthew', ('MAT_9:9',)),
+    ('James (son of Alphaeus)', 'James2', ('MAT_10:2-4',)),
+    ('Thaddaeus/Lebbaeus/Judas (son of James)', 'Lebbaeus', ('MAT_10:3','LUK_6:16','JHN_14:22')),
+    ('Simon (the Zealot)', 'Simon2', ('LUK_6:12-16',)),
+    ('Judas (Iscariot)', 'Judas', ('MAT_26:14-16','MAT_26:47-50')),
+    ('Nicodemus', 'Nicodemus', ('JHN_3:1-16','JHN_19:39-42')),
+    ('Samaritan woman (at the well)', '', ('JHN_4:7-26',)),
+    ('Miryam/Mary (Magdalene)', 'Mary6', ('LUK_8:1-3','JHN_20:1-18')),
+    ('Martha', 'Martha', ('LUK_10:38-42','JHN_11:17-27')),
+    ('Miryam/Mary (of Bethany)', 'Mary2', ('LUK_10:38-42','JHN_12:1-8')),
     ('Lazarus (from Bethany)', 'Lazarus', ('JHN_11:1','JHN_12:1')),
-    ('Lazarus (in parable)', '', ('LUK_16:20',)),
+    ('Jairus', 'Jairus', ('MRK_5:21-24','MRK_5:35-43')),
+    ('Bartimaeus', 'Bartimaeus', ('MRK_10:46-52',)),
+    ('Zacchaeus', 'Zacchaeus', ('LUK_19:1-10',)),
+    ('Lazarus (in parable)', 'Lazarus1', ('LUK_16:19-31',)),
+    # Jesus's trial, death and resurrection.
+    ('Annas', 'Annas', ('JHN_18:12-24',)),
+    ('Caiaphas', 'Caiaphas', ('JHN_11:47-53','MAT_26:57-68')),
+    ('Pilate/Pontius Pilate', 'Pontius', ('MAT_27:11-26',)),
+    ('Barabbas', 'Barabbas', ('MAT_27:15-26',)),
+    ('Simon (of Cyrene)', 'Simon5', ('MRK_15:21',)),
+    ('Yosef/Joseph (of Arimathea)', 'Joseph7', ('MAT_27:57-60',)),
+    # Early church and apostolic missions.
+    ('Matthias', 'Matthias', ('ACT_1:21-26',)),
     ('Barnabas/Yosef', 'Barnabas', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
+    ('Ananias (husband of Sapphira)', 'Ananias1', ('ACT_5:1-6',)),
+    ('Sapphira', 'Sapphira', ('ACT_5:1-11',)),
+    ('Gamaliel', 'Gamaliel2', ('ACT_5:34-39',)),
+    ('Stephen', 'Stephen', ('ACT_6:8-15','ACT_7:54-60')),
+    ('Philip (evangelist)', 'Philip', ('ACT_8:5-8','ACT_8:26-40')),
+    ('Simon (the sorcerer)', 'Simon7', ('ACT_8:9-24',)),
+    ('Ethiopian eunuch', '', ('ACT_8:26-40',)),
+    ('Paul/Saul (apostle)', 'Paul', ('ACT_7:58','ACT_9:1-22','ACT_13:9')),
+    ('Ananias (disciple at Damascus)', 'Ananias', ('ACT_9:10-19',)),
+    ('Tabitha/Dorcas', 'Dorcas', ('ACT_9:36-42',)),
+    ('Cornelius', 'Cornelius', ('ACT_10:1-8','ACT_10:34-48')),
+    ('Herod (Agrippa I)', 'Herod_Agrippa_I', ('ACT_12:1-4','ACT_12:20-23')),
+    ('Mark/John Mark', 'John4', ('ACT_12:12','ACT_13:5-13','TI2_4:11')),
+    ('James (brother of Jesus)', 'James3', ('ACT_15:13-21','GAL_1:19')),
+    ('Jude (brother of Jesus)', 'Jude', ('MRK_6:3','JDE_1:1')),
+    ('Silas/Silvanus', 'Silas', ('ACT_15:22-32','ACT_16:19-34')),
+    ('Timothy/Timotheus', 'Timotheus', ('ACT_16:1-5','TI2_1:5')),
+    ('Lydia', 'Lydia', ('ACT_16:14-15','ACT_16:40')),
+    ('Luke', 'Luke', ('COL_4:14','TI2_4:11')),
+    ('Priscilla/Prisca', 'Priscilla', ('ACT_18:1-3','ACT_18:24-26')),
+    ('Aquila', 'Aquila', ('ACT_18:1-3','ACT_18:24-26')),
+    ('Apollos', 'Apollos', ('ACT_18:24-28',)),
+    ('Titus', 'Titus', ('CO2_8:16-23','TIT_1:4-5')),
+    ('Phoebe/Phebe', 'Phebe', ('ROM_16:1-2',)),
+    ('Philemon', 'Philemon', ('PHM_1:1-7',)),
+    ('Onesimus', 'Onesimus', ('PHM_1:10-18',)),
+    ('Felix', 'Felix', ('ACT_24:22-27',)),
+    ('Festus/Porcius Festus', 'Portius', ('ACT_25:1-12',)),
+    ('Agrippa (Herod Agrippa II)', 'Agrippa', ('ACT_25:13-27','ACT_26:24-32')),
     )
+assert len({personID or name for name,personID,_refs in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST}) == len(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST)
 for personName, personRefName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
     assert isinstance( personName, str )
     assert isinstance( personRefName, str )
-    for personRef in personRefList:
-        assert isinstance( personRef, str ) and 6<len(personRef)<15, f"{personName} {personRef=}"
-        assert personRef.count('_')==1 and personRef.count(':')==1 and personRef.count('-')<=1 and ' ' not in personRef
-IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has both forms of the name (in alphabetical order), plus one or more verse references (that will be transformed into section link(s))
-    ('Aaron/Aharon', 'Aaron', ('EXO_4:14',)),
-    ('Abel/Hevel', 'Abel', ('GEN_4:2',)),
-    ('Abraham', 'Abraham', ('GEN_17:5',)),
-    ('Abram', 'Abraham', ('GEN_11:26',)),
-    ('Adam', 'Adam', ('GEN_1:26',)),
-    ('Aharon/<small>Aaron</small>', 'Aaron', ('EXO_4:14',)),
-    ('Balaam/Bileam', 'Balaam', ('NUM_22:5',)),
-    ('Barnabas/Yosef', 'Barnabas', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
-    ('Bileam/<small>Balaam</small>', 'Balaam', ('NUM_22:5',)),
-    ('Cain/Kayin', 'Cain', ('GEN_4:1',)),
-    ('David', 'David', ('SA1_16:1',)),
-    ('Eve/Havvah', 'Eve', ('GEN_3:20',)),
-    ('Havvah/<small>Eve</small>', 'Eve', ('GEN_3:20',)),
-    ('Hevel/<small>Abel</small>', 'Abel', ('GEN_4:2',)),
-    ('Hezekiah', 'Hezekiah', ('KI2_16:20',)),
-    ('Jeremiah/Yirmeyah', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
-    ('Jesus/Yeshua', 'Jesus', ('LUK_2:21',)),
-    ('John/Yohan', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
-    ('Jonah/Yonah', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
-    ('Joseph/Yosef (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
-    ('Joshua/Yehoshua', 'Joshua', ('EXO_17:9',)),
-    ('Kayin/<small>Cain</small>', 'Cain', ('GEN_4:1',)),
-    ('Lazarus (from Bethany)', 'Lazarus', ('JHN_11:1','JHN_12:1')),
-    ('Lazarus (in parable)', '', ('LUK_16:20',)),
-    ('Levi/<small>Matthew</small>', 'Matthew', ('MAT_9:9',)),
-    ('Lot', 'Lot', ('GEN_11:27',)),
-    ('Malki-Tsedek/<small>Melchizedek</small>', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Matthew/<small>Levi</small>', 'Matthew', ('MAT_9:9',)),
-    ('Melchizedek/Malki-Tsedek', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Mosheh/<small>Moses</small>', 'Moses', ('EXO_2:10',)),
-    ('Naomi', 'Naomi', ('RUT_1:2',)),
-    ('Rut/<small>Ruth</small>', 'Ruth', ('RUT_1:4','MAT_1:5')),
-    ('Samuel/Shemuel', 'Samuel', ('SA1_1:20',)),
-    ('Samson/Shimshon', 'Samson', ('JDG_13:24','HEB_11:32')),
-    ('Saul/Shaul', 'Saul', ('SA1_9:1',)),
-    ('Shaul/<small>Saul</small>', 'Saul', ('SA1_9:1',)),
-    ('Shelomoh/<small>Solomon</small>', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Shemuel/<small>Samuel</small>', 'Samuel', ('SA1_1:20',)),
-    ('Shimshon/<small>Samson</small>', 'Samson', ('JDG_13:24','HEB_11:32')),
-    ('Solomon/Shelomoh', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Yehoshua/<small>Joshua</small>', 'Joshua', ('EXO_17:9',)),
-    ('Yeshua/<small>Jesus</small>', 'Jesus', ('LUK_2:21',)),
-    ('Yirmeyah/<small>Jeremiah</small>', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
-    ('Yohan/<small>John</small>', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
-    ('Yonah/<small>Jonah</small>', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
-    ('Yosef/<small>Joseph</small> (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
-    ('Zechariah/Zekaryah', 'Zacharias', ('LUK_1:5',)),
-    ('Zekaryah/<small>Zechariah</small>', 'Zacharias', ('LUK_1:5',)),
-    )
-for personName, personRefName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
-    assert isinstance( personName, str )
-    assert isinstance( personRefName, str )
+    assert personRefList, personName
     for personRef in personRefList:
         assert isinstance( personRef, str ) and 6<len(personRef)<15, f"{personName} {personRef=}"
         assert personRef.count('_')==1 and personRef.count(':')==1 and personRef.count('-')<=1 and ' ' not in personRef
@@ -311,6 +446,35 @@ for personName, personRefName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LI
         assert BBB in BOOKLIST_66, f"{personName} {BBB=}"
         C,V = CV.split( ':', 1 )
         assert C.isdigit() and V.isdigit()
+
+
+def _importantPeopleWithRVNames(chronologicalList, aliases):
+    """Enrich the curated names from the names table, retaining chronology and identities."""
+    entries = []
+    for displayName,personID,passages in chronologicalList:
+        namePart,separator,qualifier = displayName.partition(' (')
+        names = namePart.split('/')
+        rvNames = [variant for name in names for variant in oetRVNameVariants(name,aliases)]
+        label = '/'.join(dict.fromkeys(names+rvNames))+separator+qualifier
+        entries.append((label,personID,passages))
+    return tuple(entries)
+
+
+def _importantPeopleAlphabeticalList(chronologicalList):
+    """Index every supplied name while retaining the person's identity, qualifier and passages."""
+    entries = []
+    for displayName,personID,passages in chronologicalList:
+        namePart,separator,qualifier = displayName.partition(' (')
+        suffix = separator+qualifier
+        names = namePart.split('/')
+        for name in names:
+            otherNames = '/'.join(escape(other) for other in names if other != name)
+            label = escape(name)+(f'/<small>{otherNames}</small>' if otherNames else '')+escape(suffix)
+            entries.append((label,personID,passages))
+    return tuple(sorted(entries,key=lambda row:re.sub(r'<[^>]+>','',row[0]).casefold()))
+
+
+IMPORTANT_PEOPLE_ALPHABETICAL_LIST = _importantPeopleAlphabeticalList(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST)
 
 CNTR_ROLE_NAME_DICT = {'N':'noun', 'S':'substantive adjective', 'A':'adjective', 'E':'determiner/case-marker', 'R':'pronoun',
                   'V':'verb', 'I':'interjection', 'P':'preposition', 'D':'adverb', 'C':'conjunction', 'T':'particle'}
@@ -1998,7 +2162,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
         else: nextN = hh+1
     prevLink = f'<b><a title="Previous word" href="{getHebrewWordpageFilename(prevN,state)}#Top">←</a></b> ' if prevN is not None else ''
     nextLink = f' <b><a title="Next word" href="{getHebrewWordpageFilename(nextN,state)}#Top">→</a></b>' if nextN else ''
-    oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
+    oetLink = f''' <a title="Read passage in OET" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
     parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
     interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
     rowTypeField = '‘Ketiv’ (marginal note on original)' if rowType=='K' else 'Aramaic ‘ketiv’ (marginal note on original)' if rowType=='AK' else 'Segment punctuation' if rowType=='seg' else 'Aramaic' if rowType=='A' else rowType.title() if 'note' in rowType else rowType
@@ -2243,7 +2407,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
     wordsHtml = f'''{top}{add_reference_colour_key(wordsHtml, level)}{keyHtml}{makeBottom( level, None, 'word' )}'''
-    wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
+    wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state, segmentType='reference')
     assert checkHtml( 'HebrewWordPage', wordsHtml )
     filepath = outputFolderPath.joinpath( word_output_filename )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2331,7 +2495,7 @@ def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:
                 if displayCounter >= maxWordsToShow: break
             assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
             assert not lemmaHTML.endswith('\n'), f"{lemmaHTML=}"
-            lemmaHTML = mapHtmlLinks(lemmaHTML, 'OET-LV', level, state)
+            lemmaHTML = mapHtmlLinks(lemmaHTML, 'OET-LV', level, state, segmentType='reference')
             assert checkHtml( 'HebrewLemmaSegment', lemmaHTML, segmentOnly=True )
             return lemmaHTML
     # end of createOETReferencePages._make_hebrew_lemma_HTML_segment
@@ -2599,7 +2763,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
                         .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
-        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
+        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state, segmentType='reference')
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
         # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
@@ -3242,7 +3406,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         wordVLTGlossesList = sorted( state.OETRefData['NTFormVLTGlossesDict'][(greekWord,roleLetter,morphology)] )
 
 
-        oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
+        oetLink = f''' <a title="Read passage in OET" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
@@ -3251,7 +3415,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
             focusedVerses = '\n'.join(get_focused_OET_verse_HTML(
                 level, BBB, C, V, f'GrkWrd/{getGreekWordpageFilename(gg,state)}'))
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-{lexicalResourceLinks(level,'Grk',state,wordFields=columns_string.split(chr(9)))}<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
@@ -3263,12 +3427,15 @@ From there, you can click on the 🔍 magnifying glass icon to view a photograph
 This is all part of the commitment of the <em>Open English Translation</em> team to be transparent about all levels of the Bible translation process right back to the original manuscripts.</small></p>{'' if probability else f'{NEWLINE}</div><!--unusedWord-->'}'''
         assert '\\' not in wordsHtml, f"{wordsHtml=}"
 
+        if probability:
+            wordsHtml += wordOccurrenceBrowseLink(level,'Grk',columns_string.split('\t'),state)
+        wordsHtml += lexicalResourceLinks(level,'Grk',state,wordFields=columns_string.split('\t'))
+
         if probability: # Now list all the other places where this same Greek word is used
             # other_count = 0
             if numWordOETGlossesList > 1:
                 wordOETGlossesStr = tidyGlossOfGreekWord( ', '.join( wordOETGlossesStrList ) )
             thisWordNumberList = state.OETRefData['NTFormUsageDict'][(greekWord,roleLetter,morphology)]
-            wordsHtml += wordOccurrenceBrowseLink(level,'Grk',columns_string.split('\t'),state)
             if len(thisWordNumberList) > 100: # too many to list
                 maxWordsToShow = 50
                 wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
@@ -3427,7 +3594,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
         wordsHtml = f'''{top}{add_reference_colour_key(wordsHtml, level)}{keyHtml}{makeBottom( level, None, 'word' )}'''
-        wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state)
+        wordsHtml = mapHtmlLinks(wordsHtml, 'OET-LV', level, state, segmentType='reference')
         assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -3727,7 +3894,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
                         .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
-        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state)
+        lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state, segmentType='reference')
         assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3811,12 +3978,15 @@ def strongOccurrenceExamples(level, code, state):
     for reference in chosen:
         BBB,C,V = re.split('[_:]',reference)
         paths = tuple(f'{language}Wrd/{filename(row,state)}' for row in references[reference])
-        bits.append(f'<p class="vRef">{occurrenceContextLinks(level,reference,state)}</p>')
+        bits.append('<div class="referencePassage">')
         if not state.TEST_MODE_FLAG or BBB in state.preloadedBibles['OET-RV']:
             lv,rv = get_focused_OET_verse_HTML(level,BBB,C,V,paths)
             for version,text in (('OET-LV',lv),('OET-RV',rv)):
                 text = _namespaceIds(text,f'{code}_{reference.replace(":","_")}_{version}_')
                 bits.append(_externaliseExcerptJumps(text,level,BBB,version,state))
+        if links:=occurrenceContextLinks(level,reference,state):
+            bits.append(f'<p class="referenceJump">Jump to {links}</p>')
+        bits.append('</div>')
     return ''.join(bits)
 
 
@@ -3873,7 +4043,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
-    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state)
+    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state, segmentType='reference')
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
@@ -4027,7 +4197,7 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
-    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state)
+    pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state, segmentType='reference')
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
@@ -4170,7 +4340,6 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
         peopleKeys.append( personKey )
 
     # Now make a page for each person
-    personLinks:list[str] = []
     for n,personKey in enumerate( peopleKeys ):
         entry = peopleDict[personKey]
         previousLink = f'''<a title="Previous person" href="{peopleKeys[n-1][1:]}.htm#Top">←</a>''' if n else ''
@@ -4210,9 +4379,9 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
             html_output_file.write( html )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
-        personLinks.append( f'<a href="{output_filename}">{personName}</a>')
 
     # Create index page for this folder
+    personLinks = entityIndexLinks(peopleKeys,entities,state)
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'personIndex', None, state ) \
@@ -4229,7 +4398,8 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">All Bible People Index ({len(personLinks):,})</h1>
+<h1 id="Top">All Bible People Index ({len(peopleKeys):,})</h1>
+<p class="note">Find people by traditional or OET-RV name. Alternative names and spellings link to the same person; verse references distinguish namesakes.</p>
 {referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(personLinks)+'</p>')}
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
@@ -4267,9 +4437,13 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         peopleKeys.append( personKey[1:] )
         # print( f"{personKey[1:]=}")
 
+    chronologicalPeople = _importantPeopleWithRVNames(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST,loadOETRVNameAliases(state))
+    alphabeticalPeople = _importantPeopleAlphabeticalList(chronologicalPeople)
+
     # Now make the important people CHRONOLOGICAL list
     personLinksStrings = []
-    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST):
+    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(chronologicalPeople):
+        personNameBit = escape(personNameBit)
         # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
         personPageLinkPart = None
         if personRefName in peopleKeys:
@@ -4287,7 +4461,7 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         #             if name2 in peopleKeys: personPageLinkPart = name2
         personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
 
-        fullPersonLink = f'<p class="note">{personPageLink}</p>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
+        fullPersonLink = f'<h2 class="referenceEntryTitle">{personPageLink}</h2>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
         # print( f"        {fullPersonLink=}" )
         # personLinks.append( (personName,fullPersonLink) )
         personLinksStrings.append( f'<div>{fullPersonLink}</div>' )
@@ -4309,7 +4483,8 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Important Bible People Chronological Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
+<h1 id="Top">Important Bible People Chronological Index ({len(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST):,})</h1>
+<p class="note">One entry per character, in approximate narrative chronology. The historical placement of some people, including Job, Joel, and Obadiah, is uncertain. Characters in parables are labelled.</p>
 {'\n'.join(personLinksStrings)}
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
@@ -4321,8 +4496,9 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 
 
     # Now make the important people ALPHABETICAL list
-    personLinksString, lastPersonName = '', 'Anyone' # Must start with 'A' so don't get extra line spaces before first entry
-    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):
+    personLinksString = ''
+    letterLinks = {}
+    for personNumber,(personNameBit, personRefName, personRefList) in enumerate(alphabeticalPeople):
         # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
         personPageLinkPart = None
         if personRefName in peopleKeys:
@@ -4340,11 +4516,15 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         #             if name2 in peopleKeys: personPageLinkPart = name2
         personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
 
-        fullPersonLink = f'<p class="note">{personPageLink}</p>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
+        fullPersonLink = f'<h2 class="referenceEntryTitle">{personPageLink}</h2>'+selectedPassageControls(personRefList,level,state,f'person{personNumber}_')
         # print( f"        {fullPersonLink=}" )
         # personLinks.append( (personName,fullPersonLink) )
-        personLinksString += f'<div>{fullPersonLink}</div>'
-        lastPersonName = personNameBit
+        letter = personNameBit[0].upper()
+        letterId = ''
+        if letter not in letterLinks:
+            letterId = f' id="people-{letter}"'
+            letterLinks[letter] = f'<a href="#people-{letter}" title="Names beginning with {letter}">{letter}</a>'
+        personLinksString += f'<div{letterId}>{fullPersonLink}</div>'
 
     # Create this third index page for this folder (there's already one for ALL people)
     filename = 'importantPeopleAlphabeticalIndex.htm'
@@ -4363,7 +4543,9 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Important Bible People Alphabetical Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
+<h1 id="Top">Important Bible People Alphabetical Index ({len(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST):,})</h1>
+<p class="note">{len(IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST):,} distinct characters, listed under {len(alphabeticalPeople):,} names and alternative spellings, including OET-RV names. Alternative names link to the same person and selected passages. Characters in parables are labelled.</p>
+<p class="alphabetIndex" role="navigation" aria-label="Jump to names by first letter">{' '.join(letterLinks.values())}</p>
 <div>{personLinksString}</div>
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
@@ -4396,7 +4578,6 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 
     # Firstly, make a list of all the keys
     placeKeys = []
-    locationLinks:list[str] = []
     for placeKey in locationsDict:
         if placeKey == '__HEADERS__': continue
         if placeKey == '__COLUMN_HEADERS__': continue
@@ -4441,9 +4622,9 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
             html_output_file.write( html )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
-        locationLinks.append( f'<a href="{output_filename}">{placeName}</a>')
 
     # Create index page for this folder
+    locationLinks = entityIndexLinks(placeKeys,entities,state)
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'locationIndex', None, state ) \
@@ -4460,7 +4641,8 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <span class="selectedBook">Locations index</span></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-<h1 id="Top">Bible Locations Index ({len(locationLinks):,})</h1>
+<h1 id="Top">Bible Locations Index ({len(placeKeys):,})</h1>
+<p class="note">Find places by traditional or OET-RV name. Alternative names and spellings link to the same place; verse references distinguish namesakes.</p>
 {referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(locationLinks)+'</p>')}
 {makeBottom( level, None, 'locationIndex' )}'''
     assert checkHtml( 'locationIndex', indexHtml )

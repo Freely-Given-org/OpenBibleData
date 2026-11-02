@@ -80,6 +80,8 @@ CHANGELOG:
     2026-11-01 Always generate dictionary licence details independently of loaded study notes.
     2026-11-01 Copy the common Bible navigation script with the site assets.
     2026-11-01 Prepare every version's section destinations before any parallel pages.
+    2026-11-01 Generate and publish native search data with the site.
+    2026-11-02 Validate staged search before deployment and keep its intermediate records private.
 """
 from pathlib import Path
 import os
@@ -395,7 +397,15 @@ def _createSitePages() -> bool:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (Interlinear & parallel passages, topic and kingdom pages, OET html & json word pages, UBS dict, Tyndale Dict)." )
 
     _createDetailsPages( 0, state.TEMP_BUILD_FOLDER, state )
+    if state.CREATE_SEARCH_INDEX_FLAG:
+        from searchIndex import buildSearch
+        searchSummary = buildSearch(state.TEMP_BUILD_FOLDER, state)
+        vPrint('Normal', DEBUGGING_THIS_MODULE,
+               f"Native search: {searchSummary['passages']:,} passages in {searchSummary['versions']} resources, {searchSummary['seconds']:.1f}s.")
     _createSearchPage( 0, state.TEMP_BUILD_FOLDER, state )
+    if state.CREATE_SEARCH_INDEX_FLAG:
+        from searchIndex import validateSearch
+        validateSearch(state.TEMP_BUILD_FOLDER)
     _createAboutPage( 0, state.TEMP_BUILD_FOLDER, state )
     _createNewsPage( 0, state.TEMP_BUILD_FOLDER, state )
     _createOETKeyPage( 0, state.TEMP_BUILD_FOLDER, state )
@@ -421,7 +431,11 @@ def _createSitePages() -> bool:
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {state.TEMP_BUILD_FOLDER}/ to {state.DESTINATION_FOLDER}/…" )
             count = 0
-            for fileOrFolderPath in glob.glob( f'{state.TEMP_BUILD_FOLDER}/*' ):
+            for fileOrFolderPath in state.TEMP_BUILD_FOLDER.glob('*'):
+                if fileOrFolderPath.name == '.searchRecords':
+                    continue # Intermediate source exports are not website assets.
+                if state.CREATE_SEARCH_INDEX_FLAG and fileOrFolderPath.name in ('search', 'Search.htm', 'Search.css', 'search.js', 'searchCore.js', 'searchWorker.js'):
+                    continue # Publish search after all of its passage destinations.
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {state.DESTINATION_FOLDER}/…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
@@ -431,6 +445,7 @@ def _createSitePages() -> bool:
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying folders/files into {state.DESTINATION_FOLDER}/: {e} with {fileOrFolderPath=}" )
+            raise # Never publish a new search manifest against an incomplete site.
 
         try: # We also need to copy the TOBD maps across
             TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
@@ -457,6 +472,8 @@ def _createSitePages() -> bool:
         try: # We need to copy the .css and .js files across
             count = 0
             for filepath in glob.glob( '*.css' ):
+                if filepath == 'Search.css':
+                    continue # Search keeps styles and scripts with its immutable generation.
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
@@ -475,8 +492,9 @@ def _createSitePages() -> bool:
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
-        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site {state.DESTINATION_FOLDER}/" to create search index!''' )
+        if state.CREATE_SEARCH_INDEX_FLAG:
+            from searchIndex import publishSearch
+            publishSearch(state.TEMP_BUILD_FOLDER, state.DESTINATION_FOLDER)
     else:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if state.TEST_MODE_FLAG else ''}site{'' if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG else ' (as requested)'}." )
@@ -509,8 +527,13 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'OETKey.htm' ) )
     except FileNotFoundError: pass
-    try: os.unlink( folder.joinpath( 'Search.htm' ) )
-    except FileNotFoundError: pass
+    if folder == state.TEMP_BUILD_FOLDER or not getattr(state, 'CREATE_SEARCH_INDEX_FLAG', False):
+        try: os.unlink( folder.joinpath( 'Search.htm' ) )
+        except FileNotFoundError: pass
+    if folder == state.TEMP_BUILD_FOLDER:
+        for searchFolder in ('search', '.searchRecords'):
+            if folder.joinpath(searchFolder).exists():
+                shutil.rmtree(folder.joinpath(searchFolder))
     if state.CREATE_PARALLEL_VERSE_PAGES is not None:
         try: shutil.rmtree( folder.joinpath( 'par/' ) )
         except FileNotFoundError: pass
@@ -899,31 +922,28 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the OBD search page.
 
-    We use https://pagefind.app/
+    Search data is generated from source records as part of this build.
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}search page…" )
 
-    searchHTML = f'''<h1 id="Top">Search {state.SITE_NAME}</h1>
-<p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
-{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p><!--note-->'+NEWLINE) if state.TEST_MODE_FLAG else ''}<div id="search"></div>
-<script>
-    window.addEventListener('DOMContentLoaded', (event) => {{
-        new PagefindUI({{ element: "#search", showSubResults: false, autofocus: true }});
-    }});
-</script>
-'''
+    from searchPage import searchBody
+    searchHTML = (searchBody(state.searchManifest) if state.CREATE_SEARCH_INDEX_FLAG
+                  else '<h1 id="Top">Search</h1><p>Search indexing is disabled for this build. <a href="OET/byC/">Browse books and chapters</a>.</p>')
     topHtml = makeTop( level, None, 'search', None, state ) \
                 .replace( '__TITLE__', f"Search OBD{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, search, {state.SITE_ABBREVIATION}, OET' ) \
-                .replace( '</head>', '''  <link rel="stylesheet" href="pagefind/pagefind-ui.css">
-  <script src="pagefind/pagefind-ui.js"></script>
-</head>''')
-    html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
+                .replace( '</head>', ('''  <link rel="stylesheet" href="Search.css">
+  <script type="module" src="search.js"></script>
+</head>''' if state.CREATE_SEARCH_INDEX_FLAG else '</head>'))
+    html = f'''{topHtml}{searchHTML}
 <p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>{makeBottom( level, None, 'search' )}'''
     assert checkHtml( 'Search', html )
+    if state.CREATE_SEARCH_INDEX_FLAG:
+        html = html.replace('href="Search.css"', f'href="{state.searchClient}Search.css"') \
+                   .replace('src="search.js"', f'src="{state.searchClient}search.js"')
 
     filepath = buildFolder.joinpath( 'Search.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything

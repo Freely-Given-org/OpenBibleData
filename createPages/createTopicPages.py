@@ -36,6 +36,7 @@ CHANGELOG:
     2026-10-30 Link the people, places and dictionary entries tagged in selected passages.
     2026-10-31 Add approved kingdom readings and verified person/place navigation.
     2026-10-31 Connect kingdom browsing to the available dictionary indexes.
+    2026-11-02 Group indented kingdom reading previews before their section links.
 """
 from pathlib import Path
 import os
@@ -48,7 +49,7 @@ from oetPassages import renderOETLVPassage
 from navigation import scriptureLink
 from studyReferences import topicFilename,topicReferenceMaterial,ENTITY_FOLDER
 from referenceEntities import loadReferenceEntities,entityLink,kingdomArticleLinks,KINGDOM_ENTITIES
-from referencePassages import parseReferenceSelection,renderReferencePassage
+from referencePassages import parseReferenceSelection,renderReferencePassageGroup
 from referenceIndexes import referenceIndexLinks
 from settings import State
 from Bibles import getBibleMapperMaps
@@ -693,11 +694,12 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
         kingdomInfo = kingdomArticleLinks(intro+kingdomInfo,level,entities)
         entityLinks = ' · '.join(entityLink(key,level,entities) for key in KINGDOM_ENTITIES[oneWordKingdomName]
                                if key in entities['records'])
-        readings = '<h2>Selected readings</h2>'
-        for number,citation in enumerate(KINGDOM_READINGS[kingdomName],1):
+        selections = []
+        for citation in KINGDOM_READINGS[kingdomName]:
             BBB,selection = citation.split('_',1)
-            readings += renderReferencePassage(level,parseReferenceSelection(BBB,selection,'eng'),'eng',state,
-                instanceId=f'kingdom-{oneWordKingdomName}-{number}',label=citation.replace('_',' ').replace('-','–'))
+            selections.append((citation.replace('_',' ').replace('-','–'),parseReferenceSelection(BBB,selection,'eng')))
+        readings = '<h2>Selected readings</h2>'+renderReferencePassageGroup(level,selections,'eng',state,
+            instancePrefix=f'kingdom-{oneWordKingdomName}-')
         html = f'''{top}<div class="{oneWordKingdomName}"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 class="{oneWordKingdomName}" id="Top">{kingdomName} details</h1>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>

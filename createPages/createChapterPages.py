@@ -44,6 +44,8 @@ CHANGELOG:
     2026-10-24 Use traditional book abbreviations on other versions' chapter pages.
     2026-11-01 Retain the selected book when switching versions from its chapter index.
     2026-11-01 Mark the selected book in reading-page navigation.
+    2026-11-01 Omit Intro from chapter choices on the introduction page itself.
+    2026-11-03 Generate static chapter/verse navigation before writing each page.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -58,6 +60,7 @@ import bos_books_codes_py
 from navigation import mapHtmlLinks, bookAbbreviation
 from settings import State, state, CNTR_BOOK_ID_MAP
 from oetPassages import renderOETSideBySideChunks, oetLVSourceLink
+from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages, preloadBibleMapperIndex
@@ -129,6 +132,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {chapterHtml}
 {makeBottom( level, rvBible.abbreviation, 'chapter' )}'''
+        chapterHtml = addReferenceNavigation(chapterHtml)
         assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -160,7 +164,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 
             realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                 for ccc in range( 1, numChapters+1 ) if ccc != c]
-            chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+            chapterLinksParagraph = f'<p class="chLst">{" ".join( (initialChapterLinks[:1] if c==-1 else initialChapterLinks)+realChapterLinks )}</p><!--chLst-->'
 
             documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
             if c == -1: # Intro
@@ -221,6 +225,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 {cNav}
 {chapterLinksParagraph}
 {makeBottom( level, 'OET', 'chapter' )}'''
+            chapterHtml = addReferenceNavigation(chapterHtml)
             assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -288,6 +293,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH.replace( '<p class="rem">', '<p class="rem" id="Top">', 1 )}
 {chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapter' )}'''
+    chapterHtml = addReferenceNavigation(chapterHtml)
     assert checkHtml( 'OETChaptersIndex', chapterHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -375,6 +381,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapterIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -455,7 +462,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 
                 realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                     for ccc in range( 1, numChapters+1 ) if ccc != c and thisBible.getNumVerses( BBB, c )] # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
-                chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+                chapterLinksParagraph = f'<p class="chLst">{" ".join( (initialChapterLinks[:1] if c==-1 else initialChapterLinks)+realChapterLinks )}</p><!--chLst-->'
 
                 try: numVerses = thisBible.getNumVerses( BBB, c )
                 except KeyError:
@@ -535,6 +542,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {cNav}
 {chapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
+                chapterHtml = addReferenceNavigation(chapterHtml)
                 assert checkHtml( f'{thisBible.abbreviation} {BBB}_C{C}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -560,6 +568,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{selectedBookNavListParagraph}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
 {chapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
+            chapterHtml = addReferenceNavigation(chapterHtml)
             assert checkHtml( f'{thisBible.abbreviation} chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -593,6 +602,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {selectedBookNavListParagraph}
 {chapterHtml}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
+            chapterHtml = addReferenceNavigation(chapterHtml)
             assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -614,6 +624,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} chapter pages</h1>{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
 {navBookListParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapterIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

@@ -12,6 +12,7 @@ CHANGELOG:
     2026-10-30 Cover topic ranges containing RV verse bridges and contextual lookup errors.
     2026-11-01 Include the book-navigation helper when exercising isolated page builders.
     2026-11-01 Accept the selected-book argument in isolated navigation fixtures.
+    2026-11-03 Supply the static-navigation helper to isolated page builders.
 """
 import ast
 from collections import defaultdict
@@ -211,7 +212,9 @@ class OETPassageTests(unittest.TestCase):
         self.assertEqual(self.rendered,[])
 
     def builder(self, filename, name, section=False):
+        from bibleNavigation import addReferenceNavigation
         namespace=dict(globals(),
+            addReferenceNavigation=addReferenceNavigation,
             defaultdict=defaultdict, os=os, BibleOrgSysGlobals=BibleOrgSysGlobals,
             bos_books_codes_py=bos_books_codes_py,
             DEBUGGING_THIS_MODULE=False, NEWLINE='\n',

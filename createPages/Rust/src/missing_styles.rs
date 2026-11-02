@@ -10,6 +10,8 @@
 //!
 //! CHANGELOG:
 //!     2026-10-23 Recognise small.class selectors used by verse-number mapping notes.
+//!     2026-11-01 Remove Pagefind handling and validate additional page stylesheets.
+//!     2026-11-01 Resolve cache-versioned stylesheet URLs to their local files.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -333,11 +335,7 @@ fn read_css(stylesheet_name: &str) -> Result<Arc<ClassMap>, String> {
     if let Some(cached) = CSS_PARSE_CACHE.lock().unwrap().get(stylesheet_name) {
         return Ok(cached.clone());
     }
-    let filename = if stylesheet_name.contains("pagefind") {
-        format!("../htmlPages/{stylesheet_name}")
-    } else {
-        stylesheet_name.to_string()
-    };
+    let filename = stylesheet_name.to_string();
     let text = std::fs::read_to_string(&filename).map_err(|err| {
         format!(
             "Error: loadCSSStyles couldn't read {stylesheet_name} from {filename}: {err}"
@@ -390,7 +388,7 @@ pub fn check_html_for_missing_styles(
     let mut missing: Vec<(String, String, String)> = Vec::new();
 
     for line in html.split('\n') {
-        if !started_check || where_ == "OETKey" {
+        if !started_check || where_ == "OETKey" || line.contains("rel=\"stylesheet\"") {
             if line.contains("rel=\"stylesheet\"") {
                 let ix_start = line.find("href=\"").ok_or_else(|| {
                     format!(
@@ -406,8 +404,23 @@ pub fn check_html_for_missing_styles(
                             "ValueError: checkHtmlForMissingStyles({where_}) stylesheet line without '\">': {line:?}"
                         )
                     })?;
-                stylesheet_name = line[after..ix_end].replace("../", "");
-                style_map = Some(merged_style_map(&stylesheet_name)?);
+                stylesheet_name = line[after..ix_end]
+                    .split(['?', '#'])
+                    .next()
+                    .unwrap_or("")
+                    .replace("../", "");
+                let next = merged_style_map(&stylesheet_name)?;
+                if let Some(previous) = &style_map {
+                    if stylesheet_name != "common.css" {
+                        let mut combined = (**previous).clone();
+                        for (class, elements) in next.iter() {
+                            combined.entry(class.clone()).or_default().extend(elements.iter().cloned());
+                        }
+                        style_map = Some(Arc::new(combined));
+                    }
+                } else {
+                    style_map = Some(next);
+                }
                 started_check = true;
             }
         } else if let Some(map) = &style_map {
@@ -583,6 +596,17 @@ a.PLS { color:black; }\n\
     }
 
     #[test]
+    fn additional_stylesheet_preserves_both_class_sets() {
+        for (name, class) in [("SearchBaseTest.css", "base"), ("SearchExtraTest.css", "extra")] {
+            MERGED_CACHE.lock().unwrap().insert(name.to_string(), Arc::new(HashMap::from([
+                (class.to_string(), HashSet::from([String::new()]))
+            ])));
+        }
+        let html = "<link rel=\"stylesheet\" href=\"SearchBaseTest.css\">\n<link rel=\"stylesheet\" href=\"SearchExtraTest.css\">\n<div class=\"base extra\"></div>";
+        assert!(check_html_for_missing_styles("Search", html).unwrap().is_empty());
+    }
+
+    #[test]
     fn oetkey_disables_scanning() {
         seed("OetKeyTest.css", HashMap::new());
         MERGED_CACHE
@@ -608,11 +632,13 @@ a.PLS { color:black; }\n\
             .lock()
             .unwrap()
             .insert("HrefTest.css".to_string(), Arc::new(HashMap::new()));
-        let html = "<link rel=\"stylesheet\" type=\"text/css\" href=\"../../../HrefTest.css\">\n\
-            <span class=\"gone\"></span>\n";
-        let missing = check_html_for_missing_styles("where", html).unwrap();
-        assert_eq!(missing.len(), 1);
-        assert_eq!(missing[0].2, "HrefTest.css");
+        for suffix in ["", "?v=123abc", "?v=123abc#style", "#style"] {
+            let html = format!("<link rel=\"stylesheet\" type=\"text/css\" href=\"../../../HrefTest.css{suffix}\">\n\
+                <span class=\"gone\"></span>\n");
+            let missing = check_html_for_missing_styles("where", &html).unwrap();
+            assert_eq!(missing.len(), 1);
+            assert_eq!(missing[0].2, "HrefTest.css");
+        }
     }
 
     #[test]

@@ -5,6 +5,7 @@
 
 CHANGELOG:
     2026-10-26 Cover alternate URLs, grouped/conflicting mappings and generator integration.
+    2026-11-03 Supply the static-navigation helper to isolated parent generators.
 """
 import ast
 from collections import defaultdict
@@ -229,7 +230,9 @@ class AlternateVersePageTests(unittest.TestCase):
                     def writeBook(*args):
                         self.malachi()
                         return True
+                    from bibleNavigation import addReferenceNavigation
                     namespace = dict(globals(),state=self.state, DEBUGGING_THIS_MODULE=False,
+                        addReferenceNavigation=addReferenceNavigation,
                         createAlternateVersePages=av.createAlternateVersePages,
                         reorderBooksForOETVersions=lambda books:books,
                         getOETTidyBBB=lambda book,**kwargs:book,getOETBookName=lambda book:book,

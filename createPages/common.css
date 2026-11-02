@@ -38,7 +38,19 @@
  *   2026-10-17 Hide grammatical backgrounds on links as well as spans.
  *   2026-10-24 Add book-group palettes for both themes and smaller INT/FRT labels.
  *   2026-11-01 Filter OET book menus using the persistent 66/all setting.
+ *   2026-11-02 Emphasise reference entry names and indent previews and final jumps.
+ *   2026-11-02 Add a wrapping alphabetical jump row for the important people index.
+ *   2026-11-03 Omit current chapter/verse choices using static markup and URL targets.
+ *   2026-11-03 Use the existing selected colour for active independent views too.
  */
+
+/* Reference entries share the same hierarchy across page families. */
+h2.referenceEntryTitle { font-size: 1.4em; line-height: 1.35; margin: 1.3em 0 0.4em; }
+div.referencePassage { margin: 0.4em 0 1em 1.5em; }
+div.referencePassage > details { margin: 0.3em 0; }
+p.referenceJump { margin: 0.4em 0; }
+p.alphabetIndex { display: flex; flex-wrap: wrap; gap: 0.3em 0.5em; font-size: 1.15em; font-weight: bold; margin: 1em 0; }
+.alphabetIndex a { display: inline-block; padding: 0.2em 0.3em; text-decoration: underline; }
 
 /* ---- Site-wide colour palette (CSS custom properties) ---- */
 :root {
@@ -131,6 +143,10 @@ a { color:var(--chrome-fg-link); text-decoration:none; }
 /* Navigational lists at top of page */
 p.wrkLst { background-color:var(--chrome-bg-wrkLst); color:var(--chrome-fg-wrkLst); }
 .wrkLst a { text-decoration:none; color:var(--chrome-fg-wrkLst-link); }
+/* 2026-11-01 Independent views and reference tools belong beside the versions. */
+span.independentView { color:#DBBC1F; }
+.wrkLst .independentView a { color:#DBBC1F; }
+.wrkLst .independentView [aria-current="true"] { color:var(--chrome-fg-wrkLst); }
 p.viewLst { background-color:var(--chrome-bg-viewLst); color:var(--chrome-fg-viewLst); }
 .viewLst a { text-decoration:none; color:var(--chrome-fg-viewLst-link); }
 p.bkLst { background-color:var(--chrome-bg-bkLst); }
@@ -694,6 +710,11 @@ div.wordIndexPages { display: flex; flex-wrap: wrap; align-items: center; gap: 0
 
 /* 2026-11-01 Local chapter/verse choices follow the version, mode and book rows. */
 p.bibleReferenceChoices { margin: 0.5em 0; }
-/* Keep high verse numbers one click away and mark the current selection. */
+/* Keep high verse numbers one click away. The build supplies every link. */
 p.bibleReferenceChoices a { white-space:nowrap; }
-p.bibleReferenceChoices a[aria-current="true"] { font-weight:bold; text-decoration:underline; text-underline-offset:0.18em; }
+[data-nav-current] { display:none; }
+p.bibleReferenceChoices[data-nav-verses] { display:none; }
+p.bibleReferenceChoices[data-nav-default] { display:block; }
+/* A local verse/chapter target overrides the page's initial selection. */
+body:has([data-nav-reference]:target) [data-nav-current] { display:inline; }
+body:has([data-nav-reference]:target) p.bibleReferenceChoices[data-nav-verses] { display:none; }

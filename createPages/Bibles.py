@@ -80,6 +80,7 @@ CHANGELOG:
     2026-10-30 Render UTN lists and paragraphs, link individual verses to parallel pages,
                and link passage ranges to their starting OET section.
     2026-10-30 Preserve complete Tyndale scripture selections and add dictionary passage previews.
+    2026-11-02 Display the translation-note occurrence code -1 as All occurrences.
 """
 from datetime import datetime
 import os, os.path
@@ -1188,7 +1189,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                                         .replace(' & ',' <small>&amp;</small> ')
                     transQuoteHtml = ( lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})' ) \
                                         .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' ) # TODO: Check space isn't already _, e.g., http://freely-given.org/OBD/Test/par/JDG/C1V13.htm#Top
-                    tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&amp;</small> ')}</p>
+                    occurrenceLabel = '' if occurrenceNumber==1 else '(All occurrences) ' if occurrenceNumber==-1 else f'(Occurrence {occurrenceNumber}) '
+                    tnHtml = f'''{tnHtml}<p class="OL">{occurrenceLabel}{rest.replace(' & ',' <small>&amp;</small> ')}</p>
 <p class="Trans">{transQuoteHtml}</p>'''
 
             elif lastMarker in ('p','ip'): # This is the actual note (which can have markdown formatting)

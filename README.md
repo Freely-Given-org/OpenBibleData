@@ -177,12 +177,19 @@ those integration cases are skipped if it is absent. Related-passage pages
 currently use OET-RV alone and need no LV text pairing. The full
 `createSitePages.py` build still requires the server's external datasets.
 
+## Bible search
+
+Bible search indexes are generated from the loaded source texts during the site
+build. `Search.htm` uses OBD's own browser search engine; no separate Pagefind
+command or search service is needed. See
+[the search implementation plan](createPages/SEARCH_REPLACEMENT_PLAN.md) and
+[qualification notes](createPages/SEARCH_QUALIFICATION.md) for matching rules,
+preview commands, validation, and rollout status.
+
 ## Future Plans
 
 The site doesn't yet contain any Strongs-indexed lexicons,
 and so links to BibleHub.com for that.
-
-Search functionality is provided by [Pagefind](https://Pagefind.app/).
 
 Hopefully if BibleOrgSys is able to start using more Rust functions in the future,
 then the memory use should reduce and the site build time should be greatly increased.

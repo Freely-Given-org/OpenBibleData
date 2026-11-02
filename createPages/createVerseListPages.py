@@ -45,6 +45,12 @@ CHANGELOG:
     2026-11-01 Direct omitted footnotes and cross-references to the full parallel entry.
     2026-11-01 Pass the current reference to the common version and mode navigation.
     2026-11-01 Prefer available sections for version links beside verse text.
+    2026-11-01 Omit Intro from chapter choices on the introduction page itself.
+    2026-11-01 Use em spaces between verse choices, matching the chapter choices.
+    2026-11-01 Omit the verse-choice row on book introductions.
+    2026-11-02 Display Intro in introduction titles and index labels instead of chapter -1.
+    2026-11-02 Open chapters at verse 1 except Psalms with verse-zero text; retain access to headings.
+    2026-11-03 Generate static chapter/verse navigation before writing each page.
 """
 from pathlib import Path
 import os
@@ -68,7 +74,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createParallelVersePages import getPlainText
-from bibleNavigation import preferredReadingHref
+from bibleNavigation import addReferenceNavigation, preferredReadingHref
 from createSectionPages import findSectionNumber
 from versification import navigationVersification, parallelVersePassage, versePortionHtml
 from navigation import navigationBookList, verseNavigationFirstVerses
@@ -178,6 +184,7 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
 {makeBookNavListParagraph( BBBLinks, 'VerseListIndex', state )}
 <p class="note"><small>Note: We would like to display more English Bible versions on these verse list pages to assist our users, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
 {makeBottom( level, None, 'simpleVerse' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'parallelIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -247,10 +254,10 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'VerseList', state, currentBBB=BBB )
 
-    introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
     displayedVersions = [version for version in parallelVersions
         if not state.TEST_VERSIONS_ONLY or version in state.TEST_VERSIONS_ONLY]
     firstVerses = verseNavigationFirstVerses(BBB, numChapters, displayedVersions, state, requireVerseZeroText=True)
+    chapterStartVerses = firstVerses if BBB=='PSA' else {c:1 for c in range(1,numChapters+1)}
     interlinearFirstVerses = (verseNavigationFirstVerses(BBB, numChapters, ('OET-LV','OET-RV'), state, requireVerseZeroText=True)
         if BBB in state.booksToLoad['OET'] else {})
 
@@ -261,18 +268,19 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
         for c in [-1, *range(1, numChapters+1)]:
             C = str( c )
             adjC = 'Intro' if c==-1 else f'C{C}'
+            introLinks = [] if c==-1 else ['<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>']
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
 
-            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{firstVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
+            chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V{firstVerses[chp]}.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
+                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
 
             firstVerse = firstVerses.get(c, 0)
             introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter heading" href="C{c}V0.htm#__ID__">I</a> ' if c>0 and firstVerse==0 else ''}'''
-            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{firstVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
-            rightCLink = f' <a title="Go to first chapter" href="C1V{firstVerses[1]}.htm#__ID__">►</a>' if c==-1 \
-                    else f' <a title="Next chapter" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters \
+            leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V{chapterStartVerses[c-1]}.htm#__ID__">◄</a> ' if c>1 else ''
+            rightCLink = f' <a title="Go to first chapter" href="C1V{chapterStartVerses[1]}.htm#__ID__">►</a>' if c==-1 \
+                    else f' <a title="Next chapter" href="C{c+1}V{chapterStartVerses[c+1]}.htm#__ID__">►</a>' if c<numChapters \
                     else ''
             numVerses = 0 if c == -1 else referenceBible.getNumVerses(BBB, c)
             if numVerses is None: # something unusual
@@ -282,21 +290,21 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
             for v in range(firstVerse, numVerses+1):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
-                # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
-                vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
+                # Use EM_SPACE for both the reference and the verse choices.
+                vLinksPar = '' if c==-1 else f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
                                 for vv in ([0] if c>0 and firstVerse==0 else []) + list(range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1)) if vv!=v] )}</p><!--vsLst-->'''
                 greekWords = {}; greekVersionKeysHtmlSet = set()
 
                 # The following all have a __ID__ string than needs to be replaced
                 if v > 3:
-                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V{firstVerse}.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
+                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V{chapterStartVerses[c]}.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
                 leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>firstVerse \
                         else f'<a title="Previous chapter (last verse)" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else '<a title="Previous page (book intro)" href="Intro.htm#__ID__">←</a> ' if c==1 \
                         else ''
-                rightVLink = f' <a title="Next page (first chapter)" href="C1V{firstVerses[1]}.htm#__ID__">→</a>' if c==-1 \
+                rightVLink = f' <a title="Next page (first chapter)" href="C1V{chapterStartVerses[1]}.htm#__ID__">→</a>' if c==-1 \
                         else f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
-                        else f' <a title="Next chapter (first verse)" href="C{c+1}V{firstVerses[c+1]}.htm#__ID__">→</a>' if c<numChapters \
+                        else f' <a title="Next chapter (first verse)" href="C{c+1}V{chapterStartVerses[c+1]}.htm#__ID__">→</a>' if c<numChapters \
                         else ''
                 parallelFilename = 'Intro.htm' if c==-1 else f'C{C}V{v}.htm'
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/{parallelFilename}#Top">║</a>'''
@@ -930,7 +938,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'simpleVerse', None, state, (BBB,C,V) ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                        .replace( '__TITLE__', f"{ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, parallel, verse, list, view, display, {ourTidyBBB}' )
                 if hasInterlinearPage:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
@@ -944,18 +952,18 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 parallelHtml = f'''{top}<!--verse list page-->
 {adjBBBLinksHtml}
 {chapterLinksParagraph}
-{vLinksPar}
-<h1>Simple verse list for {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
+{vLinksPar}{NEWLINE if vLinksPar else ''}<h1>Simple verse list for {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {passageReferenceMaterial(BBBLevel,(BBB,C,V),state.navigationVersification,state)}{parallelHtml}{NEWLINE if parallelHtml else ''}{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, None, 'simpleVerse' )}'''
+                parallelHtml = addReferenceNavigation(parallelHtml)
                 assert checkHtml( f'VerseList {parRef}', parallelHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( parallelHtml )
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(parallelHtml):,} characters written to {filepath}" )
-                vLinksList.append( f'<a title="Go to parallel verse page" href="{filename}#Top">{C}:{V}</a>' )
+                vLinksList.append( f'<a title="Go to parallel verse page" href="{filename}#Top">{'Intro' if c==-1 else f'{C}:{V}'}</a>' )
                 if c == -1: # then we're doing the book intro
                     break # no need to loop -- we handle the entire intro in one go
             lastNumVerses = numVerses # for the previous chapter
@@ -964,6 +972,11 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createVerseListPagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createVerseListPagesForBook {thisBible.books[BBB]=}" )
+
+    # Indexes have no current chapter, so offer every chapter.
+    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
+        if BBB=='PSA' else \
+            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
     # Create index page for this book
     filename1 = 'index.htm'
@@ -974,6 +987,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p><!--vsLst-->' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, None, 'simpleVerse' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -995,6 +1009,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml.replace('href="../', f'href="')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph.replace('href="', f'href="{BBB}/')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'''{NEWLINE}<p class="vsLst">{" ".join( vLinksList ).replace('href="', f'href="{BBB}/')}</p><!--vsLst-->''' if BBB!='PSA' else ''}
 {makeBottom( level, None, 'simpleVerse' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )

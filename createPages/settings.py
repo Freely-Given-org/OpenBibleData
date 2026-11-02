@@ -50,6 +50,7 @@ CHANGELOG:
     2026-10-30 Add attribution and licence details for the unfoldingWord Hebrew and Greek grammars.
     2026-10-30 Use the reviewed Wycliffe Zefania LAO profile, including its 15-16 split.
     2026-10-30 Load LAO in both OET versions, retaining its navigation position after COL.
+    2026-11-01 Generate native search during the normal site build.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -75,7 +76,7 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.4.3' # Incremented after most updates to OBD web page generation code
+    OBD_VERSION_NUMBER_STRING = 'v3.4.5' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.48.93' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
@@ -95,6 +96,9 @@ class State:
     REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages (dangerous for main site coz no ilr!!!)
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
+    CREATE_SEARCH_INDEX_FLAG = True # Build native search alongside pages before publication
+    SEARCH_CACHE_MIB = 64 # Conservative decoded-asset budget in each browser worker
+    SEARCH_FETCH_CONCURRENCY = 6 # Maximum simultaneous book/version scans
 
     # DC lists group source folders/word tables; LAO is displayed after COL below.
     OET_RV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN','GES','LES','DNG','PS2','LAO']

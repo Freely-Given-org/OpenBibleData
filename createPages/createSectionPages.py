@@ -69,6 +69,9 @@ CHANGELOG:
     2026-11-01 Honour the OET 66/all book preference in previous/next section-index links.
     2026-11-01 Select section chapters at the section start or an interior verse-one anchor.
     2026-11-01 Mark the selected book on section pages and per-book indexes.
+    2026-11-01 Omit the Intro chapter-choice link when it targets the current section.
+    2026-11-02 Open section-index entries at the top of their section pages.
+    2026-11-03 Generate static chapter/verse navigation before writing each page.
 """
 from pathlib import Path
 import os
@@ -85,6 +88,7 @@ import bos_books_codes_py
 from navigation import mapHtmlLinks, bookAbbreviation, oetBookNavigationLinks
 from settings import State
 from oetPassages import renderOETLVPassage, oetLVSourceLink
+from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
@@ -490,6 +494,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 state.sectionsWithMaps[BBB].append( n )
 
             filepath = folder.joinpath( sectionFilename )
+            pageChapterLinksParagraph = sectionChapterLinksParagraph.replace(
+                f' <a title="View document introduction" href="{sectionFilename}#Top">Intro</a>', '' )
             top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm#C{startC}V{startV}', state ) \
                     .replace( '__TITLE__', f"OET {ourTidyBBB} section{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, OET, section, {ourTidyBBB}' ) \
@@ -497,13 +503,14 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {selectedBookNavListParagraph}
-{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{pageChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {sectionHtml}
 {combinedHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{sectionChapterLinksParagraph}
+{pageChapterLinksParagraph}
 {makeBottom( level, 'OET', 'section' )}'''
+            sectionHtml = addReferenceNavigation(sectionHtml)
             assert checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -529,7 +536,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             reasonName = reasonMarker if 'heading' in reasonMarker or reasonMarker not in SECTION_REASON_NAME_DICT else SECTION_REASON_NAME_DICT[reasonMarker]
             reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             sectionNumber = sectionFilename[5:-4] # Section filename is something like 'DAN_S10.htm'
-            if 'ms1' in reasonMarker: # We adjust the destination link
+            if 'ms1' in reasonMarker: # Main section heading
                 # print( f"MS1 {startC}:{startV}, {sectionName}, {reasonMarker}, {reasonName}, {sectionFilename=}" )
                 sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
             else:
@@ -537,7 +544,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
                     assert sectionName in ('Promised land','Full kingdom','Northern kingdom','Southern kingdom','Both kingdoms'), f"Unexpected OET-RV {BBB} s4 (kingdom) marker: {sectionName}"
                     pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
-                sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+                sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
         sectionHtml = f'''{top}<!--sections page-->
 {selectedBookNavListParagraph}
@@ -549,6 +556,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{getOETTidyBBB( BBB, titleCase=True, allowFourChars=True, insertChar=' ', addNotes=True)} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
 {makeBottom( level, 'OET', 'sectionIndex' )}'''
+        sectionHtml = addReferenceNavigation(sectionHtml)
         assert checkHtml( 'OET section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -571,6 +579,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <h2>Index of OET books</h2>
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'sectionIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'OET sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -744,6 +753,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {selectedBookNavListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{sectionHtml}
 {makeBottom( level, thisBible.abbreviation, 'section' )}'''
+            sectionHtml = addReferenceNavigation(sectionHtml)
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -813,6 +823,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
             sectionHtml = mapHtmlLinks(sectionHtml, thisBible.abbreviation, level, state, segmentType='section', reference=(BBB,startC,startV))
             filepath = folder.joinpath( sectionFilename )
+            pageChapterLinksParagraph = sectionChapterLinksParagraph.replace(
+                f' <a title="View document introduction" href="{sectionFilename}#Top">Intro</a>', '' )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm#C{startC}V{startV}', state ) \
                     .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, section, {ourTidyBBB}' ) \
@@ -820,10 +832,11 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {selectedBookNavListParagraph}
-{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{pageChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
-{sectionChapterLinksParagraph}
+{pageChapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'section' )}'''
+            sectionHtml = addReferenceNavigation(sectionHtml)
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -850,7 +863,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                 reasonName = reasonMarker if 'heading' in reasonMarker or reasonMarker not in SECTION_REASON_NAME_DICT else SECTION_REASON_NAME_DICT[reasonMarker]
                 reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
                 sectionNumber = sectionFilename[5:-4] # Section filename is something like 'DAN_S10.htm'
-                if 'ms1' in reasonMarker: # We adjust the destination link
+                if 'ms1' in reasonMarker: # Main section heading
                     # print( f"MS1 {startC}:{startV}, {sectionName}, {reasonMarker}, {reasonName}, {sectionFilename=}" )
                     sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
                 else:
@@ -858,7 +871,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                     if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
                         assert sectionName in ('Promised land','Full kingdom','Northern kingdom','Southern kingdom','Both kingdoms'), f"Unexpected OET-RV {BBB} s4 (kingdom) marker: {sectionName}"
                         pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
-                    sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+                    sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
         else: # not OET-RV or don't seem to have section headings in state.sectionsListsForHeaders
             # NOTE: word 'Alternate ' is handled within the normalised reason names in the helper
             sectionHtmlBits += createNonOETSectionIndexParagraphs( state.sectionsListsForSections[thisBible.abbreviation][BBB], state )
@@ -870,6 +883,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{ourTidyBBB} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
 {makeBottom( level, thisBible.abbreviation, 'sectionIndex' )}'''
+        sectionHtml = addReferenceNavigation(sectionHtml)
         assert checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -890,6 +904,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 <h2>Index of {thisBible.abbreviation} books</h2>
 {navBookListParagraph}
 {makeBottom( level, thisBible.abbreviation, 'sectionIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:

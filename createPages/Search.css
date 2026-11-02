@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: CC0-1.0 */
+/* CHANGELOG: 2026-11-01 Responsive Bible search controls and readable results. */
+/* 2026-11-02 Leave space above results when scrolling to completed searches. */
+.searchControls { display: flex; flex-wrap: wrap; align-items: start; gap: 1rem; margin: 1rem 0; }
+.searchControls label { display: flex; flex-direction: column; gap: .3rem; max-width: 100%; }
+.searchControls input, .searchControls select, .searchControls button { font: inherit; max-width: 100%; padding: .4rem; box-sizing: border-box; }
+.searchQuery { flex: 1; min-width: 14rem; }
+.searchResults { padding-left: 1.8rem; max-width: 60rem; }
+.searchResults li { border-bottom: 1px solid #888; padding: .6rem 0; }
+.searchResults h2 { font-size: 1.1rem; margin: .4rem 0; }
+.searchResults mark { color: #111; background: #ffe98a; }
+#bibleSearch button, #bibleSearch input, #bibleSearch select { font: inherit; }
+#bibleSearch :focus-visible { outline: 3px solid #7864ba; outline-offset: 3px; }
+#searchStatus { min-height: 1.5em; }
+#searchResultsArea { scroll-margin-top: 1rem; }
+#bibleSearch [hidden] { display: none; }
+@media (max-width: 600px) {
+  .searchControls { flex-direction: column; }
+  .searchQuery { width: 100%; min-width: 0; }
+}

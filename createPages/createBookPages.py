@@ -35,6 +35,7 @@ CHANGELOG:
     2026-10-24 Use traditional book abbreviations on other versions' document pages.
     2026-11-01 Honour the OET 66/all book preference in previous/next document links.
     2026-11-01 Mark the selected book in reading-page navigation.
+    2026-11-03 Generate static chapter/verse navigation before writing each page.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -50,6 +51,7 @@ import bos_books_codes_py
 from settings import State, state, CNTR_BOOK_ID_MAP
 from navigation import bookAbbreviation, oetBookNavigationLinks
 from oetPassages import renderOETSideBySideChunks
+from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
@@ -150,6 +152,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, rvBible.abbreviation, 'book' )}'''
+        bkHtml = addReferenceNavigation(bkHtml)
         assert checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -193,6 +196,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
 {bkHtml}
 {removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->
 {makeBottom( level, 'OET', 'book' )}'''
+    bkHtml = addReferenceNavigation(bkHtml)
     assert checkHtml( f'OET Book {BBB}', bkHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -276,6 +280,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'bookIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -380,6 +385,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{selectedBookNavListParagraph}
 {bkHtml}
 {makeBottom( level, thisBible.abbreviation, 'book' )}'''
+        bkHtml = addReferenceNavigation(bkHtml)
         assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -402,6 +408,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 {state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}{f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if thisBible.abbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>' if 'OET' in thisBible.abbreviation else ''}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}
 {navBookListParagraph}
 {makeBottom( level, thisBible.abbreviation, 'bookIndex' )}'''
+    indexHtml = addReferenceNavigation(indexHtml)
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:

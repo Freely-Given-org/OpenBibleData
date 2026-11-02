@@ -20,6 +20,8 @@ CHANGELOG:
     2026-10-30 Cover OET-RV Maccabees retrieval from English parallel-page addresses.
     2026-10-30 Cover all Wycliffe LAO pages, combined 15-16 text, and cached declarations.
     2026-11-01 Supply section-aware reading links to isolated page-loop fixtures.
+    2026-11-02 Enter ordinary chapters at verse 1 while retaining backwards introduction navigation.
+    2026-11-03 Supply the static-navigation helper to isolated page loops.
 """
 import ast
 from collections import defaultdict
@@ -46,7 +48,7 @@ import bos_books_codes_py
 from bible_organisational_system import getSmallLeadingInt
 
 from settings import State
-from bibleNavigation import preferredReadingHref
+from bibleNavigation import addReferenceNavigation, preferredReadingHref
 import versification as vf
 from navigation import navigationBookList, verseNavigationFirstVerses
 from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
@@ -546,7 +548,7 @@ class VerseListPageTests(ParallelPageTests):
 
 
 class ParallelIntroductionNavigationTests(unittest.TestCase):
-    def test_all_chapter_previous_arrows_retrace_next_arrows(self):
+    def test_chapter_entry_skips_intro_but_previous_arrows_keep_it_accessible(self):
         fixture = ParallelPageTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -567,7 +569,11 @@ class ParallelIntroductionNavigationTests(unittest.TestCase):
                             r'<a[^>]*href="([^"]+)"[^>]*>([←→↨])</a>', paragraph)}
                     for previous, current in zip(filenames,filenames[1:]):
                         self.assertTrue((folder/previous).is_file())
-                        self.assertEqual(arrows(previous)['→'], f'{current}#{anchor}')
+                        # Enter a chapter at its first verse; its intro remains
+                        # a backwards step from verse 1, rather than a required stop.
+                        nextPage=current.replace('V0.htm','V1.htm')
+                        self.assertTrue((folder/nextPage).is_file())
+                        self.assertEqual(arrows(previous)['→'], f'{nextPage}#{anchor}')
                         backward = arrows(current)
                         self.assertEqual(backward.get('←',backward.get('↨')), f'{previous}#{anchor}')
                     self.assertNotIn('←', arrows('Intro.htm'))
