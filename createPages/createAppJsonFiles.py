@@ -25,6 +25,7 @@ main calls fullDemo()
 CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-11 Changed nomina sacra format from bold to underline
+    2026-11-03 Correct Strong's in display text while retaining the source-data field names.
 """
 from pathlib import Path
 import os
@@ -153,10 +154,10 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
 # <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 # <p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
 # <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-# <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+# <p class="note"><a href="../HebStrng/">Hebrew Strong's numbers index</a></p>
 # <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 # <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-# <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+# <p class="note"><a href="../GrkStrng/">Greek Strong's numbers index</a></p>
 # <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 # <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -179,10 +180,10 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
 # <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 # <p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
 # <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-# <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+# <p class="note"><a href="../HebStrng/">Hebrew Strong's numbers index</a></p>
 # <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 # <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-# <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+# <p class="note"><a href="../GrkStrng/">Greek Strong's numbers index</a></p>
 # <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 # <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -284,11 +285,11 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
             else:
                 logging.critical( f"create_Hebrew_word_json {BBB} {C}:{V}w{W} {gloss=} {possibleStrongsNumber=} from {strongs=}" )
         if possibleStrongsNumber.isdigit():
-            # strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
-            strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="{'../'*level}ref/HebStrng/H{possibleStrongsNumber}.htm#Top">{originalStrongsBit}</a>'''
+            # strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strong's dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
+            strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strong\'s dictionary" href="{'../'*level}ref/HebStrng/H{possibleStrongsNumber}.htm#Top">{originalStrongsBit}</a>'''
         elif possibleStrongsNumber: # things like c, m, or b
             strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}{originalStrongsBit}'''
-    StrongsBit = f' Strongs={strongsLinks}' if strongsLinks else ''
+    StrongsBit = f' Strong\'s={strongsLinks}' if strongsLinks else ''
 
     # Add pointers to people, locations, etc.
     semanticExtras = ''
@@ -644,7 +645,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
     wordLinksForIndex:list[str] = [] # Used below to make an index page
-    state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
+    state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strong's pages
     for gg, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if gg % 40_000 == 0:
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
@@ -700,7 +701,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 
         strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
         if strongs:
-            state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strongs pages
+            state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strong's pages
         jsonDict['extended_Strongs'] = extendedStrongs
         jsonDict['Strongs_number'] = strongs
 
@@ -790,7 +791,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     """
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strong's pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -808,25 +809,25 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             if strongsNumber not in state.OETRefData['usedHebStrongsSet']:
                 # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedHebStrongsSet'])[:20]}")
                 continue
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strongs {strongsString} page…" )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strong's {strongsString} page…" )
         output_filename = f'{strongsLetterNumberStr}.htm'
         filepath = outputFolderPath.joinpath( output_filename )
 
         top = makeTop( level, None, 'StrongsPage', None, state ) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
+                .replace( '__TITLE__', f"Strong's {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                .replace( '__KEYWORDS__', 'Strong\'s, number, {strongsString}, Hebrew' )
 
         prevLink = f'<b><a title="Previous entry" href="H{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
         nextLink = f' <b><a title="Next entry" href="H{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
-        middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strongs entry
+        middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strong's entry
         bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
         if bdDrBrEntry:
             middle = f'''{middle}
 <h2>Brown, Driver, Briggs lexicon entry</h2>
 {bdDrBrEntry}'''
             
-        # Liven internal Strongs references
+        # Liven internal Strong's references
         def replFunction( strongsMatch:re.Match ) -> str:
             # print( f"     Matched '{strongsMatch.group(0)}' Regex from {strongsLetterNumberString}" )
             strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
@@ -863,15 +864,15 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strong\'s numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strong\'s numbers index</a></p>
 <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
-<h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
+<h1 id="Top">Strong\'s {strongsLetterNumberStr}</h1>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strong\'s index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
@@ -883,26 +884,26 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
         numPagesMade += 1
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strong's pages." )
 
-#     # Create index page for this Strongs folder
+#     # Create index page for this Strong's folder
 #     filename = 'index.htm'
 #     filepath = outputFolderPath.joinpath( filename )
 #     top = makeTop( level, None, 'StrongsIndex', None, state ) \
-#             .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-#             .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
+#             .replace( '__TITLE__', f"Strong's Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+#             .replace( '__KEYWORDS__', 'Bible, Strong's, Hebrew, index' )
 #     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 # <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 # <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 # <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-# <p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span></p>
+# <p class="note"><span class="selectedBook">Hebrew Strong's numbers index</span></p>
 # <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 # <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-# <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+# <p class="note"><a href="../GrkStrng/">Greek Strong's numbers index</a></p>
 # <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 # <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 # <p class="note"><a href="../Stats/">Bible statistics index</a></p>
-# <h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
+# <h1 id="Top">Strong's Hebrew Index ({len(indexList):,})</h1>
 # <ul>{'\n'.join(indexList)}</ul>
 # {makeBottom( level, None, 'StrongsIndex' )}'''
 #     assert checkHtml( 'StrongsIndex', indexHtml )
@@ -919,7 +920,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     """
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strong's pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -937,20 +938,20 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             if strongsNumber not in state.OETRefData['usedGrkStrongs']:
                 # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedGrkStrongs'])[:20]}")
                 continue
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strongs {strongsString} page…" )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strong's {strongsString} page…" )
         output_filename = f'{strongsLetterNumberStr}.htm'
         filepath = outputFolderPath.joinpath( output_filename )
 
         top = makeTop( level, None, 'StrongsPage', None, state ) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
+                .replace( '__TITLE__', f"Strong's {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                .replace( '__KEYWORDS__', 'Strong\'s, number, {strongsString}, Greek' )
 
         prevLink = f'<b><a title="Previous entry" href="G{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
         nextLink = f' <b><a title="Next entry" href="G{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
         middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr )
 
-        # Liven internal Strongs references
+        # Liven internal Strong's references
         def replFunction( strongsMatch:re.Match ) -> str:
             # print( f"     Matched '{strongsMatch.group(0)}' Regex from {strongsLetterNumberString}" )
             strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
@@ -989,15 +990,15 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strong\'s numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strong\'s numbers index</a></p>
 <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
-<h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
+<h1 id="Top">Strong\'s {strongsLetterNumberStr}</h1>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strong\'s index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
@@ -1009,26 +1010,26 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
         numPagesMade += 1
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strong's pages." )
 
-#     # Create index page for this Strongs folder
+#     # Create index page for this Strong's folder
 #     filename = 'index.htm'
 #     filepath = outputFolderPath.joinpath( filename )
 #     top = makeTop( level, None, 'StrongsIndex', None, state ) \
-#             .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-#             .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
+#             .replace( '__TITLE__', f"Strong's Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+#             .replace( '__KEYWORDS__', 'Bible, Strong's, Greek, index' )
 #     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 # <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 # <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 # <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-# <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+# <p class="note"><a href="../HebStrng/">Hebrew Strong's numbers index</a></p>
 # <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 # <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-# <p class="note"><span class="selectedBook">Greek Strongs numbers index</span></p>
+# <p class="note"><span class="selectedBook">Greek Strong's numbers index</span></p>
 # <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 # <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 # <p class="note"><a href="../Stats/">Bible statistics index</a></p>
-# <h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
+# <h1 id="Top">Strong's Greek Index ({len(indexList):,})</h1>
 # <ul>{'\n'.join(indexList)}</ul>
 # {makeBottom( level, None, 'StrongsIndex' )}'''
 #     assert checkHtml( 'StrongsIndex', indexHtml )

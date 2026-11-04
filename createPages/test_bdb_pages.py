@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run
 # SPDX-License-Identifier: CC0-1.0
-"""BDB citation and Hebrew Strongs page regressions.
+"""BDB citation and Hebrew Strong's page regressions.
 
 CHANGELOG:
     2026-10-30 Verify original-numbered citations and the complete H3 page integration.
@@ -69,7 +69,7 @@ class BDBPageTests(unittest.TestCase):
         hebrew.BrownDriverBriggsXMLEntries = {'heb': {'a.ab.ab': source}, 'arc': {}}
         lexicon = Mock()
         lexicon.getStrongsEntryField.return_value = ('אָב','','','ʼāⱱ',None)
-        lexicon.getStrongsEntryHTML.return_value = '<p>Strongs entry</p>'
+        lexicon.getStrongsEntryHTML.return_value = '<p>Strong\'s entry</p>'
         lexicon.getBrDrBrEntryHTML.return_value = hebrew.getBrDrBrEntryHTML('a.ab.ab', getFull=True)
         state = State()
         state.TEST_MODE_FLAG = False

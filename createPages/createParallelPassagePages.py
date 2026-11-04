@@ -29,6 +29,7 @@ CHANGELOG:
     2026-10-30 Add expandable mapped LV counterparts and repair section context links.
     2026-11-01 Retain the current passage when switching version or reading mode.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
+    2026-11-04 Keep matching LV passages before the RV footnote and cross-reference separators.
 """
 from pathlib import Path
 import os
@@ -54,7 +55,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-10-24' # by RJH
+LAST_MODIFIED_DATE = '2026-11-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.44'
@@ -475,6 +476,15 @@ def relatedLVPassage(level, reference, entries, state, chapterCache, column):
     return f'<details class="relatedLV"><summary>Show matching OET Literal Version passage</summary>{partialNote}{context}<div class="chunkLV">{html}</div></details>'
 
 
+def addRelatedLVPassage(rvHtml, lvHtml):
+    """Place the optional LV comparison after RV text, ahead of its notes."""
+    if not lvHtml:return rvHtml
+    separator = re.search(r'<hr class="line-before-(?:footnotes|xrefs)">',rvHtml)
+    # Search only the RV markup: the LV disclosure retains its own notes inside.
+    insertAt = separator.start() if separator else len(rvHtml)
+    return f'{rvHtml[:insertAt]}{lvHtml}{rvHtml[insertAt:]}'
+
+
 def relatedRVHtml(html, level, BBB, state, prefix, *, primary=False):
     """Isolate notes without changing destinations in other related pages."""
     html = _namespaceIds(html,prefix)
@@ -808,8 +818,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             replacementLetter = chr( ord('a') + hh ) # abcde
             assert replacementLetter in 'abcde'
             htmlChunk = relatedRVHtml(htmlChunk,BBBLevel,sectionBooks[hh],state,replacementLetter,primary=hh==0)
+            htmlChunk = addRelatedLVPassage(htmlChunk,sectionLVList[hh])
             assert checkHtml( f'crossReferencedSection-{hh}', htmlChunk, segmentOnly=True )
-            crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="relatedPassageColumn"><h3>{preformedString}</h3><div class="chunkRV">{htmlChunk}{sectionLVList[hh]}</div><!--chunkRV--></div>'''
+            crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="relatedPassageColumn"><h3>{preformedString}</h3><div class="chunkRV">{htmlChunk}</div><!--chunkRV--></div>'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
         assert '\n\n' not in crossReferencedSectionHtml
         assert 'None.htm' not in crossReferencedSectionHtml, crossReferencedSectionHtml
@@ -883,7 +894,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                             textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageX={lastXrefBBB}_{lastXrefC}', textHtml )
                     thisXrefHtml = relatedRVHtml(f'''<p><b>{collectedVerseCrossReference}</b>:</p>{textHtml if textHtml else 'Sorry, unable to find data for this passage.'}''',BBBLevel,lastXrefBBB,state,replacementLetter)
                     if verseEntryList:
-                        thisXrefHtml += relatedLVPassage(BBBLevel,(lastXrefBBB,lastXrefC),verseEntryList,state,lvChapterCache,f'x{ccc}')
+                        thisXrefHtml = addRelatedLVPassage(thisXrefHtml,relatedLVPassage(BBBLevel,(lastXrefBBB,lastXrefC),verseEntryList,state,lvChapterCache,f'x{ccc}'))
                     assert '.htm#aC' not in thisXrefHtml and '.htm#bC' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#aV' not in thisXrefHtml and '.htm#bV' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#gC' not in thisXrefHtml and '.htm#hC' not in thisXrefHtml, thisXrefHtml

@@ -1501,7 +1501,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
             try:
                 wordLink = f'../../ref/GrkWrd/{getGreekWordpageFilename(grkWordNumbers[_safetyCount1], state )}#Top' # We'd prefer to link to our own word pages
             except IndexError:
-                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
+                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strong's number if we don't know the word number
             if attribDict['role'] == 'V':
                 caseClassName = 'grkVrb'
             elif attribDict['strong'] == '37560': # Greek 'οὐ' (ou) 'not'
@@ -1773,7 +1773,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             try:
                 wordLink = f'../../ref/HebWrd/{getHebrewWordpageFilename(hebWordNumbers[_safetyCount1], state )}#Top' # We'd prefer to link to our own word pages
             except IndexError:
-                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
+                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strong's number if we don't know the word number
             # NOTE: We have almost identical code in liven_berean_text in the Rust openbibledata_rust module (was livenOETWordLinks in OETHandlers.py)
             caseClassName = None
             try:

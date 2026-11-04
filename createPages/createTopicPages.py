@@ -37,6 +37,7 @@ CHANGELOG:
     2026-10-31 Add approved kingdom readings and verified person/place navigation.
     2026-10-31 Connect kingdom browsing to the available dictionary indexes.
     2026-11-02 Group indented kingdom reading previews before their section links.
+    2026-11-03 Correct Strong's in reference-index labels.
 """
 from pathlib import Path
 import os
@@ -726,10 +727,10 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><span class="selectedBook">Promised land kingdoms index</span></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>

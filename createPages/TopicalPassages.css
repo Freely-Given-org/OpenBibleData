@@ -6,7 +6,6 @@ div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
-img.OETWideLogo { width:calc(100% - 10px); margin:0 auto; display:block; max-height:100px; object-fit:contain; } /* Leaves 5px on each side */
 
 div.RVLVcontainer { display:grid; column-gap:0.8em; grid-template-columns:0.50fr 0.50fr; }
 div.chunkRV {}

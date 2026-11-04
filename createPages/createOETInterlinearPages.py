@@ -30,7 +30,7 @@ CHANGELOG:
     2023-10-25 Make use of word table index
     2024-01-07 Add chapter bar at top
     2024-04-08 Handle OT as well
-    2024-07-19 Fixed OT Strongs links
+    2024-07-19 Fixed OT Strong's links
     2025-01-17 Display untranslated words better in the NT
     2025-02-02 Added vLinksPar and added ID to clinksPar (at top of page only), make OET/OET-RV go to section instead of chapter
     2025-02-03 Chapter selector now goes to verse selector (#vsLst) not #Top
@@ -60,6 +60,7 @@ CHANGELOG:
     2026-11-01 Use em spaces between verse choices, matching the chapter choices.
     2026-11-03 Omit the current chapter from interlinear chapter choices.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
+    2026-11-03 Correct the Strong's column heading.
 
 TODO:
     Add colour keys for LV and RV words
@@ -522,7 +523,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             wordpageFilenames.append( getGreekWordpageFilename(wordNumber, state ) if NT else getHebrewWordpageFilename(wordNumber, state) )
             referenceCellsByWord[wordNumber] = interlinearReferenceCells(level,'Grk' if NT else 'Heb',wordRows[-1],state)
         # The Rust port also emits the title row, tags (Person=/Location=),
-        #   gloss selection, Strongs links, and word-number links
+        #   gloss selection, Strong's links, and word-number links
         ivHtml = f'{ivHtml}{buildInterlinearWordRows( level, NT, wordRows, wordNumbers, wordpageFilenames, lvEnglishWordDict, rvEnglishWordDict, [referenceCellsByWord[n] for n in wordNumbers] )}'
     # Now append the OET-RV
 #  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
@@ -541,7 +542,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         reverseList = ['''<li><ol class="titles">
   <li lang="en_TRANS"><b>OET-LV words</b></li>
   <li lang="en_TRANS"><b>OET-RV words</b></li>
-  <li lang="en_STRONGS">Strongs</li>
+  <li lang="en_STRONGS">Strong\'s</li>
   <li lang="el">Greek word</li>
   <li lang="el_LEMMA">Greek lemma</li>
   <li lang="en_MORPH">Role/Morphology</li>
@@ -556,7 +557,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         reverseList = ['''<li><ol class="titles">
   <li lang="en_TRANS"><b>OET-LV words</b></li>
   <li lang="en_TRANS"><b>OET-RV words</b></li>
-  <li lang="en_STRONGS">Strongs</li>
+  <li lang="en_STRONGS">Strong\'s</li>
   <li lang="he">Hebrew word</li>
   <li lang="he_LEMMA">Hebrew lemma</li>
   <li lang="en_MORPH">Role/Morphology</li>

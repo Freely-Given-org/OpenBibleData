@@ -1,8 +1,9 @@
 //! Rust port of `createPages/OETHandlers.py` (deleted 2026-08-25).
 //!
 //! CHANGELOG:
-//!     2026-10-29 Link DC glosses and unresolved Greek words to their own lexical data.
-//!     2026-10-31 Colour DC draft morphology only when every analysis agrees.
+//!     2026-10-29 Link DC glosses and unresolved Greek words to their own lexical data
+//!     2026-10-31 Colour DC draft morphology only when every analysis agrees
+//!     2026-11-03 Add more OET bookname spellings to `get_bbb_from_oet_book_name_core`
 //!
 //! The PyO3 wrappers that expose these functions to Python live in `lib.rs`
 //! (they pull rows out of `state.OETRefData` and build/inspect BOS
@@ -157,25 +158,57 @@ pub fn liven_dc_word_links(
 /// `insert_char` must already have `None` mapped to `""` (as the
 /// `bos_books_codes_py.tidy_bbb` binding does).
 pub fn apply_oet_tidy_renames(new_bbb: &str, insert_char: &str, add_notes: bool) -> String {
+    let yosh_title = "Yehoshua (which is closer to the Hebrew יְהוֹשֻׁעַ/Yəhōshūˊa)";
+    let jdg_title = "Yehoshua (which is closer to the Hebrew יְהוֹשֻׁעַ/Yəhōshūˊa)";
     let yonah_title = "Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)";
+    let yir_title = "Yir (which is closer to the Hebrew יִרְמְיָ֖הוּ/Yirməyāhu)";
+    let yoel_title = "Yoel (which is closer to the Hebrew יוֹאֵ֖ל/Yōʼēl)";
     let yohan_title = "Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)";
     let yudas_title = "Yudas (which is closer to the Greek Ἰούδας/Youdas)";
+    let lje_title = "L Yir (which is closer to the Hebrew יִרְמְיָ֖הוּ/Yirməyāhu)";
 
     // OT
+    if new_bbb == "JOSH" {
+        return if add_notes { format!("<span title=\"{yosh_title}\">YEHO</span> (JOS)")
+            } else { "YEHO".to_string() };
+    }
+    if new_bbb == "Josh" {
+        return if add_notes { format!("<span title=\"{yosh_title}\">Yeho</span> (Jos)")
+            } else { "Yeho".to_string() };
+    }
+    if new_bbb == "JDG" {
+        return if add_notes { format!("<span title=\"{jdg_title}\">HERO</span> (JDG)")
+            } else { "HERO".to_string() };
+    }
+    if new_bbb == "Jdg" {
+        return if add_notes { format!("<span title=\"{jdg_title}\">Hero</span> (Jdg)")
+            } else { "Hero".to_string() };
+    }
     if new_bbb == "JNA" {
-        return if add_notes {
-            format!("<span title=\"{yonah_title}\">YNA</span> (JNA)")
-        } else {
-            "YNA".to_string()
-        };
+        return if add_notes { format!("<span title=\"{yonah_title}\">YNA</span> (JNA)")
+            } else { "YNA".to_string() };
     }
     if new_bbb == "Jna" {
-        return if add_notes {
-            format!("<span title=\"{yonah_title}\">Yna</span> (Jna)")
-        } else {
-            "Yna".to_string()
-        };
+        return if add_notes { format!("<span title=\"{yonah_title}\">Yna</span> (Jna)")
+            } else { "Yna".to_string() };
     }
+    if new_bbb == "JER" {
+        return if add_notes { format!("<span title=\"{yir_title}\">YIR</span> (JER)")
+            } else { "YIR".to_string() };
+    }
+    if new_bbb == "Jer" {
+        return if add_notes { format!("<span title=\"{yir_title}\">Yir</span> (Jer)")
+            } else { "Yir".to_string() };
+    }
+    if new_bbb == "JOEL" {
+        return if add_notes { format!("<span title=\"{yoel_title}\">YOEL</span> (JOEL)")
+            } else { "YOEL".to_string() };
+    }
+    if new_bbb == "Joel" {
+        return if add_notes { format!("<span title=\"{yoel_title}\">Yoel</span> (Joel)")
+            } else { "Yoel".to_string() };
+    }
+
     // NT
     if new_bbb == "JHN" || new_bbb == "JOHN" {
         return if add_notes {
@@ -254,6 +287,17 @@ pub fn apply_oet_tidy_renames(new_bbb: &str, insert_char: &str, add_notes: bool)
             "Yud".to_string()
         };
     }
+
+    // DC and other
+    if new_bbb == "L JER" {
+        return if add_notes { format!("<span title=\"{lje_title}\">L YIR</span> (L JER)")
+            } else { "L YIR".to_string() };
+    }
+    if new_bbb == "L Jer" {
+        return if add_notes { format!("<span title=\"{lje_title}\">L Yir</span> (L Jer)")
+            } else { "L Yir".to_string() };
+    }
+
     new_bbb.to_string()
 }
 

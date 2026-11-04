@@ -24,6 +24,7 @@
 //!  2026-09-09: Initial port of the helpers listed above.
 //!  2026-10-30: Use supplied native Hebrew filenames for interlinear word links.
 //!  2026-10-30: Render shared local lexical and grammar cells prepared by Python.
+//!  2026-11-03: Correct the Strong's column headings in both interlinear tables.
 
 use std::collections::HashMap;
 
@@ -326,7 +327,7 @@ pub fn build_interlinear_word_rows(
 
     if nt {
         parts.push(
-            "<li><ol class=\"titles\">\n  <li lang=\"el\">Greek word</li>\n  <li lang=\"el_LEMMA\">Greek lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strongs</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">OET Gloss</li>\n  <li lang=\"en_GLOSS\">VLT Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_PERCENT\">Confidence</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
+            "<li><ol class=\"titles\">\n  <li lang=\"el\">Greek word</li>\n  <li lang=\"el_LEMMA\">Greek lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strong's</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">OET Gloss</li>\n  <li lang=\"en_GLOSS\">VLT Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_PERCENT\">Confidence</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
                 .to_string(),
         );
         for (index, (row, (&word_number, wpf))) in rows.iter().zip(word_numbers.iter().zip(wordpage_filenames)).enumerate() {
@@ -349,7 +350,7 @@ pub fn build_interlinear_word_rows(
             let caps = opt_or_dash(row.get(6).map(String::as_str).unwrap_or_default());
             let row8 = row.get(8).map(String::as_str).unwrap_or_default();
             // Python: `row[8][:-1]` (drops a trailing G/S suffix from the
-            // Strongs #, leaving the number for the BibleHub link).
+            // Strong's #, leaving the number for the BibleHub link).
             let row8_link = if row8.is_empty() { "" } else { &row8[..row8.len() - 1] };
             let lemma = cells.and_then(|c| c.first()).map(String::as_str)
                 .unwrap_or_else(|| row.get(2).map(String::as_str).unwrap_or_default());
@@ -380,7 +381,7 @@ pub fn build_interlinear_word_rows(
         }
     } else {
         parts.push(
-            "<li><ol class=\"titles\">\n  <li lang=\"he\">Hebrew word</li>\n  <li lang=\"he_LEMMA\">Hebrew lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strongs</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
+            "<li><ol class=\"titles\">\n  <li lang=\"he\">Hebrew word</li>\n  <li lang=\"he_LEMMA\">Hebrew lemma</li>\n  <li lang=\"en_TRANS\"><b>OET-LV words</b></li>\n  <li lang=\"en_TRANS\"><b>OET-RV words</b></li>\n  <li lang=\"en_STRONGS\">Strong's</li>\n  <li lang=\"en_MORPH\">Role/Morphology</li>\n  <li lang=\"en_GLOSS\">Gloss</li>\n  <li lang=\"en_CAPS\">CAPS codes</li>\n  <li lang=\"en_TAGS\">OET tags</li>\n  <li lang=\"en_WORDNUM\">OET word #</li>\n</ol><!--titles--></li>"
                 .to_string(),
         );
         for (index, (row, (&word_number, wpf))) in rows.iter().zip(word_numbers.iter().zip(wordpage_filenames)).enumerate() {

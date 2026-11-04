@@ -57,7 +57,7 @@ CHANGELOG:
     2025-02-06 Put "Aramaic" on Hebrew word pages (instead of just 'A') and improve rowTypeField for others as well
     2025-02-16 Handle changed characters for glossHelper (was /word/ now ˓word˒)
     2025-03-11 Put more glosses on Hebrew word pages
-    2025-03-15 Start making our own Strongs pages
+    2025-03-15 Start making our own Strong's pages
     2025-06-18 Fix OT person/place links (from tags) which weren't being displayed on the Hebrew word pages
     2025-10-29 Include kingdom page index in reference index
     2026-02-10 Updated to SR/VLT v3
@@ -65,7 +65,7 @@ CHANGELOG:
     2026-03-01 Added IMPORTANT people index
     2026-03-17 Fixed some bugs in prev/next for Hebrew lemma links and others
     2026-03-21 Added OET LV and RV verses to lexicon word and lemma pages
-    2026-03-24 Added OET LV and RV verses to Hebrew and Greek Strongs pages
+    2026-03-24 Added OET LV and RV verses to Hebrew and Greek Strong's pages
     2026-04-13 Added frequency counts for glosses in word pages and NT lemma pages
     2026-06-24 Don't exclude the current verse from Hebrew & Greek word & lemma page example & verse lines
     2026-08-10 Added UHG and UGG
@@ -73,7 +73,7 @@ CHANGELOG:
     2026-08-22 Revived Hebrew word page multiprocessing using an explicit 'fork' context
                 (Python 3.14 changed the default start method to forkserver, which can't inherit
                 our huge module-level state; forked children share it copy-on-write instead).
-                Workers now return used Strongs numbers / lemmas so the parent can merge them
+                Workers now return used Strong's numbers / lemmas so the parent can merge them
                 into state (child mutations would be lost); broken small_state hack and the
                 stale-variable results loop removed.
     2026-08-23 Extended the fork-context multiprocessing to Hebrew lemma pages (the slowest
@@ -81,18 +81,18 @@ CHANGELOG:
                 create_Hebrew_lemma_page() (with the makeHebrewLemmaHTML closure hoisted to a
                 module-level _make_hebrew_lemma_HTML_segment()), and previous/next lemma links
                 are now precomputed once by the parent so forked page builders are independent.
-                Also extended it to the Greek word pages (workers return used Strongs numbers /
+                Also extended it to the Greek word pages (workers return used Strong's numbers /
                 lemmas for the parent to merge, like the Hebrew word pages) and the Greek lemma
                 pages (tidyGlossOfGreekWord / tidy_Greek_lemma_gloss / getFirstGreekWordNumber /
                 makeGreekLemmaHTML hoisted to module level; prev/next precomputed by the parent,
                 preserving the original quirk of never linking back to the very first lemma).
-    2026-08-23 Extended the fork-context multiprocessing to the Hebrew and Greek Strongs pages
+    2026-08-23 Extended the fork-context multiprocessing to the Hebrew and Greek Strong's pages
                 too: the per-number loop bodies were extracted into create_Hebrew_Strongs_page()
                 and create_Greek_Strongs_page(), the identical nested replFunction closures were
                 hoisted into one module-level _strongs_ref_repl(), and the bibleLexicon is passed
                 to forked children via a module-level _strongsPageBibleLexicon global. Each page
                 builder now also returns its index-page entry (if any) so the parent can still
-                assemble the Strongs index pages in numeric order.
+                assemble the Strong's index pages in numeric order.
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-27 Added more links to UGG
                 Consolidated OSHB_HEBREW_VERB_STEM_DICT/HEBREW_VERB_TYPE_TABLE (fixed
@@ -123,7 +123,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 reference_pages module) with byte-identical behaviour: formatNTSpansGlossWords,
                 convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, tidy_Hebrew_lemma_gloss,
                 tidyGlossOfGreekWord, tidy_Greek_lemma_gloss, and _strongs_ref_repl (now the
-                livenStrongsRefs call at the two Strongs-page livening sites).  The OSHB_* and
+                livenStrongsRefs call at the two Strong's-page livening sites).  The OSHB_* and
                 HEBREW_*_TYPE_TABLE constants are still defined here because createParallelVersePages
                 imports six of the OSHB_* dicts, but the Rust module embeds its own copies.
     2026-09-11  Changed formatting of nomina sacra span
@@ -155,6 +155,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-02 Move Greek word dictionary links below the main entry, before other uses.
     2026-11-02 Enlarge important-person names and prefer sections for reference-page passage links.
     2026-11-02 Add letter jumps above the important people alphabetical index.
+    2026-11-03 Place Strong's related resources after the main entry and correct the possessive spelling.
   """
 from pathlib import Path
 import os
@@ -202,7 +203,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-11-02' # by RJH
+LAST_MODIFIED_DATE = '2026-11-03' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.8'
@@ -1162,10 +1163,10 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <h2>{state.SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/index.htm#Top">Hebrew words index</a> <a href="HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="GrkWrd/index.htm#Top">Greek words index</a> <a href="GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="GrkLem/index.htm#Top">Greek lemmas index</a> <a href="GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/index.htm#Top">Bible statistics</a></p>
@@ -1875,7 +1876,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Now make a page for each Hebrew word (including the note pages)
     numWordPagesMade = 0
     wordLinksForIndex:list[dict] = [] # Successful word pages, with searchable context
-    state.OETRefData['usedHebLemmasSet'], state.OETRefData['usedHebStrongsSet'] = set(), set() # Used in next functions to make lemma and Strongs pages
+    state.OETRefData['usedHebLemmasSet'], state.OETRefData['usedHebStrongsSet'] = set(), set() # Used in next functions to make lemma and Strong's pages
     BibleOrgSysGlobals.maxProcesses = int( 3 * BibleOrgSysGlobals.maxProcesses / 4 ) # Reduce this now because we're getting memory issues here
     if BibleOrgSysGlobals.maxProcesses > 1 \
     and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different processes
@@ -1910,7 +1911,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
         for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename), parametersForWord in zip( results, taskMetaList, parameters ):
-            state.OETRefData['usedHebStrongsSet'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
+            state.OETRefData['usedHebStrongsSet'].update( usedStrongsNumbers ) # Used in next function to make Strong's pages
             state.OETRefData['usedHebLemmasSet'].update( usedLemmas ) # Used in next function to make lemma pages
             if result:
                 if rowType!='seg' and 'note' not in rowType:
@@ -1951,10 +1952,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -1977,10 +1978,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -2003,7 +2004,7 @@ GLOSS_TYPE_STRING_DICT = {'cWG':'contextual word gloss',
 def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:str, outputFolderPath:Path, word_output_filename:Path, state:State,
                             usedStrongsAccumulator:list[int]|None=None, usedLemmasAccumulator:list[str]|None=None ) -> bool:
     """
-    If the two accumulators are supplied (multiprocessing mode), used Strongs numbers / Hebrew lemmas
+    If the two accumulators are supplied (multiprocessing mode), used Strong's numbers / Hebrew lemmas
         are appended to them (and merged into state by the parent process)
         instead of being added directly to the state sets (which child changes would be lost).
     """
@@ -2081,15 +2082,15 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
             else:
                 logging.critical( f"create_Hebrew_word_page {BBB} {C}:{V}w{W} {gloss=} {possibleStrongsNumber=} from {strongs=}" )
         if possibleStrongsNumber.isdigit():
-            # strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
-            strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="{'../'*level}ref/HebStrng/H{possibleStrongsNumber}.htm#Top">{originalStrongsBit}</a>'''
+            # strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strong's dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
+            strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strong\'s dictionary" href="{'../'*level}ref/HebStrng/H{possibleStrongsNumber}.htm#Top">{originalStrongsBit}</a>'''
             if usedStrongsAccumulator is not None:
                 usedStrongsAccumulator.append( int(possibleStrongsNumber) ) # Parent merges into state.OETRefData['usedHebStrongsSet'] (multiprocessing mode)
             else:
-                state.OETRefData['usedHebStrongsSet'].add( int(possibleStrongsNumber) ) # Used in next function to make Strongs pages
+                state.OETRefData['usedHebStrongsSet'].add( int(possibleStrongsNumber) ) # Used in next function to make Strong's pages
         elif possibleStrongsNumber: # things like c, m, or b
             strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}{originalStrongsBit}'''
-    StrongsBit = f' Strongs={strongsLinks}' if strongsLinks else ''
+    StrongsBit = f' Strong\'s={strongsLinks}' if strongsLinks else ''
 
     # Add pointers to people, locations, etc.
     semanticExtras = ''
@@ -2886,10 +2887,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><span class="selectedBook">Hebrew lemmas index</span> <a href="transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -2914,10 +2915,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="index.htm">Hebrew lemmas index</a> <span class="selectedBook">Transliterated Hebrew lemmas index</span></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -3118,7 +3119,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
     wordLinksForIndex:list[dict] = [] # Successful word pages, with searchable context
-    state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
+    state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strong's pages
     grkWordTable = state.OETRefData['word_tables'][GreekWordFileName]
     testFilterFlag = state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG
 
@@ -3177,7 +3178,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
         for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord),parametersForWord) in enumerate( zip(results,taskMetaList,parameters), start=1 ):
             assert result, f"{n} {output_filename} {greekWord}"
-            state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
+            state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strong's pages
             state.OETRefData['usedGrkLemmas'].update( usedLemmas ) # Used in next function to make lemma pages
             wordLinksForIndex.append(wordIndexRecord('Grk',output_filename,greekWord,parametersForWord[2].split('\t')))
             numWordPagesMade += 1
@@ -3207,10 +3208,10 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -3234,10 +3235,10 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -3258,7 +3259,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         """
         Makes the one Greek word page (extracted from create_Greek_word_pages so that it can also be
             called by forked worker processes -- they inherit our module-level state copy-on-write).
-        If the two accumulators are supplied (multiprocessing mode), used Strongs numbers / Greek lemmas
+        If the two accumulators are supplied (multiprocessing mode), used Strong's numbers / Greek lemmas
             are appended to them (and merged into state by the parent process)
             instead of being added directly to the state sets (which child changes would be lost).
         Assumes any TEST_MODE filtering has already been done by the caller.
@@ -3302,7 +3303,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
             if usedStrongsAccumulator is not None:
                 usedStrongsAccumulator.append( getPositiveLeadingInt(strongs) ) # Parent merges into state.OETRefData['usedGrkStrongs'] (multiprocessing mode)
             else:
-                state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strongs pages
+                state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strong's pages
 
         roleField = ''
         if roleLetter:
@@ -3409,7 +3410,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         oetLink = f''' <a title="Read passage in OET" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
-#  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
+#  Strong's=<a title="Goes to Strong's dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
         focusedVerses = ''
         if probability and (not state.TEST_MODE_FLAG or BBB in state.preloadedBibles['OET-RV']):
             focusedVerses = '\n'.join(get_focused_OET_verse_HTML(
@@ -3419,7 +3420,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
- Strongs={f'<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#Top">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
+ Strong\'s={f'<a title="Goes to Strong\'s dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#Top">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
 <br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>{f'{NEWLINE}{focusedVerses}' if focusedVerses else ''}
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -3717,10 +3718,10 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -3745,10 +3746,10 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="index.htm">Greek lemmas index</a> <span class="selectedBook">Transliterated Greek lemmas index</span></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -3993,25 +3994,26 @@ def strongOccurrenceExamples(level, code, state):
 def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:int, indexDistance:int,
                                 outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> tuple[bool,str|None]:
     """
-    Create one individual Hebrew Strongs number page.
+    Create one individual Hebrew Strong's number page.
 
     Returns (result,indexEntryHtml), with an index entry for every populated number.
     """
     strongsStr = str( strongsNumber )
     strongsLetterNumberStr = f'H{strongsStr}'
-    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strongs {strongsString} page…" )
+    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strong's {strongsString} page…" )
     output_filename = f'{strongsLetterNumberStr}.htm'
     filepath = outputFolderPath.joinpath( output_filename )
 
     top = makeTop( level, None, 'StrongsPage', None, state ) \
-            .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
+            .replace( '__TITLE__', f"Strong's {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Strong\'s, number, {strongsString}, Hebrew' )
 
     prevLink = f'<b><a title="Previous entry" href="H{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
     nextLink = f' <b><a title="Next entry" href="H{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
-    middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strongs entry
-    assert checkHtml( f'Strongs-{strongsLetterNumberStr}', middle, segmentOnly=True )
+    middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strong's entry
+    assert checkHtml( f'Strong\'s-{strongsLetterNumberStr}', middle, segmentOnly=True )
+    middle += lexicalResourceLinks(level,'Heb',state,strong=strongsLetterNumberStr)
     bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
     if bdDrBrEntry:
         bdDrBrEntry = livenBDBReferences( bdDrBrEntry, level, strongsLetterNumberStr, state )
@@ -4019,7 +4021,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
         middle = f'''{middle}
 <h2>Brown, Driver, Briggs lexicon entry</h2>
 {bdDrBrEntry}'''
-    # Liven internal Strongs references
+    # Liven internal Strong's references
     middle = livenStrongsRefs( middle )
 
     indexEntryHtml = strongIndexEntry(strongsLetterNumberStr,bibleLexicon)
@@ -4030,16 +4032,16 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
-<h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
-{lexicalResourceLinks(level,'Heb',state,strong=strongsLetterNumberStr)}<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<h1 id="Top">Strong\'s {strongsLetterNumberStr}</h1>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strong\'s index" href="index.htm">⌂</a>{nextLink}</p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
@@ -4069,7 +4071,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     """
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strong's pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -4084,12 +4086,12 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     global _strongsPageBibleLexicon
     _strongsPageBibleLexicon = bibleLexicon # Make it available to our forked children (see wrapper above)
     if BibleOrgSysGlobals.maxProcesses > 1 \
-    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strongs pages with different processes
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strong's pages with different processes
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Hebrew Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Hebrew Strong's pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
@@ -4119,26 +4121,26 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strong's pages." )
 
-    # Create index page for this Strongs folder
+    # Create index page for this Strong's folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'StrongsIndex', None, state ) \
-            .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
+            .replace( '__TITLE__', f"Strong's Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Strong\'s, Hebrew, index' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><span class="selectedBook">Hebrew Strong\'s numbers index</span> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
-<h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
+<h1 id="Top">Strong\'s Hebrew Index ({len(indexList):,})</h1>
 {referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
@@ -4155,25 +4157,25 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:int, indexDistance:int,
                                 outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> tuple[bool,str|None]:
     """
-    Create one individual Greek Strongs number page.
+    Create one individual Greek Strong's number page.
 
     Returns (result,indexEntryHtml), with an index entry for every populated number.
     """
     strongsStr = str( strongsNumber )
     strongsLetterNumberStr = f'G{strongsNumber}'
-    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strongs {strongsString} page…" )
+    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strong's {strongsString} page…" )
     output_filename = f'{strongsLetterNumberStr}.htm'
     filepath = outputFolderPath.joinpath( output_filename )
 
     top = makeTop( level, None, 'StrongsPage', None, state ) \
-            .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
+            .replace( '__TITLE__', f"Strong's {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Strong\'s, number, {strongsString}, Greek' )
 
     prevLink = f'<b><a title="Previous entry" href="G{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
     nextLink = f' <b><a title="Next entry" href="G{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
     middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr )
-    # Liven internal Strongs references
+    # Liven internal Strong's references
     if middle: middle = livenStrongsRefs( middle )
 
     indexEntryHtml = strongIndexEntry(strongsLetterNumberStr,bibleLexicon)
@@ -4184,17 +4186,17 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
-<h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
-{lexicalResourceLinks(level,'Grk',state,strong=strongsLetterNumberStr)}<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
-<p>{middle}</p>{''.join(versesHtml)}
+<h1 id="Top">Strong\'s {strongsLetterNumberStr}</h1>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strong\'s index" href="index.htm">⌂</a>{nextLink}</p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p>{middle}</p>{lexicalResourceLinks(level,'Grk',state,strong=strongsLetterNumberStr)}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
     pageHtml = mapHtmlLinks(pageHtml, 'OET-LV', level, state, segmentType='reference')
@@ -4223,7 +4225,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     """
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strong's pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -4238,12 +4240,12 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     global _strongsPageBibleLexicon
     _strongsPageBibleLexicon = bibleLexicon # Make it available to our forked children (see wrapper above)
     if BibleOrgSysGlobals.maxProcesses > 1 \
-    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strongs pages with different processes
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strong's pages with different processes
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Greek Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Greek Strong's pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
@@ -4273,26 +4275,26 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strong's pages." )
 
-    # Create index page for this Strongs folder
+    # Create index page for this Strong's folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'StrongsIndex', None, state ) \
-            .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
+            .replace( '__TITLE__', f"Strong's Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Strong\'s, Greek, index' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><span class="selectedBook">Greek Strongs numbers index</span> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><span class="selectedBook">Greek Strong\'s numbers index</span> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
-<h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
+<h1 id="Top">Strong\'s Greek Index ({len(indexList):,})</h1>
 {referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
@@ -4391,10 +4393,10 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -4476,10 +4478,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -4536,10 +4538,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -4634,10 +4636,10 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <span class="selectedBook">Locations index</span></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
@@ -4753,10 +4755,10 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
@@ -4789,10 +4791,10 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strong\'s numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strong\'s numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>

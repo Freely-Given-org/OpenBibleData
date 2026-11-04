@@ -49,10 +49,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-01' # by RJH
+LAST_MODIFIED_DATE = '2026-11-04' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -254,21 +254,21 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             'aren’t','Aren’t',
                 'can’t','Can’t', 'could’ve', 'couldn’t','Couldn’t',
                 'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
-                'hadn’t','hasn’t', 'haven’t','Haven’t',
+                'hadn’t', 'Hasn’t','hasn’t', 'haven’t','Haven’t',
                     'he’d','He’d', 'he’ll','He’ll', 'he’s','He’s',
-                'I’d', 'I’ll', 'I’m', 'isn’t','Isn’t', 'it’ll','It’ll', 'I’ve',
+                'I’d', 'I’ll', 'I’m', 'isn’t','Isn’t', 'It’d','it’d', 'it’ll','It’ll', 'I’ve',
                 'mustn’t',
                 'needn’t',
                 'o’clock',
                 'she’d', 'she’ll',
-                    'shouldn’t','Shouldn’t',
-                'that’ll','That’ll',
+                    'shouldn’t','Shouldn’t', 'should’ve',
+                'that’d', 'that’ll','That’ll',
                     'there’d', 'there’ll','There’ll',
                     'they’d','They’d', 'they’ll','They’ll', 'they’re','They’re','they’ve','They’ve', '’twas',
                 'you’d','You’d', 'you’ll','You’ll', 'you’re','You’re', 'you’ve','You’ve',
                 'wasn’t','Wasn’t',
                     'We’d','we’d', 'we’ll','We’ll', 'we’re','We’re', 'weren’t','Weren’t', 'we’ve','We’ve',
-                    'what’ll', 'who’d', 'who’ll','Who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
+                    'What’ll','what’ll', 'who’d', 'who’ll','Who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
 
             # Other
             'EDOMITE','EDOM','DOM', # Gotta do that one first
@@ -285,7 +285,7 @@ MISPELLING_VERSION_REF_DICT = defaultdict( list )
 
 OET_LV_NAMES_SET = set()
 def load_OET_LV_names() -> bool:
-    """
+    """'it’d',
     Load the names we use from the tsv names table
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:

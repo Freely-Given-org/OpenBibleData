@@ -15,7 +15,7 @@
 //!   * `tidy_gloss_of_greek_word` / `tidy_greek_lemma_gloss` — the `\add …`
 //!     chains for NT word and lemma glosses.
 //!   * `liven_strongs_refs` — replace `>H1234<` / `>G1234<` markers with links
-//!     to the corresponding Strongs page (from
+//!     to the corresponding Strong's page (from
 //!     `createOETReferencePages._strongs_ref_repl`, minus the Python regex
 //!     callback).
 //!
@@ -652,13 +652,13 @@ pub fn tidy_greek_lemma_gloss(eng_gloss: &str) -> String {
         .replace("\\add*", "</span>")
 }
 
-// ── Strongs reference linking ───────────────────────────────────────────────
+// ── Strong's reference linking ───────────────────────────────────────────────
 
 /// Regex from `createOETReferencePages.STRONGS_NUMBER_REGEX` (a `>H1234<` marker,
 /// where the number has 1–5 digits and doesn't start with zero).
 static STRONGS_REGEX: OnceLock<Regex> = OnceLock::new();
 
-/// Link every `>H1234<` / `>G1234<` marker in `middle` to its Strongs page.
+/// Link every `>H1234<` / `>G1234<` marker in `middle` to its Strong's page.
 ///
 /// Byte-identical port of `STRONGS_NUMBER_REGEX.sub( _strongs_ref_repl, middle )`
 /// using `STRONGS_FOLDER_DICT = {'G':'GrkStrng', 'H':'HebStrng'}`.
@@ -871,7 +871,7 @@ mod tests {
 
     #[test]
     fn strongs_refs_exact() {
-        // Ground truth: real refs in the generated Strongs pages.
+        // Ground truth: real refs in the generated Strong's pages.
         assert_eq!(
             liven_strongs_refs(">H1098<"),
             "><a href=\"../HebStrng/H1098.htm#Top\">H1098</a><"

@@ -10,7 +10,6 @@ p.site {}
 p.copyright {}
 p.note {}
 p.thanks {}
-img.OETWideLogo { width:calc(100% - 10px); margin:0 auto; display:block; max-height:100px; object-fit:contain; } /* Leaves 5px on each side */
 
 /* span.upLink { font-size:1.5em; font-weight:bold; } */
 

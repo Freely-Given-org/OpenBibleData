@@ -42,6 +42,8 @@
  *   2026-11-02 Add a wrapping alphabetical jump row for the important people index.
  *   2026-11-03 Omit current chapter/verse choices using static markup and URL targets.
  *   2026-11-03 Use the existing selected colour for active independent views too.
+ *   2026-11-03 Share passage-unavailable error styling across all page families.
+ *   2026-11-03 Limit wide-logo links to the displayed image, keeping side whitespace unlinked.
  */
 
 /* Reference entries share the same hierarchy across page families. */
@@ -135,7 +137,12 @@ div.topLine div.themeControls {
 
 p.copyright {}
 p.note {}
+p.error { background-color:#fc8686; }
 p.rem { font-size:0.8em; color:grey; }
+
+/* Centre the logo link itself so its side whitespace is not clickable. */
+a:has(> img.OETWideLogo) { display:block; width:fit-content; max-width:calc(100% - 10px); margin:0 auto; }
+img.OETWideLogo { display:block; width:auto; height:auto; max-width:100%; max-height:100px; margin:0; }
 
 /* Don't highlight links */
 a { color:var(--chrome-fg-link); text-decoration:none; }

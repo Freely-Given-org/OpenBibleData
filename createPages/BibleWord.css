@@ -99,7 +99,7 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 .grkNeg { background-color:crimson; }
 span.wj { color:saddlebrown; }
 
-/* For our Hebrew Strongs pages */
+/* For our Hebrew Strong's pages */
 /* 2026-10-30: Keep BDB prose continuous and make its nested senses readable. */
 div.BDB { max-width:75em; line-height:1.6; }
 /* Indented refinements reuse the class declarations read by loadCSSStyles. */
@@ -130,7 +130,7 @@ span.Em {}
 span.Strongs { background-color:khaki; }
 span.Hebrew {}
 
-/* For our Greek Strongs pages */
+/* For our Greek Strong's pages */
 span.GreekWord {}
 span.StrongsRef {}
 
