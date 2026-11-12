@@ -42,6 +42,7 @@ CHANGELOG:
         Reference, Dictionary, Search). 'simpleVerse' was added to the CASES
         matrix.
     2026-11-01 Check base Rust chrome independently of the reference-aware navigation wrapper.
+    2026-11-06 Add Downloads beside OET Key in the reference chrome.
 """
 import unittest
 
@@ -103,7 +104,8 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
-    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
+    downloadsLink = f'<a href="{"../"*level}OET/Downloads/index.htm#Top">Downloads</a>'
+    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}  {downloadsLink}</p><!--site-->'
     # A single right-justified Settings button (wired up by theme.js). It
     # replaces the old Dark/Light toggle and the mutually-exclusive theme
     # dropdown; the actual options (colour scheme, verse-number position, text

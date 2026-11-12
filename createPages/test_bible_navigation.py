@@ -8,6 +8,8 @@ CHANGELOG:
     2026-11-01 Keep independent views above the version-specific reading modes.
     2026-11-02 Cover section starts stored as verse bridges and invalid references.
     2026-11-03 Check build-time chapter/verse choices, spacing thresholds and primary anchors.
+    2026-11-12 Check that reading pages get static bars with no fragment-following CSS.
+    2026-11-12 Whole-document pages get a chapter bar but no verse bar.
 """
 from pathlib import Path
 from hashlib import sha256
@@ -37,7 +39,7 @@ class StaticReferenceNavigationTests(unittest.TestCase):
             f'{chapterBar}{verses}</body></html>')
 
     def test_reading_modes_have_static_links_to_existing_verse_anchors(self):
-        for mode in ('byC','bySec','byDoc','rel'):
+        for mode in ('byC','bySec','rel'):
             with self.subTest(mode=mode):
                 page=addReferenceNavigation(self.page(mode=mode))
                 root=ElementTree.fromstring(page)
@@ -49,17 +51,24 @@ class StaticReferenceNavigationTests(unittest.TestCase):
                 self.assertNotIn('aria-current',ElementTree.tostring(row,encoding='unicode'))
                 self.assertEqual(checkHtmlForMissingStyles(mode,page),[])
 
-    def test_long_document_rows_keep_spacing_and_all_chapters_available_in_html(self):
-        page=addReferenceNavigation(self.page(mode='byDoc',chapter=None,counts=(40,41,61,81,101)))
+    def test_long_chapter_rows_keep_spacing(self):
+        for last,step in ((40,1),(41,2),(61,3),(81,4),(101,5)):
+            with self.subTest(last=last):
+                page=addReferenceNavigation(self.page(mode='byC',chapter=None,counts=(last,)))
+                row=ElementTree.fromstring(page).find('.//p[@data-nav-verses="1"]')
+                self.assertEqual([a.text for a in row.findall('.//a')],
+                                 [f'V{v}' for v in range(1,last+1,step)])
+                self.assertTrue(all(span.text=='\u2003' for span in row.findall('span')))
+
+    def test_whole_documents_have_static_bars_without_fragment_css(self):
+        page=addReferenceNavigation(self.page(mode='byDoc',chapter=None,counts=(4,3,5)))
         root=ElementTree.fromstring(page)
-        for chapter,step,last in ((1,1,40),(2,2,41),(3,3,61),(4,4,81),(5,5,101)):
-            row=root.find(f'.//p[@data-nav-verses="{chapter}"]')
-            self.assertEqual([a.text for a in row.findall('.//a')],
-                             [f'V{v}' for v in range(1,last+1,step)])
-            self.assertTrue(all(span.text=='\u2003' for span in row.findall('span')))
-            self.assertIsNone(row.find('./span[@data-nav-current]'))
         self.assertEqual([a.get('href') for a in root.findall('.//p[@aria-label="Chapters"]//a')],
-                         [f'#C{c}V1' for c in range(1,6)])
+                         [f'#C{c}V1' for c in range(1,4)])
+        self.assertIsNone(root.find('.//span[@data-nav-current]'))
+        self.assertIsNone(root.find('.//p[@aria-label="Verses"]'))
+        for unwanted in (':has(','<style','data-nav-reference','data-nav-default','vsLst'):
+            self.assertNotIn(unwanted,page)
 
     def test_section_top_and_bottom_bars_keep_other_chapter_destinations(self):
         bar='<p class="chLst"><a href="MRK_S2.htm#Top">C1</a> <a href="MRK_S4.htm#Top">C2</a></p><!--chLst-->'
@@ -88,15 +97,12 @@ class StaticReferenceNavigationTests(unittest.TestCase):
         page=self.page(mode='ilr',chapterBar='<p class="chLst"><a href="C2V1.htm">Sg2</a></p><!--chLst-->')
         self.assertIn('<p class="chLst">TEST InterlinearVerse MRK <a',addReferenceNavigation(page))
 
-    def test_legacy_verse_and_chapter_targets_identify_the_same_choices(self):
-        page=self.page(counts=()).replace('</body>',
-            '<span id="V1"></span><span id="aC1"></span><span class="c" id="C1V1"></span>'
-            '<span id="V2"></span><span class="v" id="C1V2"></span></body>')
-        result=addReferenceNavigation(page)
-        root=ElementTree.fromstring(result)
-        for anchor in ('V1','V2','aC1','C1V1','C1V2'):
-            self.assertEqual(root.find(f'.//span[@id="{anchor}"]').get('data-nav-reference'),'1')
-        self.assertIn('body:has(#C1V2:target, #V2:target)',result)
+    def test_multi_chapter_sections_show_only_their_own_chapter_row(self):
+        page=addReferenceNavigation(self.page(mode='bySec',chapter='2',verse='1',counts=(4,3)))
+        rows=ElementTree.fromstring(page).findall('.//p[@aria-label="Verses"]')
+        self.assertEqual([row.get('data-nav-verses') for row in rows],['2'])
+        self.assertEqual(rows[0].find('./span[@data-nav-current="true"]').get('data-nav-verse'),'C2V1')
+        self.assertNotIn(':has(',page)
 
 
 class BibleNavigationTests(unittest.TestCase):

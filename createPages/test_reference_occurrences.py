@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-31 Check suffix codes, unused variants, order and multiword focus.
     2026-10-31 Cover formatted Hebrew/Greek glosses in summaries and filter data.
+    2026-11-05 Check first, middle and final occurrence-page titles in generated HTML.
 """
 from types import SimpleNamespace
 from tempfile import TemporaryDirectory
@@ -19,6 +20,8 @@ from referenceOccurrences import (orderedReferences,prepareStrongOccurrences,
     prepareOccurrenceNavigation,createOccurrencePages,occurrenceBrowseLink,lemmaOccurrenceSummary)
 from settings import State
 import createOETReferencePages as pages
+from test_makeTop import get_stub_state
+from test_page_metadata import HeadReader
 
 
 class ReferenceOccurrenceTests(unittest.TestCase):
@@ -64,16 +67,22 @@ class ReferenceOccurrenceTests(unittest.TestCase):
         return state
 
     def test_all_occurrences_have_bounded_static_pages_and_complete_filter_data(self):
-        state=self.manyOccurrences()
+        state=get_stub_state()
+        state.TEST_MODE_FLAG=False
+        state.OETRefData=self.manyOccurrences().OETRefData
         groups=prepareOccurrenceNavigation(state)
         self.assertEqual(len(groups),3)
         with TemporaryDirectory() as temporary, patch('referenceOccurrences.occurrenceContextLinks',return_value='JHN 1:1'), \
-                patch('html.makeTop',return_value='<html><head><title>__TITLE__</title></head><body>'),patch('html.makeBottom',return_value='</body></html>'):
+                patch('html.makeBottom',return_value='</body></html>'):
             folder=Path(temporary)
             self.assertEqual(createOccurrencePages(2,folder,state),9)
             group=groups['Grk','lemma','logos']
             pages=[folder/f'{group["stem"]}-{n}.htm' for n in range(1,4)]
             self.assertEqual([p.read_text().count('<li>') for p in pages],[100,100,5])
+            for page,coverage in zip(pages,('1–100','101–200','201–205'),strict=True):
+                head = HeadReader(page.read_text())
+                self.assertEqual(head.titles, [f'Greek lemma λόγος (logos) — occurrences {coverage} of 205'])
+                self.assertIn(f'{coverage} of 205',head.descriptions[0])
             data=json.loads((folder/f'{group["stem"]}.json').read_text())
             self.assertEqual(len(data),205)
             self.assertIn('JHNc1v1w205.htm',data[-1]['html'])

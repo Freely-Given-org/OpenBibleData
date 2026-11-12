@@ -6,8 +6,10 @@
 CHANGELOG:
     2026-10-26 Cover alternate URLs, grouped/conflicting mappings and generator integration.
     2026-11-03 Supply the static-navigation helper to isolated parent generators.
+    2026-11-05 Verify alternate descriptions and production canonical links.
 """
 import ast
+from pageMetadata import studyIndexMetadata
 from collections import defaultdict
 import logging
 import os
@@ -51,6 +53,23 @@ class AlternateVersePageTests(unittest.TestCase):
         path.write_text(document, encoding='utf-8')
         return document
 
+    def test_copied_public_verse_replaces_metadata_and_retains_local_navigation(self):
+        self.state.PUBLIC_BASE_URL = 'https://example.org/OBD/'
+        self.state.TEST_MODE_FLAG = False
+        for verse in range(1,7):
+            document = self.page('MAL',4,verse)
+            path = self.folder/'MAL'/f'C4V{verse}.htm'
+            path.write_text(document.replace('</head>', '<meta name="description" content="Ordinary verse">'
+                f'<link rel="canonical" href="https://example.org/OBD/par/MAL/C4V{verse}.htm"></head>'))
+        av.createAlternateVersePages(self.folder,['MAL'],self.state,'parallel')
+        page = (self.folder/'MAL/C3V19.htm').read_text()
+        self.assertEqual(page.count('name="description"'),1)
+        self.assertEqual(page.count('rel="canonical"'),1)
+        self.assertNotIn('Ordinary verse',page)
+        self.assertIn('Compare the numbering of Malachi 3:19',page)
+        self.assertIn('rel="canonical" href="https://example.org/OBD/par/MAL/C4V1.htm"',page)
+        self.assertIn('href="C4V1.htm#Top"',page)
+
     def malachi(self):
         for verse in range(1,7):
             self.page('MAL',4,verse,f'Malachi text {verse}.')
@@ -64,7 +83,7 @@ class AlternateVersePageTests(unittest.TestCase):
                 original = (self.folder/'MAL/C4V1.htm').read_bytes()
                 self.assertEqual(av.createAlternateVersePages(self.folder,['MAL'],self.state,view),6)
                 page = (self.folder/'MAL/C3V19.htm').read_text()
-                self.assertIn('<title>MAL 3:19 — alternate verse numbering',page)
+                self.assertIn('<title>Malachi 3:19 — alternate verse numbering',page)
                 self.assertIn('About verse numbering: MAL 3:19',page)
                 self.assertIn('OET-LV',page)
                 self.assertIn('OET-RV / English MAL 4:1',page)
@@ -237,7 +256,8 @@ class AlternateVersePageTests(unittest.TestCase):
                         reorderBooksForOETVersions=lambda books:books,
                         getOETTidyBBB=lambda book,**kwargs:book,getOETBookName=lambda book:book,
                         makeBookNavListParagraph=lambda *args:'',
-                        makeTop=lambda *args:'<!DOCTYPE html><html><head><title>__TITLE__</title></head><body>',
+                        studyIndexMetadata=studyIndexMetadata,
+                        makeTop=lambda *args,**kwargs:'<!DOCTYPE html><html><head><title>__TITLE__</title></head><body>',
                         makeBottom=lambda *args:'</body></html>',checkHtml=lambda *args:True,
                         vPrint=lambda *args:None,fnPrint=lambda *args:None,
                         getVerseMetaInfoHtml=lambda *args:'',collectSpellCheckResults=lambda:(),

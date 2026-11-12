@@ -38,6 +38,7 @@
 //!   2026-09-16: Initial port of the four customisation functions.
 //!   2026-09-17: Ported convert_adds_to_italics and handleAndExtractFootnotes.
 //!   2026-10-23: Combine OET formatting/word titles and protect LV markup and notes.
+//!   2026-11-11: Render OET-RV updated-measure markers with their own class.
 
 use crate::html_validation::{check_html, py_repr};
 use crate::oet_html::{combine_oet_titles, protect_lv_html};
@@ -174,6 +175,10 @@ pub fn do_oet_rv_html_customisations(where_: &str, html: &str) -> Result<String,
             r#"<span class="addReword unsure" title="reworded (less certain)">"#,
         )
         .replace(r#"<span class="add">≈"#, r#"<span class="addReword" title="reworded">"#)
+        .replace(
+            r#"<span class="add">$"#,
+            r#"<span class="updatedMeasure" title="updated measure">"#,
+        )
         .replace(r#"<span class="add">?"#, r#"<span class="RVadd unsure" title="added info (less certain)">"#)
         .replace(r#"<span class="add">"#, r#"<span class="RVadd" title="added info">"#)
         .replace(

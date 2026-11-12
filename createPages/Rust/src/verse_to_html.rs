@@ -12,6 +12,8 @@
 //!  2026-10-25: Render xref added text separately so editorial corrections do not
 //!              create links to the superseded references.
 //!  2026-11-01: Keep punctuation and unknown verse labels out of note-return URLs.
+//!  2026-11-09: Liven plain HTTP(S) URLs in footnotes without changing popup text
+//!              or existing links.
 
 use crate::verbosity_println;
 use crate::constants::SPAN_CLASS_REGEX;
@@ -390,11 +392,14 @@ where
             )?;
         }
 
+        // Link only the displayed note, keeping generated anchors out of its popup.
+        let mut display_middle = liven_footnote_urls(&fnote_middle);
+
         // --- OET-LV period/colon protection ---
         if is_oet_lv {
-            fnote_middle = fnote_middle
-                .replace('.', "--fnPERIOD--")
-                .replace(':', "--fnCOLON--");
+            for text in [&mut fnote_middle, &mut display_middle] {
+                *text = text.replace('.', "--fnPERIOD--").replace(':', "--fnCOLON--");
+            }
         }
 
         // --- Sanitise the popup title text ---
@@ -415,15 +420,13 @@ where
         let fn_ref = build_footnote_ref(&fr_text);
 
         // --- OET-LV OSHB link ---
-        let display_middle = if is_oet_lv && fnote_middle.starts_with("OSHB ") {
-            fnote_middle.replacen(
+        if is_oet_lv && display_middle.starts_with("OSHB ") {
+            display_middle = display_middle.replacen(
                 "OSHB ",
                 r#"<a href="https://hb.OpenScriptures.org">OSHB</a> "#,
                 1,
-            )
-        } else {
-            fnote_middle.clone()
-        };
+            );
+        }
 
         let fn_text = format!(
             r#"<p class="fn" id="fn{fn_count}">{fn_ref}<span class="fnText">{display_middle}</span></p><!--fn-->"#
@@ -457,6 +460,56 @@ where
     }
 
     Ok((result_html, fn_html))
+}
+
+// Match existing links, comments and tags before looking for plain URLs. Quoted
+// '>' characters must not end a tag; URLs in attributes must remain untouched.
+static FOOTNOTE_URL_OR_MARKUP: Lazy<Regex> = Lazy::new(|| Regex::new(
+    r#"(?is:<a\b(?:[^<>"']|"[^"]*"|'[^']*')*>.*?</a\s*>)|(?s:<!--.*?-->)|</?[A-Za-z][A-Za-z0-9:-]*(?:[^<>"']|"[^"]*"|'[^']*')*>|(?i:https?://)[^\s<>"'\\‘’“”]+"#
+).unwrap());
+static URL_ENTITY_BOUNDARY: Lazy<Regex> = Lazy::new(|| Regex::new(
+    r"(?i)&(?:quot|apos|lt|gt|nbsp|#0*(?:34|39|60|62|160)|#x0*(?:22|27|3c|3e|a0));"
+).unwrap());
+static URL_AMPERSAND: Lazy<Regex> = Lazy::new(|| Regex::new(
+    r"&(?:#[0-9]+;|#[xX][0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9]*;)?"
+).unwrap());
+
+/// Liven HTTP(S) URLs in rendered note text, preserving existing HTML exactly.
+fn liven_footnote_urls(html: &str) -> String {
+    if !html.contains("://") { return html.to_string(); }
+    FOOTNOTE_URL_OR_MARKUP.replace_all(html, |caps: &regex::Captures| {
+        let matched = &caps[0];
+        if matched.starts_with('<') {
+            return matched.to_string();
+        }
+        let mut url = &matched[..URL_ENTITY_BOUNDARY.find(matched)
+            .map_or(matched.len(), |boundary| boundary.start())];
+        // Sentence punctuation and surrounding brackets are not part of a URL,
+        // but balanced brackets (e.g. Wikipedia article names) are.
+        while let Some(last) = url.chars().last() {
+            let trim = match last {
+                '.' | ',' | ':' | '!' | '?' | '…' => true,
+                ';' => !URL_AMPERSAND.find_iter(url)
+                    .any(|entity| entity.end() == url.len() && entity.len() > 1),
+                ')' | ']' | '}' => {
+                    let opening = match last { ')' => '(', ']' => '[', _ => '{' };
+                    url.matches(last).count() > url.matches(opening).count()
+                }
+                _ => false,
+            };
+            if !trim { break; }
+            url = &url[..url.len() - last.len_utf8()];
+        }
+        if url.split_once("://").is_none_or(|(_, rest)| rest.is_empty()) {
+            return matched.to_string();
+        }
+        // Source text can contain raw ampersands or already-escaped entities.
+        let escaped = URL_AMPERSAND.replace_all(url, |amp: &regex::Captures| {
+            if amp[0].len() == 1 { "&amp;".to_string() } else { amp[0].to_string() }
+        });
+        format!(r#"<a title="Go to external link" href="{escaped}">{escaped}</a>{}"#,
+            &matched[url.len()..])
+    }).into_owned()
 }
 
 /// Count internal opening markers in a footnote middle string.

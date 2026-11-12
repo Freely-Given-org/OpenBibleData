@@ -11,6 +11,7 @@ CHANGELOG:
     2026-10-31 Explain conservative draft grammatical colours and their limitations.
     2026-11-01 Search additional-book Greek and Latin words by gloss, transliteration and reference.
     2026-11-02 Place indented prologue previews before their reading links.
+    2026-11-05 Identify Greek and Latin chapter tables and index views in the page head.
 """
 from collections import defaultdict
 from pathlib import Path
@@ -21,6 +22,7 @@ from xml.sax.saxutils import escape
 
 from html import makeTop, makeBottom, checkHtml
 from navigation import bookNavigationOrder
+from pageMetadata import lexicalIndexMetadata, metadataBookName
 from referencePassages import passageContextHref,renderReferencePassage
 from oetPassages import _namespaceIds
 from lexicalLinks import prepareLexicalAssociations,lemmaFilename,ubsEntryLink
@@ -189,9 +191,12 @@ def createDCWordPages(level: int, folder: Path, state) -> None:
                 continue
             language = 'Latin' if BBB == 'LAO' else 'Greek'
             title = f'OET-LV {BBB} {"prologue" if C=="0" else C} {language} word details'
+            passage = f'{metadataBookName(BBB, None)} {"prologue" if C == "0" else C}'
+            metadata = (f'{passage} — {language} word details | OET-LV',
+                        f'Explore the {language} source words of {passage} by verse and word position, with draft OET glosses and source references.')
             filename = f'{BBB}_C{C}.htm'
             indexLinks.append(f'<a href="{filename}#Top">{BBB} {C}</a>')
-            top = makeTop(level, None, 'word', None, state).replace('__TITLE__', title).replace('__KEYWORDS__', f'Bible, {language}, deuterocanon, words')
+            top = makeTop(level, None, 'word', None, state, metadata=metadata)
             headings = ''.join(f'<th>{label}</th>' for label in ('Verse / word', f'{language} form', 'Lemma', 'Morphology',
                 'Lexicon gloss', 'OET gloss', 'Gloss status', 'Gloss source', 'Source reference', 'Source file'))
             verseGroups = []
@@ -214,14 +219,15 @@ def createDCWordPages(level: int, folder: Path, state) -> None:
             (folder / filename).write_text(content, encoding='utf-8')
     title = 'OET-LV additional-book word details (Greek and Latin)'
     groups=groupWordIndex(dcWordIndexRecords(state),transliterate_Greek)
+    languages = ' and '.join(sorted({group['language'] for group in groups}))
     for transliterated in (False,True):
         other='index.htm' if transliterated else 'transIndex.htm'
         otherLabel='Original spelling order' if transliterated else 'Transliterated order'
-        index = (makeTop(level, None, 'wordIndex', None, state).replace('__TITLE__', title)
-            .replace('__KEYWORDS__', 'Bible, Greek, Latin, deuterocanon, words')
+        metadata = lexicalIndexMetadata(f'OET-LV additional books ({languages})', 'word', len(groups), transliterated=transliterated)
+        index = (makeTop(level, None, 'wordIndex', None, state, metadata=metadata)
             + f'<h1 id="Top">{title}</h1>\n'+referenceIndexLinks(level,state,includeCore=True)+f'{DC_DRAFT_NOTE}\n{LAO_DRAFT_NOTE}\n'
             + f'<p><a href="{other}#Top">{otherLabel}</a></p>'
-            + wordIndex(level,groups,folder,transliterated=transliterated)
+            + wordIndex(level,groups,folder,transliterated=transliterated,metadata=metadata,testMode=state.TEST_MODE_FLAG)
             + '<details><summary>Browse word details by chapter</summary><p>'+' '.join(indexLinks)+'</p></details>'
             + f'\n{DC_SOURCE_NOTE}\n{LAO_SOURCE_NOTE}\n' + makeBottom(level, None, 'wordIndex'))
         assert checkHtml(title, index)

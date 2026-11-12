@@ -38,6 +38,7 @@ CHANGELOG:
     2026-10-31 Connect kingdom browsing to the available dictionary indexes.
     2026-11-02 Group indented kingdom reading previews before their section links.
     2026-11-03 Correct Strong's in reference-index labels.
+    2026-11-05 Describe site resources and navigation pages in their search metadata.
 """
 from pathlib import Path
 import os
@@ -459,9 +460,9 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     # Create topic index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( level, None, 'topicsIndex', None, state ) \
-            .replace( '__TITLE__', f"Topic View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, topic, topics, topical' )
+    top = makeTop(level, None, 'topicsIndex', None, state, metadata=(
+        'Bible passages by topic',
+        'Choose a topic to explore selected Bible passages in the Open English Translation.'))
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Topic pages</h1>
 <p>These pages contain selected passages from the <em>Open English Translation</em> for the given topics. Each page contains the passage from the <em>OET Readers’ Version</em> on the left, with the <em>OET Literal Version</em> on the right. No notes or commentary is included—our aim is simply to conveniently list the passages in one place so that readers can make up their own minds about how the passages should be interpreted.</p>
@@ -578,9 +579,9 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
 {NEWLINE.join(combinedHtmlChunks)}</div><!--RVLVcontainer-->'''
 
     filepath = folder.joinpath( topicFilename )
-    top = makeTop( level, None, 'topicPassages', None, state ) \
-            .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' )
+    top = makeTop(level, None, 'topicPassages', None, state, metadata=(
+        f'Bible passages on {topic}',
+        f'Read selected Bible passages on {topic} in the Open English Translation, with links to the passages in context.'))
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/index.htm#Top">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
@@ -661,9 +662,9 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
         filename = f'{oneWordKingdomName}.htm'
         indexList.append( (kingdomName, oneWordKingdomName, filename) )
         filepath = folder.joinpath( filename )
-        top = makeTop( level, None, 'kingdom', None, state ) \
-                .replace( '__TITLE__', f"{kingdomName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, {kingdomName.split()[0]}, kingdom' )
+        top = makeTop(level, None, 'kingdom', None, state, metadata=(
+            f'{kingdomName} — biblical history and readings',
+            f'Explore the {kingdomName.lower()} through the selected readings, people and places recorded on this page.'))
         leftLink = f'<a title="Previous kingdom" href="{KINGDOM_LIST[kk-1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">←</a> ' if kk>0 else ''
         rightLink = f' <a title="Next kingdom" href="{KINGDOM_LIST[kk+1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">→</a>' if kk<len(KINGDOM_LIST)-1 else ''
         homeLink = f' <a title="Kingdom index" href="index.htm">⌂</a>'
@@ -720,9 +721,9 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
     # Now make an index page
     filename = f'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( level, None, 'kingdom', None, state ) \
-            .replace( '__TITLE__', f"Kingdoms index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', f'Bible, kingdoms, Israel, Judah' )
+    top = makeTop(level, None, 'kingdom', None, state, metadata=(
+        'Kingdoms of Israel and Judah — Bible study index',
+        'Explore the promised land, the united kingdom and the northern and southern kingdoms through Bible readings.'))
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>

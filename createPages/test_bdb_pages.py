@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-30 Verify original-numbered citations and the complete H3 page integration.
     2026-10-31 Supply the source word for complete Strong's index coverage.
+    2026-11-05 Supply the distinct word and meaning fields used in search metadata.
 """
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -68,7 +69,8 @@ class BDBPageTests(unittest.TestCase):
         hebrew.BrownDriverBriggsEntries = {'heb': {'a.ab.ab': ('', '', '')}, 'arc': {}}
         hebrew.BrownDriverBriggsXMLEntries = {'heb': {'a.ab.ab': source}, 'arc': {}}
         lexicon = Mock()
-        lexicon.getStrongsEntryField.return_value = ('אָב','','','ʼāⱱ',None)
+        lexicon.getStrongsEntryField.side_effect = lambda code, field: {
+            'word': ('אֵב','','','ʼêb',None), 'meaning': 'a <def>green</def> plant'}.get(field)
         lexicon.getStrongsEntryHTML.return_value = '<p>Strong\'s entry</p>'
         lexicon.getBrDrBrEntryHTML.return_value = hebrew.getBrDrBrEntryHTML('a.ab.ab', getFull=True)
         state = State()

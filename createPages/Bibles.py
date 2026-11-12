@@ -81,6 +81,7 @@ CHANGELOG:
                and link passage ranges to their starting OET section.
     2026-10-30 Preserve complete Tyndale scripture selections and add dictionary passage previews.
     2026-11-02 Display the translation-note occurrence code -1 as All occurrences.
+    2026-11-05 Read OET-LV book versions from their source folders on every build.
 """
 from datetime import datetime
 import os, os.path
@@ -144,6 +145,29 @@ NEWLINE = '\n'
 
 class SourceManifestMismatch(ValueError):
     """An original Bible pickle predates its source manifest or has stale sources."""
+
+
+def loadOETLVBookVersions(bible) -> dict[str,str]:
+    """Read the release once per source folder, including when the books came from a pickle."""
+    booksByFolder = defaultdict(list)
+    for BBB, book in bible.books.items():
+        booksByFolder[Path(book.sourceFolder)].append(BBB)
+
+    versions = {}
+    for folder, books in booksByFolder.items():
+        path = folder / 'version.json'
+        try:
+            metadata = json.loads(path.read_text(encoding='utf-8'))
+        except FileNotFoundError:
+            logging.warning('Omitting the OET-LV release from the book headers because %s is missing.', path)
+            continue
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError(f'Cannot read OET-LV release metadata from {path}: {error}') from error
+        version = metadata.get('version') if isinstance(metadata, dict) else None
+        if not isinstance(version, str) or not re.fullmatch(r'v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?', version):
+            raise ValueError(f'Expected an OET-LV release version such as v0.2.0 in {path}, got {version!r}')
+        versions.update(dict.fromkeys(books, version))
+    return versions
 
 
 def repairUSFMSourceFilenames(bible, manifest):
@@ -237,6 +261,8 @@ def preloadVersions( state:State ) -> int:
                             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
                         # Public, private and subset pickles are independent outputs,
                         # not source edits that can invalidate another cached Bible.
+                        if versionAbbreviation == 'OET-LV' and somePath.name == 'version.json':
+                            continue # The names-table release does not change the cached Bible.
                         if somePath.is_file() and somePath.suffix != '.pickle':
                             fileMTime = somePath.stat().st_mtime # A large integer
                             if fileMTime > pickleMTime:
@@ -249,6 +275,8 @@ def preloadVersions( state:State ) -> int:
                                 for someSubPath in somePath.iterdir():
                                     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
                                         dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
+                                    if someSubPath.name == 'version.json':
+                                        continue # Book releases are read separately after loading.
                                     if someSubPath.is_file() and someSubPath.suffix != '.pickle':
                                         fileMTime = someSubPath.stat().st_mtime # A large integer
                                         if fileMTime > pickleMTime:
@@ -407,6 +435,8 @@ def preloadVersions( state:State ) -> int:
             assert 'OET' not in versionAbbreviation
             state.BibleVersions.remove( versionAbbreviation )
     # Reinitialise on every preload, including repeated builds in one process.
+    if 'OET-LV' in state.preloadedBibles:
+        state.oetLVBookVersions = loadOETLVBookVersions(state.preloadedBibles['OET-LV'])
     if 'substitutedVersions' in vars(state):
         delattr(state, 'substitutedVersions')
     prepareSubstitutedVersions(state)

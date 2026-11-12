@@ -10,9 +10,11 @@ CHANGELOG:
     2026-11-02 Keep internal introduction numbers out of titles and index labels.
     2026-11-02 Exclude Greek/Hebrew editions before processing Latin Laodiceans.
     2026-11-02 Start chapter jumps at verse 1 without removing verse-zero destinations.
+    2026-11-05 Distinguish chapter introductions from numbered verse zero in the page head.
 """
 from collections import defaultdict
 from contextlib import ExitStack
+from pageMetadata import escapedMetadata
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
@@ -63,9 +65,7 @@ class StudyViewPageTests(unittest.TestCase):
         for module in (parallelPages,listPages,interlinearPages):
             self.stack.enter_context(patch.object(module,'navigationVersification',return_value=
                 SimpleNamespace(getNumChapters=lambda b:2,getNumVerses=lambda b,c:2)))
-            self.stack.enter_context(patch.object(module,'makeTop',return_value=
-                '<!DOCTYPE html><html><head><title>__TITLE__</title></head><body>'
-                '<a href="../../ilr/">Interlinear</a>'))
+            self.stack.enter_context(patch.object(module,'makeTop',side_effect=self.studyTop))
             self.stack.enter_context(patch.object(module,'makeBottom',return_value='</body></html>'))
             for name in ('getVerseMetaInfoHtml','formatTyndaleBookIntro','formatTyndaleNotes',
                          'getFormattedSILOpenTranslationNotes','getBibleMapperMaps'):
@@ -76,6 +76,11 @@ class StudyViewPageTests(unittest.TestCase):
                 side_effect=lambda level,book,c,v,*args:'<p>Chapter translation notes.</p>' if v=='0' else ''))
         self.stack.enter_context(patch.object(interlinearPages,'createOETInterlinearVerseInner',
                                              return_value='<p>Interlinear verse.</p>'))
+
+    def studyTop(self, *args, metadata, canonicalPath=None):
+        title, description = escapedMetadata(metadata, self.state.TEST_MODE_FLAG)
+        return (f'<!DOCTYPE html><html><head><title>{title}</title><meta name="description" content="{description}"></head>'
+                '<body><a href="../../ilr/">Interlinear</a>')
 
     def render(self):
         links = ['<a title="Matthew" href="../MAT/index.htm#Top">MAT</a>']
@@ -100,7 +105,7 @@ class StudyViewPageTests(unittest.TestCase):
         intro = self.page('par','Intro.htm')
         for kind in ('par','lst'):
             introduction=self.page(kind,'Intro.htm')
-            self.assertIn('<title>MAT Intro ',introduction)
+            self.assertIn('<title>Matthew introduction — ',introduction)
             self.assertNotIn('MAT -1',introduction)
             for index in (self.root/kind/'MAT/index.htm',self.root/kind/'MAT.htm'):
                 indexHtml=index.read_text()
@@ -113,6 +118,8 @@ class StudyViewPageTests(unittest.TestCase):
             self.assertIn('Chapter translation notes.',page)
             self.assertNotIn('title="Interlinear verse view"',page)
             self.assertEqual('title="Simple verse list view"' in page, chapter==2)
+        self.assertIn('<title>Matthew 1 introduction — Parallel translations TEST</title>',self.page('par','C1V0.htm'))
+        self.assertIn('<title>Matthew 2:0 — compare Bible translations TEST</title>',self.page('par','C2V0.htm'))
         self.assertFalse((self.root/'lst/MAT/C1V0.htm').exists())
         self.assertFalse((self.root/'ilr/MAT/C1V0.htm').exists())
         self.assertFalse((self.root/'ilr/MAT/C2V0.htm').exists())

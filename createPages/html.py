@@ -78,7 +78,6 @@ CHANGELOG:
     2025-09-09 Allow for 'kingdom' pages
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
-    2026-01-19 Added link to https://OET.Bible
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
@@ -125,12 +124,19 @@ CHANGELOG:
     2026-11-01 Remove external Pagefind stylesheet handling.
     2026-11-01 Carry the current Bible version into Search links.
     2026-11-01 Colour independent views together in the version selector.
+    2026-11-05 Accept plain-text titles and descriptions from individual page generators.
+    2026-11-05 Share metadata encoding with complete reference indexes.
+    2026-11-05 Accept a site-relative path for a preferred public URL.
+    2026-11-09 Link the footer's full OET name directly to the preferred project domain.
+    2026-11-11 Document the updated-measure marker in OET-RV customisations.
 """
 import logging
 import re
 from datetime import datetime
 from collections import defaultdict
 from functools import cache
+from xml.sax.saxutils import quoteattr
+from pageMetadata import escapedMetadata, publicCanonicalUrl
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
@@ -152,10 +158,10 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-31' # by RJH
+LAST_MODIFIED_DATE = '2026-11-09' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.13'
+PROGRAM_VERSION = '1.0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -191,7 +197,8 @@ def _getPageChromeConfig( state:State ):
     return _pageChromeConfigCache[1]
 # end of html._getPageChromeConfig
 
-def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State, navigationReference:tuple=() ) -> str:
+def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State,
+             navigationReference:tuple=(), *, metadata:tuple[str,str]|None=None, canonicalPath:str|None=None ) -> str:
     """
     Create the very top part of an HTML page.
 
@@ -201,7 +208,8 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
 
-    The actual work is done by the Rust make_top in openbibledata_rust.
+    Pass metadata=(plain title, plain description) to fill the head here.
+    Older callers fill the title and keyword placeholders themselves.
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
         fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
@@ -222,7 +230,15 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
         top=bibleNavigation(top,level,versionAbbreviation,pageType,versionSpecificFileOrFolderName,state,navigationReference)
     else:
         top=mapHtmlLinks(top, versionAbbreviation or 'OET', level, state, versionBar=True)
-    return colourIndependentViews(top)
+    top = colourIndependentViews(top)
+    if metadata is not None:
+        title, description = escapedMetadata(metadata, state.TEST_MODE_FLAG)
+        top = top.replace('__TITLE__', title, 1).replace(
+            'name="keywords" content="__KEYWORDS__"',
+            f'name="description" content="{description}"', 1)
+    if canonicalPath and (url := publicCanonicalUrl(state, canonicalPath)):
+        top = top.replace('</head>', f'  <link rel="canonical" href={quoteattr(url)}>\n</head>', 1)
+    return top
 # end of html.makeTop
 
 
@@ -344,7 +360,7 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by {state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
-{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
+{f'''<p class="note"><small>Visit the <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible/"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="" height="20"> <em>Open English Translation (OET)</em></a> main site.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
 # end of html._makeFooter
 
@@ -645,7 +661,7 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
 
-    Handle the various OET-RV "/add" fields,
+    Handle the various OET-RV "/add" fields, including updated measures,
         plus the parallelism markers in Psalms and other poetry.
 
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.

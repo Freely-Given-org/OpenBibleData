@@ -10,6 +10,7 @@
 2026-10-16 Test malformed-note diagnostics and isolation from later notes.
 2026-10-18 Test spacing between verses whose numbers are hidden, including Wycl MAT 24:50.
 2026-10-23 Preserve added-word markup when modernising KJB-1611 Matthew 24:23.
+2026-11-09 Test automatic footnote URL links and preservation of markup/popups.
 """
 
 import unittest
@@ -122,6 +123,73 @@ class TestProcessFootnotes(unittest.TestCase):
         result, fn_html = process_footnotes(html, "KJB", "GEN", "1", "chapter", "", 11500, self.state)
         self.assertNotIn("\\f ", result)
         self.assertIn("fnCaller", result)
+
+    def test_footnote_urls_and_surrounding_punctuation(self):
+        for text, url, suffix in (
+            ('https://bibleDifferences.net/2019/04/25/156-exulted',
+             'https://bibleDifferences.net/2019/04/25/156-exulted', ''),
+            ('http://example.org/note.', 'http://example.org/note', '.'),
+            ('https://example.org/note),', 'https://example.org/note', '),'),
+            ('https://example.org/Article_(topic)).',
+             'https://example.org/Article_(topic)', ').'),
+            ('https://example.org/note];', 'https://example.org/note', '];'),
+            ('HTTPS://example.org/note#section!', 'HTTPS://example.org/note#section', '!'),
+            ('https://example.org/λόγος…', 'https://example.org/λόγος', '…'),
+            ('https://example.org/note&quot;.', 'https://example.org/note', '&quot;.'),
+        ):
+            with self.subTest(text=text):
+                caller, footnotes = process_footnotes(
+                    rf'Text\f + \fr 3:14 \ft See {text}\f*',
+                    'OET-RV', 'JHN', '3', 'parallelVerse', '', 11500, self.state)
+                self.assertIn(f'href="{url}">{url}</a>{suffix}</span>', footnotes)
+                self.assertIn(f'title="Note: See {text}"', caller)
+                self.assertNotIn('&lt;a', caller)
+
+    def test_multiple_urls_preserve_query_strings_and_entities(self):
+        urls = ('https://example.org/a_b?q=one&lang=en#part',
+                'http://example.org/?q=two&amp;lang=el',
+                'https://example.org/?q=one&amp;')
+        source = r'Text\f + \ft See ' + '; '.join(urls) + r'\f*'
+        _, footnotes = process_footnotes(
+            source, 'OET-RV', 'JHN', '3', 'chapter', '', 11500, self.state)
+        for url in urls:
+            escaped = url.replace('&', '&amp;') if '&amp;' not in url else url
+            self.assertIn(f'href="{escaped}">{escaped}</a>', footnotes)
+        self.assertEqual(footnotes.count('title="Go to external link"'), 3)
+        self.assertNotIn('&amp;amp;', footnotes)
+
+    def test_existing_links_attributes_and_comments_are_preserved(self):
+        existing = ('<a title="More > https://example.org/title" href="../note.htm">'
+                    '<b>https://example.org/already-linked</b></a>'
+                    '<!-- https://example.org/comment -->')
+        span = '<span title="https://example.org/title">'
+        source = (r'Text\f + \ft ' + existing + span
+                  + 'https://example.org/new</span>' + r'\f*')
+        _, footnotes = process_footnotes(
+            source, 'KJB', 'JHN', '3', 'chapter', '', 11500, self.state)
+        self.assertIn(existing, footnotes)
+        self.assertIn(span + '<a title="Go to external link"', footnotes)
+        self.assertEqual(footnotes.count('title="Go to external link"'), 1)
+
+    def test_plain_urls_survive_full_conversion_and_oet_customisation(self):
+        from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations
+
+        url = 'https://bibleDifferences.net/2019/04/25/156-exulted'
+        for version, customise in (('OET-RV', do_OET_RV_HTMLcustomisations),
+                                   ('OET-LV', do_OET_LV_HTMLcustomisations)):
+            for segment in ('book', 'chapter', 'section', 'parallelVerse', 'interlinearVerse'):
+                with self.subTest(version=version, segment=segment):
+                    entries = [('v', '14'), ('v~',
+                        rf'Text.\f + \fr 3:14 \ft lifted up / exalted: See {url}\f*'),
+                        ('¬v', '14')]
+                    converted = convertVerseEntryListToHtml(
+                        2, version, ('JHN', '3', '14'), segment, ['chapters', 'c'],
+                        [SimpleNamespace(marker=m, full_text=t, clean_text='') for m, t in entries],
+                        basicOnly=False)
+                    result = customise('test JHN 3:14 URL footnote', converted)
+                    self.assertIn(f'href="{url}">{url}</a>', result)
+                    self.assertIn(f'title="Note: lifted up / exalted: See {url}"', result)
+                    self.assertNotRegex(result, r'--fn[A-Z]+--')
 
 
 class TestProcessCrossReferences(unittest.TestCase):

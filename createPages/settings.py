@@ -51,6 +51,7 @@ CHANGELOG:
     2026-10-30 Use the reviewed Wycliffe Zefania LAO profile, including its 15-16 split.
     2026-10-30 Load LAO in both OET versions, retaining its navigation position after COL.
     2026-11-01 Generate native search during the normal site build.
+    2026-11-05 Configure the public site root for canonical links.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -59,10 +60,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-10-30' # by RJH
+LAST_MODIFIED_DATE = '2026-11-07' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.3.0'
+PROGRAM_VERSION = '1.3.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -73,13 +74,14 @@ class State:
     A place to store some of the global stuff that needs to be passed around.
     """
     SITE_NAME = 'Open Bible Data'
+    PUBLIC_BASE_URL = 'https://Freely-Given.org/OBD/' # Preferred production URL. Set to None for an offline build.
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.4.7' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.94' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.5.5' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.98' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = ['TOB']
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel

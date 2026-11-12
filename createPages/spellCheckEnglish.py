@@ -37,22 +37,27 @@ CHANGELOG:
     2026-10-23 Accept combined OET formatting titles and LV addition descriptions
     2026-10-26 Check LSV all-capitals words and possessives against normal dictionary forms
     2026-10-29 Accept TraditionalName, GrkName, and RVName from the updated OET-RV names table
+    2026-11-09 Exclude intact URLs and Hebrew/Greek words from English spelling checks; load slash-separated name alternatives and preserve known hyphenated words
+    2026-11-09 Avoid duplicate entries and enforce the spelling summary display limit
+    2026-11-09 Recognise inline verse references such as v7 without a hardcoded verse-number list
+    2026-11-12 Accept KJB-1611 names, apostrophe-free possessives, and historical spellings
 """
 from pathlib import Path
 from csv import  DictReader
 from collections import defaultdict
 import logging
 import re
+import unicodedata
 
 from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-04' # by RJH
+LAST_MODIFIED_DATE = '2026-11-12' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -62,6 +67,28 @@ DEBUGGING_THIS_MODULE = False
 # The lookahead also finds both pairs in a three-word repetition.
 REPEATED_WORD_REGEX = re.compile(
     r"(?<![\w’'/-])\b(?P<word>[^\W\d_]+(?:[’'][^\W\d_]+)*)(?=\s+(?P=word)(?![\w’'/-]))" )
+URL_REGEX = re.compile( r'''(?<![\w@])(?:https?://|ftp://|www\.)[^\s<>"‘’“”]+''', re.IGNORECASE )
+HYPHENATED_WORD_REGEX = re.compile( r"(?<![\w’'])\w+(?:[’']\w+)*(?:-\w+(?:[’']\w+)*)+" )
+
+
+def _is_hebrew_or_greek_word( word:str ) -> bool:
+    """Recognise source-language words, including vowel points and accents.
+
+    Mixed Latin/script tokens and explicit untranslated markers still need review.
+    Romanised Hebrew/Greek names continue through the English/name dictionaries.
+    """
+    if word.isascii():
+        return False
+    hasLetter = False
+    for character in word:
+        category = unicodedata.category( character )
+        if category.startswith('L'):
+            if not unicodedata.name( character, '' ).startswith(('HEBREW ', 'GREEK ')):
+                return False
+            hasLetter = True
+        elif not category.startswith('M') and character not in '־׀׃׳״':
+            return False
+    return hasLetter
 
 
 TED_DICT_FOLDERPATH = Path(__file__).parent.joinpath( '../../../Documents/RobH123/TED_Dict/sourceDicts/').resolve()
@@ -208,7 +235,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'MAT','MRK','LUK', 'JHN','YHN', 'ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
                     'PHM','HEB', 'JAM','JAS','YAS', 'PE1','PE2','JN1','JN2','JN3','JDE','JUD','REV',
                     'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Psal','Prv','Hos','Zech','Mal',
-                    'Matth','Mrk','Luk','Lk','Jhn','Jn','Act','Cor','Gal','Eph','Php','Col','Heb','Phm','Rev',
+                    'Matth','Mrk','Luk','Lk','Jhn','Jn','Act','Cor','Gal','Eph','Php','Col','Thess','Heb','Phm','Rev',
 
                     'v2','v3','v4','v5','v6','v8','v9','v13','v14','v15','v16','v19','v26','v27',
 
@@ -219,7 +246,8 @@ assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w 
 # AMERICAN_SPELLINGS = ['baptized','baptizing','baptize','favors','favor','honors','honor','marvelous','neighbors','neighbor','realize','splendor','worshiped','worshiping']
 # BRITISH_SPELLINGS = ['baptised','baptising','baptise','favours','favour','honours','honour','marvellous','neighbours','neighbour','realise','splendour','worshipped','worshipping']
 
-PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions, longest first (including LORDS)
+PREAPPROVED_WORDS_TO_REMOVE = sorted([
+            'God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions, longest first (including LORDS)
 
             # Hyphenated names (would have been split up down below)
             'Almon-diblathaim','Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
@@ -260,7 +288,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'mustn’t',
                 'needn’t',
                 'o’clock',
-                'she’d', 'she’ll',
+                'she’d','She’d', 'she’ll','She’ll',
                     'shouldn’t','Shouldn’t', 'should’ve',
                 'that’d', 'that’ll','That’ll',
                     'there’d', 'there’ll','There’ll',
@@ -268,7 +296,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'you’d','You’d', 'you’ll','You’ll', 'you’re','You’re', 'you’ve','You’ve',
                 'wasn’t','Wasn’t',
                     'We’d','we’d', 'we’ll','We’ll', 'we’re','We’re', 'weren’t','Weren’t', 'we’ve','We’ve',
-                    'What’ll','what’ll', 'who’d', 'who’ll','Who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
+                    'What’d','what’d', 'What’ll','what’ll', 'who’d', 'who’ll','Who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
 
             # Other
             'EDOMITE','EDOM','DOM', # Gotta do that one first
@@ -342,12 +370,15 @@ def load_OET_RV_names() -> bool:
     dict_reader = DictReader(initialTSVLines, delimiter='\t' )
     for row in dict_reader:
         for nameColumn in ('TraditionalName','GrkName','RVName'):
-            name = row[nameColumn]
+            name = row[nameColumn].strip().replace("'", '’') # Match OET HTML apostrophes.
             if not name:
                 continue
             OET_RV_NAMES_SET.add( name )
-            if '-' in name: # Break up names like Beer-Sheva (as we split them below)
-                for nameBit in name.split( '-' ):
+            # The text checker splits alternatives and compounds, e.g.,
+            # Boes/Boos, Yobed/Yobel and Beer-Sheva.
+            if '-' in name or '/' in name:
+                for nameBit in re.split( r'[-/]', name ):
+                    nameBit = nameBit.strip()
                     if nameBit:
                         OET_RV_NAMES_SET.add( nameBit )
 
@@ -459,11 +490,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     if versionAbbreviation in ('OET','OET-RV','OET-LV'):
         wordSet.update( (
                         '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
-                        'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
-                        'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
-                        'armstronginstitute.org','bibleDifferences.net','bibleandtech.blogspot.com','bibledifferences.net','biblestudyresources','commentary.html','judas%E2%80%99','tongue%E2%80%9D', 'Yeshua%E2%80%99',
-                        'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
-                        '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018',
+                        # 'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
+                        # 'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
+                        # 'armstronginstitute.org','bibleDifferences.net','bibleandtech.blogspot.com','bibledifferences.net','biblestudyresources','commentary.html','judas%E2%80%99','tongue%E2%80%9D', 'Yeshua%E2%80%99',
+                        # 'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
+                        # '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018',
                         # 'Amots','Tsor',
                         'ox[en','ash[es',
                         ),
@@ -483,8 +514,16 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( ('CAP',) )
     elif versionAbbreviation == 'LSV': # Ordinary ALL CAPS words/names use the dictionary below.
         wordSet.update( ('SHIGGAION',) ) # Psalm 7 heading: specialist term missing from our dictionaries
-    elif versionAbbreviation == 'KJB-1611': # Allow their U P P E R C A S E Book headings
-        wordSet.update( ('B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') )
+    elif versionAbbreviation == 'KJB-1611': # Allow their U P P E R C A S E Book headings and 1611 forms
+        wordSet.update( (
+                        'B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                        'Lamasabachthani','lamasabachthani',
+                        # Names in the KJB-1611 spelling with J→Y modernisation.
+                        'Yachin',
+                        'Yechonias','Yephunneh','Yerubbaal','Yerimoth','Yedaiah','Yethro','Yehoiachin','Yeush','Yether',
+                        'Yoacim','Yobab','Yona','Yonathas','Yoppa','Yosaphat',
+                        'Yuda',
+                        ) )
     # elif versionAbbreviation in ('RV','AST',): # Handle long UPPER CASE titles
     #     wordSet.update( ('FIRST','SECOND','THIRD','FOURTH','FIFTH','COMMONLY','CALLED','MOSES',) )
     elif versionAbbreviation in ('DRA','YLT','RV'):
@@ -604,6 +643,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
                     .replace( '<span class="addTradName" title="traditional name">', '' )
                     # .replace( '<span class="addTradName unsure" title="traditional name (less certain)">', '' )
+                    .replace( '<span class="updatedMeasure" title="updated measure">', '' )
+                    # .replace( '<span class="updatedMeasure unsure" title="updated measure (less certain)">', '' )
                     .replace( '<span class="addReword" title="reworded">', '' )
                     .replace( '<span class="addReword unsure" title="reworded (less certain)">', '' )
                     .replace( '<span class="RVadd unsure" title="added info (less certain)">', '' ) # (plain) RVadd is removed by RegEx
@@ -691,7 +732,15 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     # separators and possessives. Otherwise "Lord, Lord" or "love(n)/love(v)"
     # can become false reports of "Lord Lord" or "love love".
     repeatedWords = [match.group('word') for match in REPEATED_WORD_REGEX.finditer(cleanedTextToCheck)
-                     if match.group('word') not in ('had','that','ad','sie')]
+                     if match.group('word') not in ('had','that','ad','sie')
+                     and not (state.BibleLanguages[versionAbbreviation].startswith('EN')
+                              and _is_hebrew_or_greek_word(match.group('word')))]
+
+    # Remove URLs while paths, queries and escaped filenames are still intact.
+    # Doing this after repetition detection avoids joining words across a URL.
+    # Only the checking copy changes: link text and ordinary anchor labels remain
+    # untouched in the HTML returned to the caller.
+    cleanedTextToCheck = URL_REGEX.sub( ' ', cleanedTextToCheck )
 
     # Now general or punctuation clean-ups
     cleanedTextToCheck =  ( cleanedTextToCheck
@@ -743,6 +792,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
         cleanedTextToCheck = cleanedTextToCheck.replace( thingToReallyDelete, '' )
+    # Keep dictionary-listed compounds (e.g., Esar-haddon) from producing
+    # unknown fragments. Unrecognised compounds still have each part checked.
+    def _protect_known_compound( match ) -> str:
+        compound = match.group()
+        dictionaryCompound = compound[:-2] if compound.endswith("'s") else compound
+        return 'ReMoV' if dictionaryCompound in wordSet or f'{dictionaryCompound[0].lower()}{dictionaryCompound[1:]}' in wordSet else compound
+    cleanedTextToCheck = HYPHENATED_WORD_REGEX.sub( _protect_known_compound, cleanedTextToCheck )
     for wordToDelete in PREAPPROVED_WORDS_TO_REMOVE:
         cleanedTextToCheck = cleanedTextToCheck.replace( wordToDelete, 'ReMoV' ) # If we really delete them, then our repeated words check does weird things
     cleanedTextToCheck =  ( cleanedTextToCheck
@@ -822,7 +878,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         elif word.endswith("'s"): word = word[:-2]
         if not word: continue
         if word[0].isdigit(): continue # Probably a ior or fr or xo reference
-        if word.startswith( 'http' ): continue # URL
+        if word.startswith('v') and word[1:].isdigit(): continue # Inline verse reference, e.g., v7.
+        if state.BibleLanguages[versionAbbreviation].startswith('EN') and _is_hebrew_or_greek_word(word):
+            continue
 
         if versionAbbreviation == 'Luth': TOTAL_GERMAN_WORDS_CHECKED_COUNT += 1
         elif versionAbbreviation == 'ClVg': TOTAL_LATIN_WORDS_CHECKED_COUNT += 1
@@ -830,9 +888,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         dictionaryWord = f'{word}es' if hasMarkedIesPlural and word.endswith('i') else word
         # LSV capitalises whole headings and inscriptions. Validate their spelling
         # as ordinary words or proper names, retaining the original for reports/HTML.
+        # NOTE: 'netser', 'Natsaret', 'natsrat' all come from the footnote in OET-RV Mat 2:23
         if dictionaryWord not in wordSet and f'{dictionaryWord[0].lower()}{dictionaryWord[1:]}' not in wordSet \
-        and not (versionAbbreviation == 'LSV' and dictionaryWord.isupper()
-                 and (dictionaryWord.lower() in wordSet or dictionaryWord.capitalize() in wordSet)):
+                and not (versionAbbreviation == 'OET-RV' and dictionaryWord in ('alef', 'beyt', 'alamot','gitit','Le’annot', 'seraf','serafs',
+                                                                                'netser','Natsaret','natsrat', 'tōlədōt', '😀' )) \
+                and not (versionAbbreviation == 'LSV' and dictionaryWord.isupper()
+                and (dictionaryWord.lower() in wordSet or dictionaryWord.capitalize() in wordSet)):
             cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
                                                             .replace('<a title="Return to text" href="#C','') \
                                                             .replace('<hr class="line-before-footnotes">','') \
@@ -1055,8 +1116,9 @@ def printSpellCheckSummary( state ) -> None:
             badDict[word] += 1
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
         NUM_TO_DISPLAY = 40
-        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<NUM_TO_DISPLAY)]
-        if len(displayList)<NUM_TO_DISPLAY and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:NUM_TO_DISPLAY]] # Could cause some duplicates
+        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<NUM_TO_DISPLAY)][:NUM_TO_DISPLAY]
+        displayedWords = {word for word,_count in displayList}
+        displayList += [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0] not in displayedWords][:NUM_TO_DISPLAY-len(displayList)]
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 

@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-31 Link kingdom articles to explicitly identified kings, prophets and places.
     2026-11-02 Index traditional and OET-RV names from the names table without merging identities.
     2026-11-02 Group each entry's indented passage previews ahead of its jump links.
+    2026-11-05 Distinguish namesakes sharing a first citation in search metadata.
 """
 from collections import Counter, defaultdict
 from csv import DictReader
@@ -18,6 +19,8 @@ from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 from navigation import bookNavigationOrder
+from pageMetadata import metadataBookName
+from searchText import plainHtml
 from referencePassages import parseReferenceSelection, renderReferencePassage, renderReferencePassageGroup, referenceCitationLink
 
 
@@ -149,7 +152,7 @@ def loadReferenceEntities(folder, state):
     """Read each source once; names are display text, never inferred identities."""
     folder = Path(folder)
     cached = getattr(state,'referenceEntities',None)
-    if cached and cached['folder'] == folder: return cached
+    if cached and cached['folder'] == folder and 'firstCitationCounts' in cached: return cached
     records = {}
     for prefix,filename in (('P','normalised_People.json'),('L','normalised_Places.json')):
         with (folder/filename).open(encoding='utf-8') as source:
@@ -191,7 +194,8 @@ def loadReferenceEntities(folder, state):
     result = dict(folder=folder,records=records,
                   relationships={key:{label:tuple(sorted(targets)) for label,targets in groups.items() if targets}
                                  for key,groups in relationships.items()},
-                  nameCounts=Counter(entry['displayTitle'] for entry in records.values()))
+                  nameCounts=Counter(entry['displayTitle'] for entry in records.values()),
+                  firstCitationCounts=Counter((key[0], entry['displayTitle'], entry['verses'][0]) for key,entry in records.items() if entry.get('verses')))
     state.referenceEntities = result
     return result
 
@@ -237,12 +241,32 @@ def prepareEntityWordIndex(entities,state):
     entities['passageEntities'] = {reference:tuple(sorted(keys)) for reference,keys in passages.items()}
 
 
+def _citationParts(citation):
+    book, selection = citation.split('_',1)
+    return ('EZE' if book == 'EZK' else book), selection  # Theographic retains the USFM spelling.
+
+
+def entityMetadata(kind, key, entry, entities, articleHtml):
+    name = entry['displayTitle']
+    subject = name
+    if entities['nameCounts'][name] > 1:
+        references = entry.get('verses') or ()
+        if references:
+            book, cv = _citationParts(references[0])
+            subject += f' in {metadataBookName(book, None)} {cv}'
+            if entities['firstCitationCounts'][key[0], name, references[0]] > 1 and (number := re.search(r'\d+$', key)):
+                subject += f' (entry {number[0]})'
+        else:
+            subject += f' ({key[1:]})'
+    summary = plainHtml(articleHtml) or entry.get('comment') or f'Explore the biblical records for {subject}.'
+    return f'{subject} — Bible {kind}', f'{name} — {summary}'
+
+
 def _orderedSelections(citations, sourceSystem, sourcePage):
     selections = []
     for citation in dict.fromkeys(citations):
         try:
-            BBB,selection = citation.split('_',1)
-            BBB = {'EZK':'EZE'}.get(BBB,BBB) # Theographic retains this USFM spelling.
+            BBB,selection = _citationParts(citation)
             references = parseReferenceSelection(BBB,selection,sourceSystem)
         except (ValueError,KeyError) as error:
             logging.warning('Entity %s: cannot link citation %r: %s',sourcePage,citation,error)

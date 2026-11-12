@@ -8,6 +8,7 @@ CHANGELOG:
     2026-10-31 Convert source gloss formatting before displaying or filtering occurrences.
     2026-11-02 Use shared OET-first controls with RV-only/LV-only alternatives.
     2026-11-02 Offer one section-first OET destination in its native numbering.
+    2026-11-05 Describe each occurrence page by its lexical entry and exact range.
 """
 from collections import defaultdict
 from hashlib import sha256
@@ -20,6 +21,7 @@ from openbibledata_rust import tidyHebrewLemmaGloss,formatNTSpansGlossWords
 from settings import reorderBooksForOETVersions
 from lexicalLinks import normaliseStrongs,prepareLexicalAssociations,wordLexicalKeys,lemmaFilename
 from referencePassages import referenceSelectionLinks
+from pageMetadata import hebrewTableLanguages, metadataBookName
 
 
 def orderedReferences(references):
@@ -158,14 +160,27 @@ def createOccurrencePages(level,folder,state):
         stem=group['stem'];total=len(records);pages=(total+99)//100
         (folder/f'{stem}.json').write_text(json.dumps(records,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
         title=f'{"Hebrew" if language=="Heb" else "Greek"} {kind}: {key}'
+        languageName = hebrewTableLanguages(table, group['rows']) if language == 'Heb' else 'Greek'
+        subject = f'{languageName} {kind} {key}'
+        if kind == 'strong':
+            subject = f'Strong’s {key}'
+        elif kind == 'lemma' and language == 'Grk':
+            greekSpelling = table[group['rows'][0]].split('\t')[3]
+            subject = f'Greek lemma {greekSpelling} ({key})'
         back=f'../{language}Lem/{quote(lemmaFilename(language,key))}#Top' if kind=='lemma' else f'../{language}Strng/{key}.htm#Top' if kind=='strong' else f'../{language}Wrd/{filename(group["rows"][0],state)}#Top'
         books=dict.fromkeys(record['book'] for record in records)
         options=''.join(f'<option value="{book}">{book}</option>' for book in books)
         for page in range(pages):
             start=page*100
+            end = min(start+100, total)
+            firstBook, firstCV = records[start]['ref'].split('_')
+            firstReference = f'{metadataBookName(firstBook, None)} {firstCV}'
+            coverage = f'{start+1:,}–{end:,} of {total:,}'
+            metadata = (f'{subject} — occurrences {coverage}',
+                        f'Browse occurrences {coverage} for {subject}, starting at {firstReference}. Each record links to its source word.')
             previous=f'<a href="{stem}-{page}.htm#Top">Previous</a>' if page else ''
             following=f'<a href="{stem}-{page+2}.htm#Top">Next</a>' if page+1<pages else ''
-            top=makeTop(level,None,'word',None,state).replace('__TITLE__',escape(title)).replace('__KEYWORDS__','Bible, occurrences')
+            top=makeTop(level,None,'word',None,state,metadata=metadata)
             html=f'''{top}<h1 id="Top">{escape(title)} — recorded occurrences</h1>
 <p><a href="{back}">Back to the reference entry</a></p>
 <p>Native LV word occurrences in OET book order. OET links open the matching section with RV and LV side by side where available, otherwise the chapter or available edition. Each page lists at most 100 words.</p>

@@ -64,6 +64,7 @@ CHANGELOG:
 
 TODO:
     Add colour keys for LV and RV words
+    2026-11-05 Identify oet interlinear pages and their book indexes in search metadata.
 """
 from pathlib import Path
 import os
@@ -81,6 +82,7 @@ from versification import navigationVersification, _mapReference, combinedPassag
 from oetWords import passageWordRows
 from lexicalLinks import interlinearReferenceCells
 from studyReferences import passageReferenceMaterial
+from pageMetadata import studyIndexMetadata, verseStudyMetadata
 from navigation import navigationBookList, referenceHref, verseNavigationFirstVerses
 from alternateVersePages import createAlternateVersePages
 from oetPassages import _namespaceIds
@@ -161,9 +163,8 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     # Create index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( level, None, 'interlinearVerse', None, state ) \
-            .replace( '__TITLE__', f"Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, interlinear' )
+    top = makeTop(level, None, 'interlinearVerse', None, state,
+            metadata=studyIndexMetadata('OET interlinear'))
     indexHtml = f'''{top}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET interlinear verse pages</h1>
@@ -274,9 +275,12 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 filename = f'C{C}V{v}.htm'
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
-                top = makeTop( BBBLevel, None, 'interlinearVerse', None, state, (BBB,C,str(v)) ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{v} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, interlinear, {ourTidyBBB}' ) \
+                language = None
+                if '<ol class="word">' in iHtml:
+                    language = 'Greek' if bos_books_codes_py.is_new_testament_nr(BBB) else 'Hebrew Bible'
+                top = makeTop(BBBLevel, None, 'interlinearVerse', None, state, (BBB,C,str(v)),
+                        metadata=verseStudyMetadata('OET interlinear', BBB, c, v, interlinearLanguage=language),
+                        canonicalPath=f'ilr/{BBB}/{filename}') \
                         .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top"''')
                 iHtml = f'''{top}<!--interlinear verse page-->
 {adjBBBLinksHtml}
@@ -304,9 +308,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     # Create index page for this book
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
-    top = makeTop( BBBLevel, None, 'interlinearVerse', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, interlinear' )
+    top = makeTop(BBBLevel, None, 'interlinearVerse', None, state, (BBB,),
+            metadata=studyIndexMetadata('OET interlinear', BBB), canonicalPath=f'ilr/{BBB}/index.htm')
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
@@ -328,9 +331,8 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, None, 'interlinearVerse', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, interlinear' )
+    top = makeTop(level, None, 'interlinearVerse', None, state, (BBB,),
+            metadata=studyIndexMetadata('OET interlinear', BBB), canonicalPath=f'ilr/{BBB}/index.htm')
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="PSA/C{ps}V{chapterStartVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \

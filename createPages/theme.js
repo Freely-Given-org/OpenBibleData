@@ -2,7 +2,9 @@
 // theme.js -- Site settings: colour scheme, OET books, verse-number position, text size,
 // and the colour of Jesus'-words spans.
 // CHANGELOG: 2026-10-23 Keep C controls on reference pages and use position-neutral colour tooltips.
+// CHANGELOG: 2026-11-06 Add Downloads to previously generated page headers.
 // CHANGELOG: 2026-11-01 Remember whether OET menus display 66 or all available books.
+// CHANGELOG: 2026-11-09 Open external website links in a new tab by default.
 //
 // All settings are independent and combine freely (non-exclusive), unlike the
 // old Dropdown which forced a choice between "Left verse nums" and "Large
@@ -78,6 +80,8 @@
     'use strict';
 
     var SETTINGS_KEY = 'obd-settings';
+    var downloadsURL = document.currentScript && document.currentScript.src
+        ? new URL('OET/Downloads/index.htm#Top', document.currentScript.src).href : null;
     var LEGACY_THEME_KEY = 'obd-theme';
     var LEGACY_LAYOUT_KEY = 'obd-theme-layout';
 
@@ -431,6 +435,23 @@
         if (event.target === panel) closePanel();
     }
 
+    function setExternalLinkTarget(link) {
+        if (!link || link.hasAttribute('target') || link.hasAttribute('download')) return;
+        var destination;
+        try {
+            destination = new URL(link.getAttribute('href'), document.baseURI);
+        } catch (e) { return; }
+        if ((destination.protocol === 'https:' || destination.protocol === 'http:')
+                && destination.origin !== window.location.origin) {
+            link.setAttribute('target', '_blank');
+            link.relList.add('noopener');
+        }
+    }
+
+    function prepareExternalLink(event) {
+        setExternalLinkTarget(event.target.closest ? event.target.closest('a[href]') : null);
+    }
+
     // ---- Initialise -----------------------------------------------------------
     // Apply the saved (or default) settings before first paint.
     settings = settingsFromStorage();
@@ -447,6 +468,22 @@
 
     // Wire up the panel once the body is parsed (this script runs in <head>).
     function wireUp() {
+        // This also updates existing generated pages through their shared script.
+        var links = document.querySelectorAll('a[href]');
+        for (var i = 0; i < links.length; i++) setExternalLinkTarget(links[i]);
+        // Links added later (e.g. search results) use the same default.
+        document.addEventListener('click', prepareExternalLink, true);
+        document.addEventListener('auxclick', prepareExternalLink, true);
+        // Older static pages gain the same link without rewriting millions of files.
+        var site = document.querySelector('p.site');
+        if (site && downloadsURL && !site.querySelector('[data-site-downloads], a[href*="OET/Downloads/"]')) {
+            var link = document.createElement('a');
+            link.href = downloadsURL;
+            link.textContent = 'Downloads';
+            link.setAttribute('data-site-downloads', '');
+            site.appendChild(document.createTextNode('  '));
+            site.appendChild(link);
+        }
         buildPanel();
         syncParallelVerseButtons(); // reflect the saved state on the page's buttons
         var btn = document.getElementById('settingsButton');

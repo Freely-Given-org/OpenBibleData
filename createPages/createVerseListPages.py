@@ -51,6 +51,7 @@ CHANGELOG:
     2026-11-02 Display Intro in introduction titles and index labels instead of chapter -1.
     2026-11-02 Open chapters at verse 1 except Psalms with verse-zero text; retain access to headings.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
+    2026-11-05 Identify simple verse list pages and their book indexes in search metadata.
 """
 from pathlib import Path
 import os
@@ -77,6 +78,7 @@ from createParallelVersePages import getPlainText
 from bibleNavigation import addReferenceNavigation, preferredReadingHref
 from createSectionPages import findSectionNumber
 from versification import navigationVersification, parallelVersePassage, versePortionHtml
+from pageMetadata import studyIndexMetadata, verseStudyMetadata
 from navigation import navigationBookList, verseNavigationFirstVerses
 from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
@@ -172,9 +174,8 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
     # Create index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( level, None, 'simpleVerse', None, state ) \
-            .replace( '__TITLE__', f"Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
+    top = makeTop(level, None, 'simpleVerse', None, state,
+            metadata=studyIndexMetadata('Simple verse list'))
     # WAS state.BBBLinks['OET-RV'] as first parameter to makeBookNavListParagraph() but that didn't display other books
     indexHtml = f'''{top}<h1 id="Top">Simple verse list pages</h1>
 <h2>Index of books</h2>
@@ -937,9 +938,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
-                top = makeTop( BBBLevel, None, 'simpleVerse', None, state, (BBB,C,V) ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, parallel, verse, list, view, display, {ourTidyBBB}' )
+                top = makeTop(BBBLevel, None, 'simpleVerse', None, state, (BBB,C,V),
+                        metadata=verseStudyMetadata('Simple verse list', BBB, c, v))
                 if hasInterlinearPage:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
                 colourClasses = {name for names in re.findall(r'\bclass="([^"]*)"', parallelHtml) for name in names.split()}
@@ -981,9 +981,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # Create index page for this book
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
-    top = makeTop( BBBLevel, None, 'simpleVerse', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
+    top = makeTop(BBBLevel, None, 'simpleVerse', None, state, (BBB,),
+            metadata=studyIndexMetadata('Simple verse list', BBB), canonicalPath=f'lst/{BBB}/index.htm')
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p><!--vsLst-->' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, None, 'simpleVerse' )}'''
@@ -1003,9 +1002,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # print( f"\n{chapterLinksParagraph=}" )
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, None, 'simpleVerse', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Verse List View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
+    top = makeTop(level, None, 'simpleVerse', None, state, (BBB,),
+            metadata=studyIndexMetadata('Simple verse list', BBB), canonicalPath=f'lst/{BBB}/index.htm')
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml.replace('href="../', f'href="')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph.replace('href="', f'href="{BBB}/')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'''{NEWLINE}<p class="vsLst">{" ".join( vLinksList ).replace('href="', f'href="{BBB}/')}</p><!--vsLst-->''' if BBB!='PSA' else ''}
 {makeBottom( level, None, 'simpleVerse' )}'''

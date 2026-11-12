@@ -5,12 +5,15 @@
 CHANGELOG:
     2026-10-31 Add available cross-family destinations, glosses and bounded filtering.
     2026-11-01 Group word occurrences with readable references, glosses and transliterations.
+    2026-11-05 Share English UBS glosses between search metadata and index labels.
+    2026-11-05 Identify the subject and ordering of each complete lexical index.
 """
 import re
 import json
 import unicodedata
 from urllib.parse import quote,unquote
 from xml.sax.saxutils import escape,unescape
+from pageMetadata import escapedMetadata
 
 
 def wordIndexRecord(language, filename, word, fields):
@@ -62,7 +65,17 @@ def groupWordIndex(records, transliterator):
     return sorted(groups.values(),key=lambda group:group['word'].casefold())
 
 
-def wordIndex(level, groups, outputFolder, *, transliterated=False):
+def _writeCompleteIndex(level, path, stem, contents, metadata, testMode):
+    title, description = metadata
+    title, description = escapedMetadata((f'{title} — complete list', f'Complete list on one page. {description}'), testMode)
+    prefix = '../' * level
+    path.write_text(f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        f'<title>{title}</title><meta name="description" content="{description}"><link rel="stylesheet" href="{prefix}BibleSite.css">'
+        f'<link rel="stylesheet" href="{prefix}common.css"></head><body><h1 id="Top">{title}</h1>'
+        f'<p><a href="{stem}.htm#Top">Return to searchable index</a></p>{contents}</body></html>', encoding='utf-8')
+
+
+def wordIndex(level, groups, outputFolder, *, transliterated=False, metadata=None, testMode=False):
     """Search one spelling at a time; keep every occurrence in the static fallback."""
     stem='transIndex' if transliterated else 'index'
     if not transliterated:
@@ -81,12 +94,8 @@ def wordIndex(level, groups, outputFolder, *, transliterated=False):
             title=escape(f'{group["word"]} ({group["transliteration"]}) — {description}',{'"':'&quot;'})
             rows.append(f'<li><a href="{escape(row["href"],{chr(34):"&quot;"})}" title="{title}">{escape(description)}</a></li>')
         complete.append(f'<details><summary>{label(group)} — {group["language"]} — {len(rows):,} {"occurrence" if len(rows)==1 else "occurrences"}</summary><ol>{"".join(rows)}</ol></details>')
-    title='Complete word index'
-    (outputFolder/f'{stem}-all.htm').write_text(
-        f'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-        f'<title>{title}</title><link rel="stylesheet" href="{"../"*level}BibleSite.css">'
-        f'<link rel="stylesheet" href="{"../"*level}common.css"></head><body><h1 id="Top">{title}</h1>'
-        f'<p><a href="{stem}.htm#Top">Return to searchable index</a></p>{"".join(complete)}</body></html>',encoding='utf-8')
+    _writeCompleteIndex(level, outputFolder/f'{stem}-all.htm', stem, ''.join(complete),
+                        metadata or ('Word index', 'Browse words with their verse references and glosses.'), testMode)
     example=('tov','ţōⱱ') if groups and all(group['language']=='Hebrew' for group in groups) else ('Barakiou','Baraⱪiou')
     return (f'<div class="wordIndex" data-source="words.json" data-transliterated="{str(transliterated).lower()}">'
         '<p>Occurrences are grouped by spelling, ignoring capitalisation. Expand a spelling to browse its verse locations and English glosses. '
@@ -128,7 +137,7 @@ def referenceIndexLinks(level, state, *, includeCore=False):
     return '<p class="note">'+' · '.join(f'<a href="{prefix}{path}#Top">{label}</a>' for path,label in links)+'</p>'
 
 
-def filterableIndex(level, contents, itemTag='a', *, outputFolder=None, stem='index'):
+def filterableIndex(level, contents, itemTag='a', *, outputFolder=None, stem='index', metadata=None, testMode=False):
     """Keep complete static HTML available; search displays 200 entries at a time."""
     assert itemTag in ('a','li')
     dataAttribute = fallback = ''
@@ -143,11 +152,8 @@ def filterableIndex(level, contents, itemTag='a', *, outputFolder=None, stem='in
             records.append(dict(text=text,html=item))
         dataName,allName = f'{stem}.json',f'{stem}-all.htm'
         (outputFolder/dataName).write_text(json.dumps(records,ensure_ascii=False),encoding='utf-8')
-        complete = (f'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-            f'<title>Complete reference index</title><link rel="stylesheet" href="{"../"*level}BibleSite.css">'
-            f'<link rel="stylesheet" href="{"../"*level}common.css"></head><body><h1 id="Top">Complete reference index</h1>'
-            f'<p><a href="{stem}.htm#Top">Return to searchable index</a></p>{contents}</body></html>')
-        (outputFolder/allName).write_text(complete,encoding='utf-8')
+        _writeCompleteIndex(level, outputFolder/allName, stem, contents,
+                            metadata or ('Reference index', 'Browse all entries in this reference index.'), testMode)
         dataAttribute = f' data-source="{dataName}"'
         fallback = f'<p><a href="{allName}#Top">Complete HTML list ({len(items):,} entries)</a></p>'
         contents = '<p>'+' · '.join(items[:200])+'</p>'
@@ -186,11 +192,14 @@ def transliterateIndexLinks(html, transliterator):
                   lambda match:match[1]+transliterator(match[2])+match[3],html,flags=re.DOTALL)
 
 
+def ubsEnglishGlosses(entry):
+    return (gloss for base in entry.get('BaseForms') or () for meaning in base.get('LEXMeanings') or ()
+            for sense in meaning.get('LEXSenses') or () if sense.get('LanguageCode') in (None, 'en')
+            for gloss in sense.get('Glosses') or ())
+
+
 def ubsIndexEntry(entry):
-    glosses = [gloss for base in entry.get('BaseForms') or () for meaning in base.get('LEXMeanings') or ()
-               for sense in meaning.get('LEXSenses') or () if sense.get('LanguageCode')=='en'
-               for gloss in sense.get('Glosses') or ()]
-    return '<li>'+lemmaIndexLink(f'{entry["Lemma"]}.htm',entry['Lemma'],glosses)+'</li>'
+    return '<li>'+lemmaIndexLink(f'{entry["Lemma"]}.htm',entry['Lemma'],ubsEnglishGlosses(entry))+'</li>'
 
 
 def strongIndexEntry(code, lexicon):

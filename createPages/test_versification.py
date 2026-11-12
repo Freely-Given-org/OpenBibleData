@@ -22,7 +22,9 @@ CHANGELOG:
     2026-11-01 Supply section-aware reading links to isolated page-loop fixtures.
     2026-11-02 Enter ordinary chapters at verse 1 while retaining backwards introduction navigation.
     2026-11-03 Supply the static-navigation helper to isolated page loops.
+    2026-11-05 Supply study metadata to the isolated verse and index writers.
 """
+from pageMetadata import studyIndexMetadata, verseStudyMetadata
 import ast
 from collections import defaultdict
 import logging
@@ -398,7 +400,7 @@ class ParallelPageTests(unittest.TestCase):
             getOETTidyBBB=lambda book, **kwargs: book,
             getOETBookName=lambda book: book,
             makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
-            makeTop=lambda *args: '<html><head><title>__TITLE__</title></head><body>',
+            makeTop=lambda *args, **kwargs: '<html><head><title>__TITLE__</title></head><body>',
             makeBottom=lambda *args: '</body></html>',
             checkHtml=lambda *args,**kwargs: True,
             getVerseMetaInfoHtml=lambda *args: '',
@@ -625,7 +627,7 @@ class NavigationBookSelectionTests(unittest.TestCase):
                         reorderBooksForOETVersions=lambda books: books,
                         getOETTidyBBB=lambda book, **kwargs: book, getOETBookName=lambda book: book,
                         makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
-                        makeTop=lambda *args: '<html><head><title>__TITLE__</title></head><body>',
+                        makeTop=lambda *args, **kwargs: '<html><head><title>__TITLE__</title></head><body>',
                         makeBottom=lambda *args: '</body></html>', checkHtml=lambda *args: True,
                         vPrint=lambda *args: None, fnPrint=lambda *args: None,
                         getVerseMetaInfoHtml=lambda *args: '', collectSpellCheckResults=lambda: (),

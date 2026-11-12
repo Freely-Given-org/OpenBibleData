@@ -44,6 +44,8 @@
  *   2026-11-03 Use the existing selected colour for active independent views too.
  *   2026-11-03 Share passage-unavailable error styling across all page families.
  *   2026-11-03 Limit wide-logo links to the displayed image, keeping side whitespace unlinked.
+ *   2026-11-11 Highlight updated OET-RV measurements with a faint light-mode green fill.
+ *   2026-11-12 Drop fragment-following body:has() navigation rules (slow on long pages).
  */
 
 /* Reference entries share the same hierarchy across page families. */
@@ -460,6 +462,8 @@ html[data-size="xlarge"] p.LVVerseText,
 html[data-size="large"] p.RVVerseText,
 html[data-size="xlarge"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
 
+html:not([data-theme="dark"]) span.updatedMeasure { background-color:#e8f5e9; }
+
 /* ---- "Dark mode" character colours (html[data-theme="dark"]) ----
  * The per-family stylesheets colour the character/semantic spans with fixed
  * (mostly "dark*") colours that are easy to read on white paper but nearly
@@ -720,8 +724,3 @@ p.bibleReferenceChoices { margin: 0.5em 0; }
 /* Keep high verse numbers one click away. The build supplies every link. */
 p.bibleReferenceChoices a { white-space:nowrap; }
 [data-nav-current] { display:none; }
-p.bibleReferenceChoices[data-nav-verses] { display:none; }
-p.bibleReferenceChoices[data-nav-default] { display:block; }
-/* A local verse/chapter target overrides the page's initial selection. */
-body:has([data-nav-reference]:target) [data-nav-current] { display:inline; }
-body:has([data-nav-reference]:target) p.bibleReferenceChoices[data-nav-verses] { display:none; }

@@ -4,6 +4,8 @@
 //! Changelog:
 //!   2026-10-23: Protect markup and notes from LV text substitutions and combine
 //!               translation-formatting explanations with source-word titles.
+//!   2026-11-05: Preserve release punctuation in LV book IDs.
+//!   2026-11-11: Include updated-measure spans in OET word-title descriptions.
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -34,6 +36,7 @@ const FORMATS: &[(&str, &str)] = &[
     ("addNegated", "negated"),
     ("addTradName", "traditional name"),
     ("addReword", "reworded"),
+    ("updatedMeasure", "updated measure"),
 ];
 
 fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
@@ -214,7 +217,8 @@ pub(crate) fn protect_lv_html(html: &str) -> ProtectedHtml {
             output.protect(tag);
             continue;
         }
-        let protected = protected || is_note_or_raw_text(tag);
+        let protected = protected || is_note_or_raw_text(tag)
+            || (tag_name(tag) == "p" && attribute(tag, "class") == Some("id"));
         let mut tag = tag.to_owned();
         if !protected && tag_name(&tag) == "span" && attribute(&tag, "class") == Some("add") {
             let rest = &html[cursor..];

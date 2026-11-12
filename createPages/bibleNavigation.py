@@ -9,6 +9,8 @@ CHANGELOG:
     2026-11-01 Restore independent views to the version row and identify the selected version below.
     2026-11-02 Navigate from the first verse of section-start bridges; fall back for invalid references.
     2026-11-03 Generate chapter/verse choices at build time; hide current choices with CSS.
+    2026-11-12 Remove fragment-following body:has() rules and hidden verse rows (slow on long pages).
+    2026-11-12 Whole-document (byDoc) pages keep the chapter bar but no verse bar.
 """
 from hashlib import sha256
 from pathlib import Path
@@ -39,9 +41,9 @@ def _attr(value):return escape(str(value),_ATTRIBUTE_ESCAPES)
 def addReferenceNavigation(pageHtml):
     """Build ordinary chapter/verse links, including when JavaScript is disabled.
 
-    Whole-document and multi-chapter section pages contain a verse row for each
-    chapter. CSS selects the appropriate row from the URL's fragment, and omits
-    its current chapter/verse choice without leaving a separator behind.
+    The bars are static: one verse row, for the page's chapter (whole-document
+    pages get only the chapter bar). CSS omits the current chapter/verse choice
+    without leaving a separator behind.
     """
     header=re.search(r'<div class="header" id="bibleNavigation"[^>]*>',pageHtml)
     if not header:return pageHtml
@@ -62,24 +64,14 @@ def addReferenceNavigation(pageHtml):
     # Use the same primary verse anchors as the text. Deduplicate overlapping
     # OET columns without inventing links into missing or bridged verses.
     chapters={}
-    anchors={}
-    verseTargets={}
     for anchor,chapter,verse in re.findall(r'\bid="((?:a)?C(\d+)V(\d+[a-z]*))"',pageHtml):
         chapters.setdefault(chapter,{}).setdefault(verse,anchor)
-        anchors[anchor]=chapter
-        verseTargets.setdefault((chapter,verse),[]).append(anchor)
     if not chapters:return pageHtml
-    # Existing short #V anchors precede the full reference, sometimes with an
-    # empty chapter anchor between them. Keep those older incoming links working.
-    for alias,chapter,verse in re.findall(
-            r'\bid="(V\d+[a-z]*)"[^>]*></span>\s*(?:<span\b[^>]*></span>\s*)*?'
-            r'<span\b[^>]*\bid="(?:a)?C(\d+)V(\d+[a-z]*)"',pageHtml):
-        if alias[1:]==verse and (chapter,verse) in verseTargets:
-            verseTargets[chapter,verse].append(alias)
-            anchors[alias]=chapter
-    currentChapter=attrs.get('chapter')
-    if currentChapter not in chapters:currentChapter=next(iter(chapters))
-    currentVerse=attrs.get('verse') if attrs.get('chapter')==currentChapter else None
+    # Only a page that belongs to one chapter (or starts in one) has a current
+    # chapter to omit; whole-document pages keep every chapter link.
+    currentChapter=attrs.get('chapter') if attrs.get('chapter') in chapters else None
+    rowChapter=currentChapter or next(iter(chapters))
+    currentVerse=attrs.get('verse') if currentChapter else None
 
     def chapterChoice(chapter,link):
         current=' data-nav-current="true"' if chapter==currentChapter else ''
@@ -96,37 +88,28 @@ def addReferenceNavigation(pageHtml):
             f'<a href="#{next(iter(verses.values()))}">C{chapter}</a>')
             for chapter,verses in chapters.items())
         rows.append(f'<p class="chLst bibleReferenceChoices" aria-label="Chapters">{context} {book}{choices}</p>')
-    styles=[]
-    for chapter,verses in chapters.items():
+    # One static verse row: the bars don't follow in-page jumps. (Fragment-driven
+    # body:has(\u2026:target) rules here made long pages like PSA slow to load and scroll.)
+    # Whole-document pages get none: one chapter's verses at the top of a book isn't useful.
+    if mode!='byDoc':
+        verses=chapters[rowChapter]
         lastVerse=max(int(re.match(r'\d+',verse)[0]) for verse in verses)
         step=5 if lastVerse>100 else 4 if lastVerse>80 else 3 if lastVerse>60 else 2 if lastVerse>40 else 1
         choices=[]
         for verse,anchor in verses.items():
             number=int(re.match(r'\d+',verse)[0])
             if number!=0 and (number-1)%step:continue
-            current=' data-nav-current="true"' if chapter==currentChapter and verse==currentVerse else ''
+            current=' data-nav-current="true"' if verse==currentVerse else ''
             choices.append(f'<span data-nav-verse="{anchor}"{current}>\u2003<a href="#{anchor}">V{verse}</a></span>')
-            targets=', '.join(f'#{target}:target' for target in verseTargets[chapter,verse])
-            styles.append(f'body:has({targets}) [data-nav-verse="{anchor}"] {{ display:none; }}')
-        default=' data-nav-default="true"' if chapter==currentChapter else ''
-        rows.append(f'<p class="vsLst bibleReferenceChoices" data-nav-verses="{chapter}"{default} aria-label="Verses">'
-                    f'{context} {book} {chapter}{"".join(choices)}</p>')
-        styles.append(f'body:has([data-nav-reference="{chapter}"]:target) [data-nav-chapter="{chapter}"] {{ display:none; }}')
-        styles.append(f'body:has([data-nav-reference="{chapter}"]:target) p.bibleReferenceChoices[data-nav-verses="{chapter}"] {{ display:block; }}')
-        anchors[f'C{chapter}']=chapter
-        anchors[f'aC{chapter}']=chapter
-
-    # The anchor itself identifies the chapter, including chapters whose first
-    # available verse is not verse 1. This also works with browser Back/Forward.
-    pageHtml=re.sub(r'\bid="([^"]+)"',lambda m:
-        f'{m[0]} data-nav-reference="{anchors[m[1]]}"' if m[1] in anchors else m[0],pageHtml)
+        rows.append(f'<p class="vsLst bibleReferenceChoices" data-nav-verses="{rowChapter}" aria-label="Verses">'
+                    f'{context} {book} {rowChapter}{"".join(choices)}</p>')
+    if not rows:return pageHtml
     if chapterRow:
         point=pageHtml.index('</p><!--chLst-->',pageHtml.index(chapterRow[0]))+len('</p><!--chLst-->')
     else:
         bookRow=re.search(r'<p class="bkLst"[^>]*>.*?</p><!--bkLst-->',pageHtml)
         point=bookRow.end() if bookRow else pageHtml.index('</div><!--header-->')+len('</div><!--header-->')
-    pageHtml=pageHtml[:point]+'\n'+'\n'.join(rows)+pageHtml[point:]
-    return pageHtml.replace('</head>','<style>\n'+'\n'.join(styles)+'\n</style>\n</head>',1)
+    return pageHtml[:point]+'\n'+'\n'.join(rows)+pageHtml[point:]
 
 
 def colourIndependentViews(top):

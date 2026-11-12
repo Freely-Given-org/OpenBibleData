@@ -10,6 +10,7 @@ system uses the same address for different text. No mappings are guessed.
 
 CHANGELOG:
     2026-10-26 Add explained copies and passage-choice pages for alternate references.
+    2026-11-05 Describe alternate numbering and link copies to their preferred public verse.
 """
 from collections import defaultdict
 import logging
@@ -17,7 +18,8 @@ from pathlib import Path
 import posixpath
 import re
 from urllib.parse import urlsplit, urlunsplit
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
+from pageMetadata import escapedMetadata, metadataBookName, publicCanonicalUrl
 
 from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus, get_default_mapping_engine
 from versification import _referenceLabel, _storedReferences
@@ -124,7 +126,7 @@ def _relativeUrl(url, source, destination):
     return urlunsplit(('', '', path, parts.query, parts.fragment))
 
 
-def alternateVerseHtml(reference, matches, folder, navigationName, pageType):
+def alternateVerseHtml(reference, matches, folder, navigationName, pageType, *, state=None):
     """Copy a unique destination; show all links for groups or differing systems.
 
     Keep text, ids, scripts and controls from the ordinary page. Move #Top to
@@ -154,18 +156,30 @@ def alternateVerseHtml(reference, matches, folder, navigationName, pageType):
         f'(called “versification”). {label} is valid in the numbering listed below, '
         f'but is outside the {escape(navigationLabel)} numbering used for the ordinary '
         f'{pageType} pages.</p>\n' + '\n'.join(paragraphs))
-    title = f'{label} — alternate verse numbering — {pageType.title()}'
+    fullLabel = label.replace(reference[0], metadataBookName(reference[0], None), 1)
+    equivalents = ', '.join(dict.fromkeys(_referenceLabel(
+        [(metadataBookName(book, None), c, v, suffix) for book, c, v, suffix in result.references])
+        for _, result in matches))
+    title, description = escapedMetadata((f'{fullLabel} — alternate verse numbering — {pageType.title()}',
+        f'Compare the numbering of {fullLabel} with {equivalents} in the {navigationLabel} system and open the corresponding {pageType} material.'),
+        getattr(state, 'TEST_MODE_FLAG', False))
+    headText = f'<title>{title}</title>\n  <meta name="description" content="{description}">'
     if len(targets) == 1:
         target = next(iter(targets))
         document = (folder / target).read_text(encoding='utf-8')
         document = re.sub(r'\b(href|src|action|poster)="([^"]*)"',
             lambda match: f'{match[1]}="{_relativeUrl(match[2], target, destination)}"', document)
         document = document.replace(' id="Top"', '')
-        document, count = re.subn(r'<title>.*?</title>', lambda _: f'<title>{escape(title)}</title>',
-                                 document, count=1, flags=re.DOTALL)
+        # An ordinary page already has its own description and may have a self-canonical.
+        head, endHead, body = document.partition('</head>')
+        assert endHead, f'Missing head in {folder / target}'
+        head = re.sub(r'[ \t]*<(?:meta name="description"|link rel="canonical") [^>]*>\n?', '', head)
+        head, count = re.subn(r'<title>.*?</title>', lambda _: headText, head, count=1, flags=re.DOTALL)
         assert count == 1, f'Missing title in {folder / target}'
         canonical = posixpath.relpath(target.as_posix(), destination.parent.as_posix())
-        document = document.replace('</head>', f'<link rel="canonical" href="{canonical}">\n</head>', 1)
+        viewFolder = {'parallel': 'par', 'interlinear': 'ilr'}[pageType]
+        preferred = publicCanonicalUrl(state, f'{viewFolder}/{target.as_posix()}') or canonical
+        document = f'{head}<link rel="canonical" href={quoteattr(preferred)}>\n{endHead}{body}'
         explanation += (f'<p class="note">The page below is a copy of the '
             f'<a href="{canonical}#Top">ordinary {escape(navigationLabel)} page</a>; '
             'its headings and navigation retain that numbering.</p></div>\n')
@@ -177,7 +191,7 @@ def alternateVerseHtml(reference, matches, folder, navigationName, pageType):
         'Follow the links above for the complete passage in the appropriate numbering.</p></div>')
     return (f'<!DOCTYPE html>\n<html lang="en-US"><head><meta charset="utf-8">'
         f'<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f'<title>{escape(title)}</title><link rel="stylesheet" href="../../common.css">'
+        f'{headText}<link rel="stylesheet" href="../../common.css">'
         f'</head><body>\n{explanation}\n</body></html>')
 
 
@@ -186,7 +200,7 @@ def createAlternateVersePages(folder, books, state, pageType):
     from html import checkHtml
     aliases = alternateVerseMappings(folder, books, state)
     for reference, matches in aliases.items():
-        document = alternateVerseHtml(reference, matches, folder, state.navigationVersification, pageType)
+        document = alternateVerseHtml(reference, matches, folder, state.navigationVersification, pageType, state=state)
         assert checkHtml(f'Alternate {pageType} {_referenceLabel((reference,))}', document)
         destination = folder / _pagePath(reference)
         destination.parent.mkdir(parents=True, exist_ok=True)

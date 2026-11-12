@@ -30,6 +30,8 @@ CHANGELOG:
     2026-11-01 Retain the current passage when switching version or reading mode.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-04 Keep matching LV passages before the RV footnote and cross-reference separators.
+    2026-11-05 Identify related-passage pages by section range and heading in the page head.
+    2026-11-05 Identify related passages pages and their book indexes in search metadata.
 """
 from pathlib import Path
 import os
@@ -45,6 +47,7 @@ import bos_books_codes_py
 from settings import State, reorderBooksForOETVersions
 from oetPassages import renderOETLVPassage, _namespaceIds
 from referencePassages import passageContextHref, _externaliseExcerptJumps
+from pageMetadata import sectionMetadata, studyIndexMetadata
 from navigation import scriptureLink
 from Bibles import getVerseDataListForReference
 from bibleNavigation import addReferenceNavigation
@@ -119,9 +122,8 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     # Create index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( level, 'OET', 'relatedSectionIndex', None, state ) \
-            .replace( '__TITLE__', f"Related Passage View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, related, parallel, synoptic' )
+    top = makeTop(level, 'OET', 'relatedSectionIndex', None, state,
+            metadata=studyIndexMetadata('Related passages'))
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Related passage pages</h1>
 <h2>Index of books</h2>
@@ -908,9 +910,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             xrefHtml = f'<div><h2>Collected OET-RV cross-references</h2>\n{xrefHtml}\n</div><!--end of collectedCrossReferences-->'
 
         filepath = BBBFolder.joinpath( sFilename )
-        top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state, (BBB,startC,startV) ) \
-                .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, cross-reference, parallel, {ourTidyBBB}' ) \
+        top = makeTop(BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state, (BBB,startC,startV),
+                metadata=sectionMetadata(thisBible.abbreviation, BBB, startC, startV, endC, endV, sectionName, related=True)) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{sFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         crossReferencedSectionHtml = f'''{top}<!--cross-reference section page-->
@@ -931,9 +932,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     # Now make the section index file for this book
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
-    top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
+    top = makeTop(BBBLevel, thisBible.abbreviation, 'relatedSectionIndex', None, state, (BBB,),
+            metadata=studyIndexMetadata('Related passages', BBB), canonicalPath=f'rel/{BBB}/index.htm') \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
@@ -959,9 +959,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, thisBible.abbreviation, 'relatedSectionIndex', None, state, (BBB,) ) \
-            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
+    top = makeTop(level, thisBible.abbreviation, 'relatedSectionIndex', None, state, (BBB,),
+            metadata=studyIndexMetadata('Related passages', BBB), canonicalPath=f'rel/{BBB}/index.htm') \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'

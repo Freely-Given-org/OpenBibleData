@@ -82,10 +82,16 @@ CHANGELOG:
     2026-11-01 Prepare every version's section destinations before any parallel pages.
     2026-11-01 Generate and publish native search data with the site.
     2026-11-02 Validate staged search before deployment and keep its intermediate records private.
+    2026-11-05 Describe site resources and navigation pages in their search metadata.
+    2026-11-06 Preserve independent OET Downloads during cleanup and publication.
+    2026-11-09 Introduce the OET reader with its full name, draft status and available reading links.
+    2026-11-09 Identify the OET reader directory as the preferred landing-page URL.
+    2026-11-11 Explain the OET-RV updated-measure formatting in the OET key.
 """
 from pathlib import Path
 import os
 import shutil
+from downloadPublication import cleanVersionFolder, moveGeneratedEntry
 import glob
 from datetime import date
 import logging
@@ -98,6 +104,7 @@ import bos_books_codes_py
 
 from settings import State, state, reorderBooksForOETVersions
 from navigation import bookNavigationOrder, bookAbbreviation, bookName
+from pageMetadata import metadataBookName
 from Bibles import preloadVersions
 from openbibledata_rust import getOETTidyBBB, getOETBookName, build_word_table_snapshot_py, build_word_table_index
 from createBookPages import createOETBookPages, createBookPages
@@ -309,9 +316,9 @@ def _createSitePages() -> bool:
                 # We just write a very bland index page here
                 versionName = state.BibleNames[versionAbbreviation]
                 indexHtml = f'<h1 id="Top">{versionName}</h1>'
-                top = makeTop( 1, None, 'site', None, state ) \
-                                .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                                .replace( '__KEYWORDS__', f'Bible, {versionAbbreviation}, {versionName}' )
+                top = makeTop(1, None, 'site', None, state, metadata=(
+                    versionName,
+                    f'Find the source and copyright details for {versionName} on Open Bible Data.'))
                 folder = state.TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' )
                 os.makedirs( folder )
                 filepath = folder.joinpath( 'index.htm' )
@@ -439,7 +446,7 @@ def _createSitePages() -> bool:
                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {state.DESTINATION_FOLDER}/…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-                shutil.move( fileOrFolderPath, f'{state.DESTINATION_FOLDER}/', copy_function=shutil.copy2)
+                moveGeneratedEntry(fileOrFolderPath, state.DESTINATION_FOLDER)
                 count += 1
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {state.DESTINATION_FOLDER}/." )
@@ -558,7 +565,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','UHG','UGG','TOSN','TOBD','UBS','THBD','BMM','OBI']:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
-        try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
+        try: cleanVersionFolder(folder / versionAbbreviation,
+                                keepDownloads=folder == state.DESTINATION_FOLDER and versionAbbreviation == 'OET')
         except FileNotFoundError: pass
     return True
 # end of createSitePages._cleanHTMLFolders
@@ -577,10 +585,23 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
+    readingLinks = ' · '.join(
+        f'<a href="byDoc/{BBB}.htm#Top">{metadataBookName(BBB, "OET")}</a>'
+        for BBB in ('JHN', 'MRK', 'GEN', 'PSA')
+        if folder.joinpath(f'byDoc/{BBB}.htm').is_file())
+    readingLinksHtml = f'<p>Start reading {readingLinks}, or use the reading options below to choose another book.</p>\n' if readingLinks else ''
     indexHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<h1 id="Top">{versionName}</h1>
-{state.BY_DOCUMENT_HTML_PARAGRAPH}
+<h1 id="Top">Open English Translation (OET) – Read Online</h1>
+<p>Read the <em>Open English Translation</em>, a freely licensed Bible translation with
+the modern-English <b>Readers’ Version</b> and the <b>Literal Version</b> side by side.
+Compare the two versions as you read, and follow links from the Literal Version
+to explore the original Hebrew, Aramaic, and Greek words.</p>
+<p>The OET is an unfinished draft undergoing consistency and accuracy checks.
+See the <a href="https://OpenEnglishTranslation.Bible/About/Status/">current project status</a>
+or <a href="details.htm#Top">translation and licence details</a>.</p>
+{readingLinksHtml}<h2>Choose how to read</h2>
 {makeViewNavListParagraph( level, 'OET', 'workIndex', state )}
+{state.BY_DOCUMENT_HTML_PARAGRAPH}
 '''
 # <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
@@ -588,9 +609,10 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
 # {state.BY_DOCUMENT_HTML_PARAGRAPH}
 # <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # '''
-    top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, OET, OETBible, {versionName}, modern English, open' ) \
+    top = makeTop(level, None, 'site', None, state, metadata=(
+        'Open English Translation (OET) – Read Online',
+        'Read the Open English Translation (OET) Bible online, with its Readers’ and Literal Versions side by side. Choose a book, chapter or section.'),
+        canonicalPath='OET/') \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -656,9 +678,9 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
 # {state.BY_DOCUMENT_HTML_PARAGRAPH}
 # <p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # '''
-    top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
+    top = makeTop(level, None, 'site', None, state, metadata=(
+        versionName,
+        f'Choose a Bible book to read in {versionName}, or browse the edition by chapter.')) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     filepath = folder.joinpath( 'index.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -710,9 +732,9 @@ especially in the New Testament era where scribes often were not professionals.<
 <li><a href="byC/ROM_C16.htm#V24">Romans 16:24</a>: The grace of our master Yeshua the messiah be with all of you. Amen.</li>
 </ul>
 '''
-    top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"OET Missing Verses{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                    .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
+    top = makeTop(level, None, 'site', None, state, metadata=(
+        'Why some verses are omitted in the OET Readers’ Version',
+        'Learn what the ◘ symbol means in the Open English Translation and how manuscript differences affect verse numbering.')) \
                     .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = buildFolder.joinpath( 'missingVerses.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -772,9 +794,9 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
                             state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
                                 'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
-        topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
-                .replace( '__TITLE__', f"{versionName} Details{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
+        topHtml = makeTop(level+1, versionAbbreviation, 'details', 'details.htm', state, metadata=(
+            f'{versionName} — edition details',
+            f'Find the provenance, acknowledgements and copyright information for {versionName}.')) \
                 .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="__LEVEL__{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="__LEVEL__{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
 
@@ -889,9 +911,9 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Make a summary page with details for all versions
-    topHtml = makeTop( level, None, 'AllDetails', 'details.htm', state ) \
-            .replace( '__TITLE__', f"All Versions Details{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
+    topHtml = makeTop(level, None, 'AllDetails', 'details.htm', state, metadata=(
+        'Bible editions and study resources — sources and copyright',
+        'Find the source, copyright and attribution information for the Bible editions and study resources used on Open Bible Data.'))
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
@@ -932,9 +954,10 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     from searchPage import searchBody
     searchHTML = (searchBody(state.searchManifest) if state.CREATE_SEARCH_INDEX_FLAG
                   else '<h1 id="Top">Search</h1><p>Search indexing is disabled for this build. <a href="OET/byC/">Browse books and chapters</a>.</p>')
-    topHtml = makeTop( level, None, 'search', None, state ) \
-                .replace( '__TITLE__', f"Search OBD{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, search, {state.SITE_ABBREVIATION}, OET' ) \
+    topHtml = makeTop(level, None, 'search', None, state, metadata=(
+        'Search the Bible | Open Bible Data',
+        'Search Bible text and study resources by reference, English word, Hebrew or Greek on Open Bible Data.'
+        if state.CREATE_SEARCH_INDEX_FLAG else 'Search is disabled in this build. Browse Bible books and chapters instead.')) \
                 .replace( '</head>', ('''  <link rel="stylesheet" href="Search.css">
   <script type="module" src="search.js"></script>
 </head>''' if state.CREATE_SEARCH_INDEX_FLAG else '</head>'))
@@ -1026,9 +1049,9 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/issues">here at GitHub</a> and telling us the problem.</p>'''
-    topHtml = makeTop( level, None, 'about', None, state ) \
-                .replace( '__TITLE__', f"About {state.SITE_ABBREVIATION}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, about, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
+    topHtml = makeTop(level, None, 'about', None, state, metadata=(
+        f'About {state.SITE_NAME}',
+        'Learn why Open Bible Data was created and how its Bible translations and study tools support readers and translators.'))
     html = f'''{topHtml}
 {aboutHTML}
 <p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {PROGRAM_NAME_VERSION}</small></p>
@@ -1071,9 +1094,9 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/issues">here at GitHub</a> and telling us the problem.</p>'''
-    topHtml = makeTop( level, None, 'news', None, state ) \
-                .replace( '__TITLE__', f"{state.SITE_ABBREVIATION} News{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, news, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
+    topHtml = makeTop(level, None, 'news', None, state, metadata=(
+        f'{state.SITE_NAME} news',
+        'Read updates about the Bible texts, study resources and features on Open Bible Data.'))
     html = f'''{topHtml}
 {newsHTML}
 {makeBottom( level, None, 'news' )}'''
@@ -1140,6 +1163,7 @@ Wherever, we believe that we have a retelling of almost the same thought in poet
 <ul>
     <li><b>Sample</b>: ‘<span class="RVadd">two</span>’ <b>represents</b> English words that the translators have added to help or remind the readers,
         e.g., ‘the <span class="RVadd">two</span> brothers’).</li>
+    <li><b>Sample</b>: ‘<span class="updatedMeasure">two thousand litres</span>’ marks a measurement that has been expressed in updated units to help modern readers.</li>
     <li><b>Sample</b>: ‘<span class="addReferent">David</span>’ <b>is used when</b> a pronoun (like ‘he’, ‘it’, ‘you’, or ‘those’) is replaced with its referent,
             i.e., the person(s) or object(s) being referred to.
         There are several reasons why this might be done, but the main two are:
@@ -1202,9 +1226,9 @@ The reason why such verses are not included is usually because the original lang
     assert keyHTML.count( '<ol>' ) == keyHTML.count( '</ol>' )
     assert keyHTML.count( '<p' ) == keyHTML.count( '</p>' )
     assert keyHTML.count( '<span' ) == keyHTML.count( '</span>' )
-    topHtml = makeTop( level, None, 'OETKey', None, state ) \
-                .replace( '__TITLE__', f"Key to the Open English Translation{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Bible, key, OET, OETBible' )
+    topHtml = makeTop(level, None, 'OETKey', None, state, metadata=(
+        'Key to the Open English Translation',
+        'Understand the names, symbols, formatting and translation conventions used in the Open English Translation.'))
     html = f'''{topHtml}
 {keyHTML}
 {makeBottom( level, None, 'OETKey' )}'''
@@ -1229,9 +1253,9 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     # Create the very top level index file
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}main index page for {len(state.BibleVersions)} versions…" )
-    html = makeTop( level, None, 'TopIndex', None, state ) \
-            .replace( '__TITLE__', f'TEST {state.SITE_NAME} Home' if state.TEST_MODE_FLAG else f'{state.SITE_NAME} Home') \
-            .replace( '__KEYWORDS__', f'Bible, translation, English, OET, OETBible, {state.SITE_ABBREVIATION}, {state.SITE_NAME}' )
+    html = makeTop(level, None, 'TopIndex', None, state, metadata=(
+        'Open Bible Data — Bible translations and study tools',
+        'Read the Open English Translation, compare Bible versions, and study passages with interlinears, dictionaries and translation notes.'))
     if state.TEST_MODE_FLAG:
         html = html.replace( '<body class="container">', '<body class="container"><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = f'<!--_createMainIndexPage--><h1 id="Top">{state.SITE_NAME} TEST Home</h1>' \

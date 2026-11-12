@@ -9,9 +9,11 @@ CHANGELOG:
     2026-10-31 Check native verse links, grouped previews and unambiguous Greek lemma navigation.
     2026-10-31 Cover draft colour agreement, disabled colours, parallel keys and unparsed Latin.
     2026-11-01 Keep the draft key below the last coloured version, ahead of uncoloured versions.
+    2026-11-05 Check OET-LV release labels from fresh and cached books.
 """
 from contextlib import ExitStack
 from pathlib import Path
+import json
 import os
 import pickle
 import re
@@ -22,7 +24,7 @@ from unittest.mock import patch
 
 from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.Formats.ESFMBible import ESFMBible
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks
+from openbibledata_rust import convertVerseEntryListToHtml, do_OET_LV_HTMLcustomisations, livenOETWordLinks
 import Bibles
 from navigation import bookNavigationOrder
 from oetDeuterocanon import createDCWordPages, dcGrammaticalColourKey, DC_WORD_TABLE, DC_COLUMN_HEADERS
@@ -55,13 +57,16 @@ class OETDCTests(unittest.TestCase):
         for number, BBB in enumerate(('TOB','PSS','ODE'), 1):
             self.table.append('\t'.join((f'{BBB}_1:1w1','λόγος','λόγος','N-NSM','word','word',
                 'form-lexical','STEPBible','[]',f'{BBB}_1:1','source.xml','',' ')))
-        for part, books in (('OT', ('GEN',)), ('DC', ('TOB','PSS','ODE')), ('NT', ('JHN',))):
+        for part, version, books in (('OT', 'v1.2.3', ('GEN',)), ('DC', 'v2.0.0-rc.1', ('TOB','PSS','ODE')),
+                                     ('NT', 'v3.4.5', ('JHN',))):
             folder = self.root / f'auto_edited_{part}_ESFM'
             folder.mkdir()
             self.state.BibleLocations[f'OET-LV-{part}'] = str(folder)
+            (folder / 'version.json').write_text(json.dumps({'group': part, 'version': version}))
             for BBB in books:
                 tableName = f'OET-LV_{part}_word_table.tsv'
-                content = (f'\\id {"ODA" if BBB == "ODE" else BBB}\n\\rem ESFM v0.6 {BBB}\n\\rem WORDTABLE {tableName}\n'
+                bookID = ('ODA' if BBB == 'ODE' else BBB) + (' - OET-LV DC lexical draft' if part == 'DC' else '')
+                content = (f'\\id {bookID}\n\\rem ESFM v0.6 {BBB}\n\\rem WORDTABLE {tableName}\n'
                     f'\\h {BBB}\n\\mt1 {BBB}\n\\c 1\n\\p\n\\v 1 ')
                 content += f'word¦{("TOB","PSS","ODE").index(BBB)+1}.\n' if part == 'DC' else 'Example.\n'
                 (folder / f'OET-LV_{BBB}.ESFM').write_text(content, encoding='utf-8')
@@ -92,6 +97,42 @@ class OETDCTests(unittest.TestCase):
     def test_subset_does_not_pull_in_unrequested_dc_books(self):
         self.state.booksToLoad['OET-LV'] = ['GEN','TOB','JHN']
         self.assertEqual(set(self.load().books), {'GEN','TOB','JHN'})
+
+    def test_book_headers_display_the_source_folder_release(self):
+        bible = self.load()
+        for BBB, label in (('GEN', 'GEN - <em>Open English Translation</em>—Literal Version (OET-LV) v1.2.3'),
+                           ('ODE', 'ODA - OET-LV DC lexical draft v2.0.0-rc.1'),
+                           ('JHN', 'JHN - <em>Open English Translation</em>—Literal Version (OET-LV) v3.4.5')):
+            with self.subTest(book=BBB):
+                entries, context = bible.getContextVerseData((BBB,'-1'))
+                rendered = convertVerseEntryListToHtml(2, 'OET-LV', (BBB,'-1'), 'chapter', context, entries,
+                                                       state=self.state, livenWordLinks=True)
+                self.assertEqual(do_OET_LV_HTMLcustomisations(BBB, rendered).count(f'<p class="id">{label}</p>'), 1)
+
+    def test_cached_books_pick_up_a_changed_source_folder_release(self):
+        bible = self.load()
+        path = Path(self.state.BibleLocations['OET-LV-DC']) / 'version.json'
+        cachePath = self.root / f'OET-LV{self.state.PICKLE_FILENAME_END}'
+        with cachePath.open('wb') as output:
+            pickle.dump(bible, output)
+        for manifest, version in ((path, 'v2.1.0'), (self.root / 'version.json', 'v9.0.0')):
+            manifest.write_text(json.dumps({'version': version}))
+            stamp = cachePath.stat().st_mtime + 10
+            os.utime(manifest, (stamp, stamp))
+        self.state.LOAD_RESOURCES_FROM_PICKLES_FLAG = True
+        with patch.object(Bibles, 'preloadVersion', side_effect=AssertionError('Expected cached books')):
+            self.load()
+        self.assertEqual(self.state.oetLVBookVersions['ODE'], 'v2.1.0')
+
+    def test_source_without_release_keeps_its_original_book_id(self):
+        path = Path(self.state.BibleLocations['OET-LV-DC']) / 'version.json'
+        path.unlink()
+        with self.assertLogs(level='WARNING') as messages:
+            bible = self.load()
+        self.assertTrue(any(str(path) in message for message in messages.output))
+        entries, context = bible.getContextVerseData(('ODE','-1'))
+        rendered = convertVerseEntryListToHtml(2, 'OET-LV', ('ODE','-1'), 'chapter', context, entries, state=self.state)
+        self.assertIn('<p class="id">ODA - OET-LV DC lexical draft</p>', rendered)
 
     def test_production_selection_includes_all_seventeen_dc_books(self):
         self.assertEqual(len(State.OET_LV_BOOK_LIST), 83)

@@ -4,6 +4,7 @@
 //!     2026-10-29 Link DC glosses and unresolved Greek words to their own lexical data
 //!     2026-10-31 Colour DC draft morphology only when every analysis agrees
 //!     2026-11-03 Add more OET bookname spellings to `get_bbb_from_oet_book_name_core`
+//!     2026-11-11 Treat OET-RV updated-measure additions as specially formatted text.
 //!
 //! The PyO3 wrappers that expose these functions to Python live in `lib.rs`
 //! (they pull rows out of `state.OETRefData` and build/inspect BOS
@@ -523,13 +524,14 @@ fn in_no_link_yet_exception_list(reference_tuple: &[&str]) -> bool {
 /// OET-RV `\add` "level 2" special formatting characters — the first character
 /// of an added text when the translator wants to say more than "this text was
 /// added". These are exactly the ones `do_oet_rv_html_customisations` rewrites
-/// into `addArticle`/`addTradName`/`addDirectObject`/… spans, plus `>` which the
+/// into `addArticle`/`addTradName`/`addDirectObject`/`updatedMeasure`/… spans,
+/// plus `>` which the
 /// OET-RV sources also use. Text introduced by one of them routinely carries
 /// word links (`\add ≈Jewish¦88463 meeting¦88463 halls¦88463\add*` and
 /// `\add !(Israel¦83035)\add*` are both real lines), so words there still get
 /// highlighted as unlinked. Plain `\add <words>\add*` spans never do.
 const ADD_SPECIAL_FORMATTING_CHARS: &[char] =
-    &['!', '#', '%', '&', '*', '+', '<', '>', '?', '@', '^', '≈', '≡'];
+    &['!', '#', '$', '%', '&', '*', '+', '<', '>', '?', '@', '^', '≈', '≡'];
 
 /// An `\add` / `\+add` marker found inside a whitespace-delimited word.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

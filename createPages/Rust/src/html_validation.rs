@@ -7,6 +7,7 @@
 //!
 //! Changelog:
 //!   2026-10-23: Allow OET formatting prefixes in addition to word-title limits.
+//!   2026-11-11: Detect unprocessed OET-RV updated-measure markers.
 
 use pyo3::prelude::*;
 use once_cell::sync::Lazy;
@@ -644,7 +645,7 @@ pub fn check_html(html: &str, where_: &str, segment_only: bool) -> HtmlCheckResu
                     ("\u{2261}", "repeat ellided"), ("&", "added 'owner'"),
                     ("@", "expanded pronoun"), ("*", "reduced to pronoun"),
                     ("#", "changed number"), ("^", "used opposite"),
-                    ("\u{2248}", "reworded"), ("?", "unsure"),
+                    ("\u{2248}", "reworded"), ("$", "updated measure"), ("?", "unsure"),
                 ];
                 for &(ch, reason) in annotations {
                     let needle = format!("<span class=\"add\">{}", ch);

@@ -13,6 +13,8 @@ CHANGELOG:
     2026-11-01 Include the book-navigation helper when exercising isolated page builders.
     2026-11-01 Accept the selected-book argument in isolated navigation fixtures.
     2026-11-03 Supply the static-navigation helper to isolated page builders.
+    2026-11-05 Supply passage metadata to the isolated section builder.
+    2026-11-05 Exercise book and chapter metadata through the same page writers.
 """
 import ast
 from collections import defaultdict
@@ -24,7 +26,7 @@ import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 import BibleOrgSys.Reference.BibleVersification as bv
@@ -39,6 +41,7 @@ from bible_organisational_system import InternalBibleEntryList
 import oetPassages as op
 from navigation import mapHtmlLinks, oetBookNavigationLinks
 from createSectionPages import sectionChapterTarget
+from pageMetadata import bookReadingMetadata, chapterReadingMetadata, readingIndexMetadata, sectionMetadata
 import versification as vf
 from settings import State
 
@@ -213,6 +216,7 @@ class OETPassageTests(unittest.TestCase):
 
     def builder(self, filename, name, section=False):
         from bibleNavigation import addReferenceNavigation
+        self.pageTop = Mock(return_value='<html><body>')
         namespace=dict(globals(),
             addReferenceNavigation=addReferenceNavigation,
             defaultdict=defaultdict, os=os, BibleOrgSysGlobals=BibleOrgSysGlobals,
@@ -222,7 +226,7 @@ class OETPassageTests(unittest.TestCase):
             vPrint=lambda *a: None,dPrint=lambda *a: None,fnPrint=lambda *a: None,
             getOETTidyBBB=lambda b,**k: b,
             makeBookNavListParagraph=lambda *a,**kwargs: '',
-            makeTop=lambda *a: '<html><body>',makeBottom=lambda *a: '</body></html>',
+            makeTop=self.pageTop,makeBottom=lambda *a: '</body></html>',
             checkHtml=lambda *a,**k: True,removeDuplicateCVids=lambda h: h,
             convertVerseEntryListToHtml=self.render,
             do_OET_RV_HTMLcustomisations=lambda _,h:h,
@@ -240,7 +244,7 @@ class OETPassageTests(unittest.TestCase):
             topicReferenceMaterial=lambda *args:'', # Associations are covered in test_study_references.
             TOPIC_LIST=[],
             fnPrint=lambda *a:None, vPrint=lambda *a:None, dPrint=lambda *a:None,
-            getOETTidyBBB=lambda b,*a,**k:b, makeTop=lambda *a:'<html>', makeBottom=lambda *a:'</html>',
+            getOETTidyBBB=lambda b,*a,**k:b, makeTop=lambda *a,**k:'<html>', makeBottom=lambda *a:'</html>',
             convertVerseEntryListToHtml=self.render, do_OET_RV_HTMLcustomisations=lambda _,h:h,
             renderOETLVPassage=op.renderOETLVPassage, checkHtml=lambda *a,**k:True,
             removeDuplicateCVids=lambda h:h)
@@ -361,7 +365,17 @@ class OETPassageTests(unittest.TestCase):
                 self.assertIn('Native-3-24.',html)
                 self.assertIn('par/MAL/C4V1.htm',html)
                 self.assertNotIn('Unsolved versification',html)
+                titles = [call.kwargs['metadata'][0] for call in self.pageTop.call_args_list if 'metadata' in call.kwargs]
+                if filename == 'createChapterPages.py':
+                    self.assertTrue(any(title.endswith(' 4 | OET') for title in titles))
+                    self.assertTrue(any(title.endswith(' — chapter index | OET') for title in titles))
+                if filename == 'createBookPages.py':
+                    self.assertTrue(any(title.endswith(' — whole document | OET') for title in titles))
                 if section:
+                    title, description = next(call.kwargs['metadata'] for call in self.pageTop.call_args_list
+                                              if call.args[2] == 'section')
+                    self.assertIn('4:1–6 — Ending | OET', title)
+                    self.assertIn('side by side', description)
                     self.assertIn('href="MAL_S0.htm#Top"', html)
                     self.assertIn('id="Top"', html)
                     self.assertNotIn('href="MAL_S0.htm#C4"', html)

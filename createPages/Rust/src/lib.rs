@@ -6,6 +6,7 @@
 //!     2026-10-30 Accept verified lexical and grammar cells for interlinear rows.
 //!     2026-10-31 Route explicitly tagged RV words in DC books to the DC table too.
 //!     2026-10-31 Honour the grammatical-colour setting for DC word links.
+//!     2026-11-05 Show the OET-LV source release on rendered book ID lines.
 
 /// Use a faster/scalable allocator for this cdylib's Rust allocations when the
 /// `allocator-mimalloc` cargo feature is enabled (default: off).
@@ -716,6 +717,20 @@ fn convert_verse_entry_list_to_html_py<'py>(
             let clean_text: String = py_entry.getattr("clean_text")?.extract()?;
             (marker, full_text, clean_text)
         };
+
+        if marker == "id" && versionAbbreviation == "OET-LV" && !basicOnly
+            && let Some(state) = state
+            && let Some(versions) = state.getattr_opt("oetLVBookVersions")?
+            && let Some(version) = versions.call_method1("get", (bos_book_code,))?.extract::<Option<String>>()?
+        {
+            // OT and NT typically supply only a book code. Preserve longer IDs
+            // such as “TOB - OET-LV DC lexical draft”.
+            if !full_text.contains(' ') {
+                full_text.push_str(" - Open English Translation—Literal Version (OET-LV)");
+            }
+            full_text.push(' ');
+            full_text.push_str(&version);
+        }
 
         if let Some(lctx) = &liven_ctx {
             // Mirror the entry-by-entry checks/preprocessing/livening of

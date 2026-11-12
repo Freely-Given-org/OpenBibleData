@@ -12,12 +12,15 @@ CHANGELOG:
     2026-10-23 Check combined OET formatting titles through the spelling pipeline
     2026-10-26 Check LSV uppercase words, names and possessives without hiding misspellings
     2026-10-30 Check generated DC names through the same LV spelling path as NT names.
+    2026-11-09 Check URL/script exclusions, name alternatives and compounds, and unique summary entries.
+    2026-11-11 Check OET-RV-only acceptance of netser and continued rejection of damaged transliterations.
 """
 from types import SimpleNamespace
 from collections import defaultdict
 from pathlib import Path
 from csv import DictReader
 import ast
+import unicodedata
 import unittest
 from unittest.mock import patch
 
@@ -60,6 +63,117 @@ class TestOETLVNames(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertIn('class="spelling"', spelling.spellCheckAndMarkHTMLText(
                     'OET-LV', 'TOB_1:1', source, source, self.state))
+
+
+class TestEnglishSpellingExclusions(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.old_verbosity = BibleOrgSysGlobals.verbosityLevel
+        BibleOrgSysGlobals.verbosityLevel = 0
+        spelling.load_dict_sources()
+        spelling.load_OET_LV_names()
+        spelling.load_OET_RV_names()
+        cls.state = SimpleNamespace(BibleLanguages={'OET-RV': 'EN-UK', 'BSB': 'EN-USA'})
+
+    @classmethod
+    def tearDownClass(cls):
+        BibleOrgSysGlobals.verbosityLevel = cls.old_verbosity
+
+    def setUp(self):
+        self.reports = self.enterContext(patch.object(
+            spelling, 'MISPELLING_VERSION_REF_DICT', defaultdict(list)))
+
+    def check_text(self, text, version='OET-RV'):
+        source = f'<span class="{version}_verseTextChunk">{text}</span>'
+        return source, spelling.spellCheckAndMarkHTMLText(
+            version, 'MAT_1:1', source, source, self.state)
+
+    def test_urls_are_removed_before_paths_and_filenames_are_split(self):
+        for url in (
+            'http://scrollandscreen.com/biblestudyresources/Matthew%2013.1-23%20mgvh%20notes.pdf',
+            'https://www.billmounce.com/monday-with-mounce/when-then-then-mt-27-38',
+            'https://www.theologyofwork.org/new-testament/matthew/living-in-the-new-kingdom-matthew-18-25/',
+            'www.example.org/unknown-path/file_name?q=misspellled&amp;word=badword#fragment',
+            'HTTPS://example.org/unknown-path',
+        ):
+            with self.subTest(url=url):
+                before = spelling.TOTAL_ENGLISH_WORDS_CHECKED_COUNT
+                source, checked = self.check_text(f'({url}).')
+                self.assertEqual(checked, source)
+                self.assertEqual(self.reports['OET-RV'], [])
+                self.assertEqual(spelling.TOTAL_ENGLISH_WORDS_CHECKED_COUNT, before)
+
+    def test_url_exclusion_preserves_link_labels_and_neighbouring_errors(self):
+        source, checked = self.check_text(
+            '<a href="https://example.org/unknown-path">misspellled</a> '
+            'https://example.org/unknown-path mispeltt')
+        self.assertEqual(self.reports['OET-RV'],
+                         [('misspellled', 'MAT_1:1'), ('mispeltt', 'MAT_1:1')])
+        self.assertIn('href="https://example.org/unknown-path"', checked)
+        self.assertIn('class="spelling">misspellled</span>', checked)
+        self.assertIn('class="spelling">mispeltt</span>', checked)
+
+    def test_urls_do_not_create_accidental_repetitions(self):
+        source, checked = self.check_text('go https://example.org/unknown-path go')
+        self.assertEqual(checked, source)
+        self.assertEqual(self.reports['OET-RV'], [])
+
+    def test_hebrew_and_greek_with_accents_are_not_english_words(self):
+        for version in ('OET-RV', 'BSB'):
+            for text in ('‘ψαλμός’ (סֶֽלָה) נצר נְזִיר',
+                         unicodedata.normalize('NFD', 'ψαλμός ἀρχῇ'),
+                         'ψαλμός/נצר', 'נצר נצר', 'ψαλμός ψαλμός'):
+                with self.subTest(version=version, text=text):
+                    before = spelling.TOTAL_ENGLISH_WORDS_CHECKED_COUNT
+                    source, checked = self.check_text(text, version)
+                    self.assertEqual(checked, source)
+                    self.assertEqual(self.reports[version], [])
+                    self.assertEqual(spelling.TOTAL_ENGLISH_WORDS_CHECKED_COUNT, before)
+
+    def test_script_exclusion_does_not_hide_damaged_or_romanised_words(self):
+        for word in ('ψαλμόςx', 'xנצר', '⟦ἀγνώστως⟧', 'netserr', 'Ahimilik'):
+            with self.subTest(word=word):
+                self.reports['OET-RV'].clear()
+                source, checked = self.check_text(word)
+                self.assertEqual(self.reports['OET-RV'], [(word, 'MAT_1:1')])
+                self.assertIn(f'class="spelling">{word}</span>', checked)
+
+    def test_netser_exception_is_limited_to_oet_rv(self):
+        self.state.BibleLanguages['Wycl'] = 'EN-UK'
+        for version in ('Wycl', 'OET-RV', 'Wycl', 'BSB'):
+            with self.subTest(version=version):
+                self.reports[version].clear()
+                source, checked = self.check_text('netser', version)
+                if version == 'OET-RV':
+                    self.assertEqual(checked, source)
+                    self.assertEqual(self.reports[version], [])
+                else:
+                    self.assertEqual(self.reports[version], [('netser', 'MAT_1:1')])
+                    self.assertIn('class="spelling">netser</span>', checked)
+
+    def test_name_table_alternatives_and_compounds_pass(self):
+        for text in ('Boes/Boos Yobed/Yobel', 'Bar-Yonah', 'Esar-haddon',
+                     '“Esar-haddon,”', 'Esar-haddon’s'):
+            with self.subTest(text=text):
+                source, checked = self.check_text(text)
+                self.assertEqual(checked, source)
+                self.assertEqual(self.reports['OET-RV'], [])
+
+    def test_inconsistent_names_and_damaged_compounds_still_need_review(self):
+        for text, bad_word in (('Boess', 'Boess'), ('Yobedd', 'Yobedd'),
+                               ('Esar-haddonn', 'haddonn'), ('BarYonah', 'BarYonah')):
+            with self.subTest(text=text):
+                self.reports['OET-RV'].clear()
+                source, checked = self.check_text(text)
+                self.assertEqual(self.reports['OET-RV'], [(bad_word, 'MAT_1:1')])
+                self.assertIn(f'class="spelling">{bad_word}</span>', checked)
+
+    def test_inline_verse_references_are_not_spelling_errors(self):
+        source, checked = self.check_text('v1, v7 v176.')
+        self.assertEqual(checked, source)
+        self.assertEqual(self.reports['OET-RV'], [])
+        self.check_text('vseven')
+        self.assertEqual(self.reports['OET-RV'], [('vseven', 'MAT_1:1')])
 
 
 class TestTranslatedVocabulary(unittest.TestCase):
@@ -264,8 +378,8 @@ class TestTranslatedVocabulary(unittest.TestCase):
 
 
 class TestSpellCheckSummary(unittest.TestCase):
-    def summary(self, english_checked=100, german_checked=100538, latin_checked=324037):
-        replacements = {'MISPELLING_VERSION_REF_DICT': defaultdict(list)}
+    def summary(self, english_checked=100, german_checked=100538, latin_checked=324037, version_reports=None):
+        replacements = {'MISPELLING_VERSION_REF_DICT': defaultdict(list, version_reports or {})}
         for language, checked, counts, repetitions, unique_pairs in (
                 ('ENGLISH', english_checked, {'speling': 1}, 4, 2),
                 ('GERMAN', german_checked, {'mischievious': 1, 'beging': 1}, 45, 8),
@@ -305,6 +419,17 @@ class TestSpellCheckSummary(unittest.TestCase):
         self.assertNotIn('BAD_ENGLISH WORDS', output)
         self.assertNotIn('BAD_GERMAN WORDS', output)
         self.assertNotIn('BAD_LATIN WORDS', output)
+
+    def test_version_summary_is_unique_and_limited_to_forty(self):
+        for count in (35, 60):
+            with self.subTest(count=count):
+                words = [(f'word{number}' if number % 2 else f'Name{number}', 'MAT_1:1')
+                         for number in range(count)]
+                output = self.summary(version_reports={'OET-RV': words})
+                line = next(line for line in output.splitlines() if line.startswith('OET-RV ('))
+                shown = ast.literal_eval(line.split(': ', 1)[1])
+                self.assertEqual(len(shown), min(count, 40))
+                self.assertEqual(len({word for word, _ in shown}), len(shown))
 
 
 if __name__ == '__main__':

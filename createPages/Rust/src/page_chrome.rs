@@ -9,6 +9,7 @@
 //!
 //! Byte-for-byte output fidelity with the original Python functions is
 //! guarded by createPages/golden_makeTop.py.
+//! Changelog: 2026-11-06 Add Downloads beside OET Key.
 //! Changelog: 2026-11-01 Adapt missing-book links after section-to-chapter rewrites.
 
 use std::collections::{HashMap, HashSet};
@@ -238,6 +239,7 @@ pub fn make_top_core(
     } else {
         format!(r#"<a href="{prefix}OETKey.htm#Top">OET Key</a>"#)
     };
+    let downloads_link = format!(r#"<a href="{prefix}OET/Downloads/index.htm#Top">Downloads</a>"#);
     // One right-justified control for the top line: a "Settings" button
     // (wired up by theme.js). It replaces the old Dark/Light toggle and the
     // mutually-exclusive theme dropdown: the settings panel it opens (built
@@ -251,7 +253,7 @@ pub fn make_top_core(
          </div><!--themeControls-->"
     );
     let top_line = format!(
-        "<div class=\"topLine\"><p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}</p><!--site-->{theme_controls}</div><!--topLine-->"
+        "<div class=\"topLine\"><p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}{EM_SPACE}{EM_SPACE}{downloads_link}</p><!--site-->{theme_controls}</div><!--topLine-->"
     );
 
     // The OET pseudo-version renders the OET-RV and OET-LV side-by-side in a

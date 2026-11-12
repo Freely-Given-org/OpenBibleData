@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-31 Cover gloss search data, unsampled Strong's entries and reduced builds.
     2026-11-01 Cover grouped occurrences, parallel writers, DC selection and Latin identity.
+    2026-11-05 Verify the subject and ordering of complete static word indexes.
 """
 from contextlib import ExitStack
 from pathlib import Path
@@ -20,6 +21,7 @@ import Dict as dictionaries
 from referenceIndexes import (referenceIndexLinks,strongIndexEntry,transliterateIndexLinks,lemmaIndexLink,filterableIndex,
     wordIndexRecord,groupWordIndex,wordIndex,dcWordIndexRecords)
 from settings import State
+from test_page_metadata import HeadReader
 
 
 class ReferenceIndexTests(unittest.TestCase):
@@ -153,6 +155,11 @@ class ReferenceIndexTests(unittest.TestCase):
                     getattr(pages,f'create_{full}_word_pages')(2,folder,self.state)
                     groups=json.loads((folder/'words.json').read_text())
                     self.assertEqual(len(groups),1)
+                    for stem, order in (('index', 'original spellings'), ('transIndex', 'transliterations')):
+                        head = HeadReader((folder/f'{stem}-all.htm').read_text())
+                        self.assertIn(full,head.titles[0])
+                        self.assertTrue(head.titles[0].endswith(f'{order} — complete list'))
+                        self.assertIn('1 spelling',head.descriptions[0])
                     occurrence=groups[0]['occurrences'][0]
                     self.assertEqual(occurrence['href'],'actual-word.htm#Top')
                     self.assertEqual(occurrence['gloss'],'people' if language=='Heb' else 'because')
