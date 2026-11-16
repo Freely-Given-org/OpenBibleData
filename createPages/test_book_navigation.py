@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-24 Cover book order, names, destinations and selected-book labels.
     2026-11-01 Cover OET-only 66-book menus, adjacent links and continued generation of extra books.
     2026-11-01 Check selected books on generated reading pages, including GHT.
+    2026-11-13 Check the ⇔ 2-column links on OET-RV and OET-LV reading pages.
 """
 from contextlib import ExitStack
 from pathlib import Path
@@ -198,6 +199,24 @@ class BookNavigationTests(unittest.TestCase):
                             if traditional:
                                 self.assertNotIn('YHN', rendered, page)
                                 self.assertNotIn('YAC', rendered, page)
+                            navBars = re.findall(r'<p class="(?:bkNav|cNav|secNav)">.*?</p>', rendered)
+                            if current is None or page.stem.endswith('_Intro') \
+                            or (view!='byDoc' and '_' not in page.stem): continue # Only reading pages
+                            self.assertTrue(navBars, page)
+                            for navBar in navBars:
+                                twoColumn = re.findall(r'<a title="2-column view"[^>]* href="([^"]+)"[^>]*>⇔</a>', navBar)
+                                if traditional or (view=='bySec' and version=='OET-LV'):
+                                    self.assertNotIn('⇔', navBar, page)
+                                    continue
+                                self.assertIn('⇔', navBar, page)
+                                if view == 'byC': # Same (mapped) destination as the existing OET link
+                                    oetLinks = re.findall(r'<a title="Full OET side-by-side view"[^>]* href="([^"]+)"', navBar)
+                                    self.assertEqual(twoColumn, oetLinks, (page, navBar))
+                                else:
+                                    self.assertEqual(twoColumn, [f'../../OET/{view}/{page.stem}.htm#Top'], (page, navBar))
+                                nextArrow = '→' if view=='bySec' else '►'
+                                if nextArrow in navBar: # The 2-column link follows the next arrow
+                                    self.assertLess(navBar.index(nextArrow), navBar.index('⇔'), page)
 
 
 if __name__ == '__main__':

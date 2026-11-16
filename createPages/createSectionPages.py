@@ -74,6 +74,7 @@ CHANGELOG:
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Use full passage ranges and headings in individual section metadata.
     2026-11-05 Distinguish edition and book section indexes, including books without headings.
+    2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV section pages.
 """
 from pathlib import Path
 import os
@@ -796,12 +797,13 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
+            twoColumnLink = f''' <a title="2-column view" href="{'../'*level}OET/bySec/{sectionFilename}#Top">⇔</a>''' if thisBible.abbreviation=='OET-RV' else '' # Same section files as OET
             relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">‴</a>''' if thisBible.abbreviation=='OET-RV' else ''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
 
             sectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
-<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{twoColumnLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
             textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
             # textHtml = livenIORs( BBB, textHtml, sections )
@@ -819,7 +821,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             elif thisBible.abbreviation == 'KJB-1611':
                 textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
             sectionHtml = f'''{sectionHtml}{textHtml}
-<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--secNave-->'''
+<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{twoColumnLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--secNave-->'''
 
             sectionHtml = mapHtmlLinks(sectionHtml, thisBible.abbreviation, level, state, segmentType='section', reference=(BBB,startC,startV))
             filepath = folder.joinpath( sectionFilename )

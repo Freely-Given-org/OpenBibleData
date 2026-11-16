@@ -41,6 +41,9 @@ CHANGELOG:
     2026-11-09 Avoid duplicate entries and enforce the spelling summary display limit
     2026-11-09 Recognise inline verse references such as v7 without a hardcoded verse-number list
     2026-11-12 Accept KJB-1611 names, apostrophe-free possessives, and historical spellings
+    2026-11-12 Check hyphenated compounds as whole words instead of splitting them at hyphens
+    2026-11-12 Accept title-case forms of known compounds, and add per-version odd compound forms
+    2026-11-13 Accept ClVg/KJB-1611 J→Y respelt names and ClVg Roman numerals; add reviewed Luth/ClVg names
 """
 from pathlib import Path
 from csv import  DictReader
@@ -54,10 +57,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-12' # by RJH
+LAST_MODIFIED_DATE = '2026-11-13' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -68,7 +71,7 @@ DEBUGGING_THIS_MODULE = False
 REPEATED_WORD_REGEX = re.compile(
     r"(?<![\w’'/-])\b(?P<word>[^\W\d_]+(?:[’'][^\W\d_]+)*)(?=\s+(?P=word)(?![\w’'/-]))" )
 URL_REGEX = re.compile( r'''(?<![\w@])(?:https?://|ftp://|www\.)[^\s<>"‘’“”]+''', re.IGNORECASE )
-HYPHENATED_WORD_REGEX = re.compile( r"(?<![\w’'])\w+(?:[’']\w+)*(?:-\w+(?:[’']\w+)*)+" )
+DASH_HYPHEN_REGEX = re.compile( r'-{2,}|(?<!\w)-|-(?!\w)' ) # Hyphens not joining two word characters
 
 
 def _is_hebrew_or_greek_word( word:str ) -> bool:
@@ -130,7 +133,9 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Tishrei',
 
                     # Specialist words
+                    'aleph-bet', # Hebrew alphabet, e.g., LSV Psalm 119 headings
                     'black-grained','building-stone',
+                    'covenant-loyalty','covenant-loyalties', # OET gloss for Hebrew ḥesed
                     'efod','el','emerald-looking',
                     'false-teachers','finely-ground','finely-spun',
                     'Halleluyah','house-servants',
@@ -302,6 +307,22 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted([
             'EDOMITE','EDOM','DOM', # Gotta do that one first
             ], key=len, reverse=True) # Put longest first
 
+# Odd but deliberate hyphenated forms used by only one version (not typos).
+#   Valid compounds belong in TED_Dict EnglishDict.db (modern English) or BibleDict.db (Bible texts) instead.
+VERSION_SPECIFIC_COMPOUNDS = {
+    'OET-RV': ('OET-RV','OET-LV','Freely-Given','non-Paratext'),
+    'OET-LV': ('OET-RV','OET-LV','Freely-Given','publication-ready','slash-separated','source-based','word-medial'),
+    'YLT': ('age-during','age-duringly', 'stretched-out-arm','under-wine-vat','yesterday-night','like-affected','digged-wells'),
+    'T4T': ('people-group','people-groups','people-clan'),
+    'LSV': ('hyper-abound','hyper-abounded', 'soul-split','split-souled'),
+    'Moff': ('a-blazing','a-budding','a-down','a-dread','a-drooping','a-flow','a-flower','a-gallop','a-mourning',
+             'a-quiver','a-tremble','a-trembling','a-wanting'), # Archaic a- prefix
+    'Wycl': ('to-braidide','to-brast','to-breking','to-brekith','to-brisid','to-broke','to-drawen','to-drawing','to-drawith',
+             'to-drawun','to-foule','to-foulen','to-foulid','to-reende','to-rende','to-rent','to-terring','to-trad','to-traden',
+             'to-trede','to-trodun', 'al-to', # Middle English intensive to- prefix
+             'out-taken','out-forth'),
+    }
+
 
 BAD_ENGLISH_WORD_SET, BAD_GERMAN_WORD_SET, BAD_LATIN_WORD_SET = set(), set(), set()
 BAD_ENGLISH_WORD_LIST, BAD_GERMAN_WORD_LIST, BAD_LATIN_WORD_LIST = [], [], []
@@ -388,6 +409,31 @@ def load_OET_RV_names() -> bool:
     # print( list(OET_RV_NAMES_SET)[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_OET_RV_names
+
+
+def _title_case_compound_is_known( word:str, wordSet:set ) -> bool:
+    """
+    Accept a capitalised hyphenated compound whose later parts are capitalised only for a heading or name style,
+        e.g., 'Self-Denial' (self-denial), 'Beth-El' (Beth-el), 'Spirit-Guided' (Spirit-guided).
+    """
+    firstPart, laterParts = word.split( '-', 1 )
+    return word.lower() in wordSet or f'{firstPart}-{laterParts.lower()}' in wordSet
+# end of spellCheckEnglish._title_case_compound_is_known
+
+
+ROMAN_NUMERAL_REGEX = re.compile( r'(?=[IVXLCDM])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})' )
+def _respelt_name_or_numeral_is_known( word:str, versionAbbreviation:str, wordSet:set ) -> bool:
+    """
+    ClVg (translated) and KJB-1611 (modernised) deliberately respell J as Y in names,
+        e.g., 'Yapheth' (Japheth), 'Kiryath-arba' (Kirjath-arba), so accept a word whose J spelling is known.
+    The ClVg commentary also refers to chapters with Roman numerals, e.g., 'XXXIII'.
+    """
+    if versionAbbreviation not in ('ClVg','KJB-1611'): return False
+    if versionAbbreviation == 'ClVg' and ROMAN_NUMERAL_REGEX.fullmatch( word ): return True
+    if 'y' not in word.lower(): return False
+    jWord = word.replace( 'y', 'j' ).replace( 'Y', 'J' )
+    return jWord in wordSet or ('-' in jWord and _title_case_compound_is_known( jWord, wordSet ))
+# end of spellCheckEnglish._respelt_name_or_numeral_is_known
 
 
 AMERICAN_WORD_SET, BRITISH_WORD_SET = set(), set()
@@ -518,10 +564,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( (
                         'B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
                         'Lamasabachthani','lamasabachthani',
+                        'yearim',
                         # Names in the KJB-1611 spelling with J→Y modernisation.
-                        'Yachin',
+                        'Yabbok','Yachin','Yaphet',
                         'Yechonias','Yephunneh','Yerubbaal','Yerimoth','Yedaiah','Yethro','Yehoiachin','Yeush','Yether',
-                        'Yoacim','Yobab','Yona','Yonathas','Yoppa','Yosaphat',
+                        'Yoacim','Yobab','Yoktan','Yona','Yonathas','Yoppa','Yosaphat','Yozabad',
                         'Yuda',
                         ) )
     # elif versionAbbreviation in ('RV','AST',): # Handle long UPPER CASE titles
@@ -531,6 +578,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation == 'Luth':
         wordSet.update( ('EI','Yuda','fiancé(e','asabthani','kumi') ) # (Final parenthesis gets removed)
         wordSet.update( ('Tsevaot','Syrophoenicia') ) # Hebrew title and the region in Mark 7:26
+        # Reviewed name forms produced by the German table (and the Aramaic of Daniel 5:25-28)
+        wordSet.update( ('Adramyttian','Ahuzai','Archi-Ataroth','Ashtaroth-Karnaim','Asshurite','Baalath-beer-Ramath',
+                         'Beth-rechab','Beth-shemites','Bethlehem-judah','Bethlehemites','Cushitess','Ekronite',
+                         'Geba-benjamin','Gedolim','Gezrite','Gibeah-benjamin','Gilonites','Horonites','Ir-heres','Ittah',
+                         'Jehielites','Mijamin-Moadiah','Parbar','Shamariah','Siccuth','Thyatiran',
+                         'tekel','Tekel','upharsin',
+                         ) )
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('carmel', # No idea why this isn't capitalised in ClVg ???
                          'Moyses','Sion','Yuda',
@@ -540,7 +594,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          # The following are abbreviations of reference works used in the Vulgate footnotes
                          'ADAMAN','ADAMANT', 'ÆNEID', 'ALBINUS','ALBIN', 'ALCUIN','ALC', 'ALEX', 'AMB','AMBR','AMBROS', 'ANSELM', 'ANT', 'APOLLI', 'AUG',
                          'BASIL', 'BEDA','BED',
-                         'CAS','CASS', 'CC','CCC','CCCC', 'CHARIAT', 'CHRYS','CHRYSOST', 'CYPR', 'CYRILL',
+                         'CAS','CASS', 'CC','CCC','CCCC', 'CHARIAT', 'CHRYS','CHRYSOST', 'CLEM', 'CYPR', 'CYRILL',
                          'DIOD',
                          'EUCHERIUS','EUCH', 'EUTHYM', 'EX',
                          'GERG','GREC','GREG',
@@ -553,6 +607,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'RAB', 'REMIG','REMI','REM', 'RUPERT',
                          'SEPTUAG', 'SEVERIANUS', 'STRAB', 'STRAR', 'SYM',
                          'TERT', 'THEOD','THEODOR', 'THEOPH','THEOP',
+                         'VICT',
                          'XIS', 'XES',
                          'ZACH','ZAC',
                          ) )
@@ -564,7 +619,31 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'Yabin','Yeconiah','Yeduthun','Yonadab','Yosephus','Yulian','Yupiter','Zebub',
                          'catechumens','schismatics','tetrarchies',
                          'sor', # Explicit Hebrew transliteration in the commentary on Psalm 82:8
+                         'Adullamites','Ashdoth','Bene-jaakan','Bithynians','Cappadocians','Coan','Cuthites','Diospolis',
+                         'Eleutheropolis','Eucherius','Fabiola','Hexaemeron','Itureans','Manichaeans','Nethinim',
+                         'Simplician','Timnathah',
+                         'lictors','obelus',
+                         'OLD','NAMES', # Exodus heading: the Hebrew and Latin book titles
+                         'h','k','m','n','p','y', # Letters (and the 'p.' page abbreviation) discussed in the commentary
+                         # Places, peoples, heresies and writers named in the commentary (or KJV forms not in our dictionaries)
+                         'Abi-gibeon','Abrahamites','Adeodatus','Aelia','Alypius','Amanus','Amulius','Anastasius','Apamea',
+                         'Areopolis','Arsinoite','Asphaltites','Aurelian','Batanaea','Bekah','Beth-anathites','Carpocratians',
+                         'Carthaginians','Chromatius','Chrysostom','Chushan','Cilicians','Citium','Cophen','Ctesiphon',
+                         'Diocaesarea','Eben-bohan','Edessa','Epiphanius','Fadus','Gades','Gebirah','Gergesa','Gidgad','Gischala',
+                         'Grunnius','Haammonai','Hesychius','Kedumim','Luciferians','Marcellinus','Mazaca','Methoar','Mishor',
+                         'Nabataea','Nepotian','Ninus','Novatians','Orosius','Parvarim','Paterius','Pelagians','Phutites',
+                         'Rhinocorura','Sabellius','Salernitans','Samosatene','Shamariah','Simoniacs','Tanais','Tekel',
+                         'Thalassa','Thalasson','Thekemina','Thyatirans','Tyconius','Volusianus','Zarephathite',
+                         'ADAMANTIUS','Atha','Basilides','Candaces','Celtiberia','Ebion','Epimenides','Eutychius','Gemel',
+                         'Magala','Maozim','Maran','Marcion','Nitria','Paneas','Pella','Philo','Rabanus','Suetonius',
+                         'Valentinus','Victorinus',
+                         'Abel-beth','Aelius','Aeolians','Ahiel','Artabanus','Bosphorus','Chesdim','Damasus','Gabalene',
+                         'Maximinus','Nisibis','Sinnius',
+                         'Beth-shemites','Judaizers',
+                         'JEHOSHUA','JOSEPHUS','Jovinian', # Respelt with Y
+                         'glede','tsadi','yod', # KJV bird (Deuteronomy 14:13), and Hebrew letters
                          ) )
+    wordSet.update( VERSION_SPECIFIC_COMPOUNDS.get( versionAbbreviation, () ) )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: assert False, "We want to stop here"
@@ -792,19 +871,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
         cleanedTextToCheck = cleanedTextToCheck.replace( thingToReallyDelete, '' )
-    # Keep dictionary-listed compounds (e.g., Esar-haddon) from producing
-    # unknown fragments. Unrecognised compounds still have each part checked.
-    def _protect_known_compound( match ) -> str:
-        compound = match.group()
-        dictionaryCompound = compound[:-2] if compound.endswith("'s") else compound
-        return 'ReMoV' if dictionaryCompound in wordSet or f'{dictionaryCompound[0].lower()}{dictionaryCompound[1:]}' in wordSet else compound
-    cleanedTextToCheck = HYPHENATED_WORD_REGEX.sub( _protect_known_compound, cleanedTextToCheck )
     for wordToDelete in PREAPPROVED_WORDS_TO_REMOVE:
         cleanedTextToCheck = cleanedTextToCheck.replace( wordToDelete, 'ReMoV' ) # If we really delete them, then our repeated words check does weird things
-    cleanedTextToCheck =  ( cleanedTextToCheck
-                    .replace( '-', ' ' ) # Treat hyphens as spaces, i.e., split compound words (both good and bad like 'non-combatant')
-                    .replace( '  ', ' ' )
-                    )
+    # Hyphenated compounds (e.g., Esar-haddon, Beth-shemites) are checked as whole words,
+    #   so an unlisted compound is reported and marked in full, not as an unhelpful fragment.
+    # Only hyphens that don't join two word characters (doubled, spaced, or dangling) separate words.
+    cleanedTextToCheck = DASH_HYPHEN_REGEX.sub( ' ', cleanedTextToCheck ).replace( '  ', ' ' )
 
     if versionAbbreviation in ('Luth','ClVg'):
         cleanedTextToCheck = cleanedTextToCheck.replace( '_', ' ' ) # Things like 'he_said'
@@ -890,8 +962,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         # as ordinary words or proper names, retaining the original for reports/HTML.
         # NOTE: 'netser', 'Natsaret', 'natsrat' all come from the footnote in OET-RV Mat 2:23
         if dictionaryWord not in wordSet and f'{dictionaryWord[0].lower()}{dictionaryWord[1:]}' not in wordSet \
-                and not (versionAbbreviation == 'OET-RV' and dictionaryWord in ('alef', 'beyt', 'alamot','gitit','Le’annot', 'seraf','serafs',
-                                                                                'netser','Natsaret','natsrat', 'tōlədōt', '😀' )) \
+                and not ('-' in dictionaryWord and _title_case_compound_is_known( dictionaryWord, wordSet )) \
+                and not _respelt_name_or_numeral_is_known( dictionaryWord, versionAbbreviation, wordSet ) \
+                and not (versionAbbreviation == 'OET-RV' and dictionaryWord in ('alef', 'beyt',
+                                                                                'alamot', 'gitit', 'Mahalat-Le’annot',
+                                                                                'seraf','serafs', 'tōlədōt',
+                                                                                'netser','Natsaret','natsrat',
+                                                                                'modern-English', '😀', )) \
                 and not (versionAbbreviation == 'LSV' and dictionaryWord.isupper()
                 and (dictionaryWord.lower() in wordSet or dictionaryWord.capitalize() in wordSet)):
             cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \

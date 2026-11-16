@@ -162,6 +162,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-05 Build each grammar article with a single site head and its own heading and summary.
     2026-11-09 Move the Greek word colour key below the focused OET verses, before the companion website note.
     2026-11-10 Move the Hebrew word colour key below the focused OET verses, before the OSHB note.
+    2026-11-13 Move the Hebrew and Greek lemma colour keys below the main entry, before related lemmas.
 """
 from pathlib import Path
 import os
@@ -1816,6 +1817,9 @@ def get_focused_OET_verse_HTML( level:int, BBB:str, C:str, V:str, wordPath:str|t
                                    get_OET_RV_verse_HTML(level, BBB, C, V)))
 
 
+LEMMA_COLOUR_KEY_MARKER = '<!--ColourKey-->' # Lemma pages put the colour key after the main entry
+
+
 def add_reference_colour_key( pageHtml:str, level:int, *, before:str|None=None ) -> str:
     """Put one colour key before a requested marker, or after the word/lemma page controls."""
     if '<p class="btnBar">' not in pageHtml: return pageHtml # Hebrew punctuation/notes
@@ -2529,7 +2533,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
 
 
         lemmasHtml += lemmaOccurrenceSummary(level,'Heb',hebLemma,state)
-        lemmasHtml = f"{lemmasHtml}\n{_make_hebrew_lemma_HTML_segment(hebLemma, hebLemmaWordRowsList, level, usedMorphologies)}" # Make all the Hebrew lemma pages
+        lemmasHtml = f"{lemmasHtml}\n{_make_hebrew_lemma_HTML_segment(hebLemma, hebLemmaWordRowsList, level, usedMorphologies)}{LEMMA_COLOUR_KEY_MARKER}" # Make all the Hebrew lemma pages
 
         # Consider related lemmas, e.g., with or without prefix
         this_extended_lemma_list = [hebLemma]
@@ -2757,7 +2761,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
         gloss = glossSummary(tidy_Hebrew_lemma_gloss(state.OETRefData['OTLemmaGlossDict'][hebLemma]))
         metadata = lemmaMetadata(language, hebLemma, transliteratedLemma, gloss)
         top = makeTop(level, None, 'lemma', None, state, metadata=metadata)
-        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level, before=LEMMA_COLOUR_KEY_MARKER).replace(LEMMA_COLOUR_KEY_MARKER, '')}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
         lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state, segmentType='reference')
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
@@ -3785,7 +3789,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
             lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
 
         lemmasHtml += lemmaOccurrenceSummary(level,'Grk',lemma,state)
-        lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(lemma, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}"
+        lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(lemma, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}{LEMMA_COLOUR_KEY_MARKER}"
 
         # Consider related lemmas, e.g., with or without prefix
         this_extended_lemma_list = [lemma]
@@ -3883,7 +3887,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         # Now put it all together
         metadata = lemmaMetadata('Greek', grkLemma, lemma, glossSummary(tidy_Greek_lemma_gloss(g) for g in rankedGlosses))
         top = makeTop(level, None, 'lemma', None, state, metadata=metadata)
-        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level)}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        lemmasHtml = f'''{top}{add_reference_colour_key(lemmasHtml, level, before=LEMMA_COLOUR_KEY_MARKER).replace(LEMMA_COLOUR_KEY_MARKER, '')}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
         lemmasHtml = mapHtmlLinks(lemmasHtml, 'OET-LV', level, state, segmentType='reference')
         assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )

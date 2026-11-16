@@ -6,6 +6,7 @@ CHANGELOG:
     2026-10-23 Cover exact occurrence highlighting and all four word/lemma page builders.
     2026-10-23 Validate punctuation, notes, unused variants, and unloaded TEST books.
     2026-11-01 Check semantic referent links use the generated Greek occurrence filenames.
+    2026-11-13 Check lemma colour keys follow the main entry.
 """
 from collections import defaultdict
 from contextlib import ExitStack
@@ -156,6 +157,11 @@ class ReferencePageTests(unittest.TestCase):
                 self.assertGreaterEqual(len(verses), 2)
                 for verse in verses:
                     self.assertEqual(re.findall(r'<b><a [^>]*>(.*?)</a></b>', verse), ['focused'])
+                if kind.endswith('Lem'):
+                    # The key follows the main entry rather than pushing it down the page.
+                    self.assertNotIn('<!--ColourKey-->', html)
+                    self.assertRegex(html, r'<p class="lemmaLine">[\s\S]*?</p>\n<p class="key" id="ColourKey">')
+                    self.assertLess(html.index('<p class="RVVerseText">'), html.index('id="ColourKey"'))
                 if kind.endswith('Wrd'):
                     # The selected passage precedes the potentially truncated example list.
                     self.assertRegex(html, r'<p class="link">[\s\S]*?</p>\n<p class="LVVerseText">')

@@ -46,6 +46,7 @@
  *   2026-11-03 Limit wide-logo links to the displayed image, keeping side whitespace unlinked.
  *   2026-11-11 Highlight updated OET-RV measurements with a faint light-mode green fill.
  *   2026-11-12 Drop fragment-following body:has() navigation rules (slow on long pages).
+ *   2026-11-16 Restate the updated-measure fill so the style checker recognises span.updatedMeasure.
  */
 
 /* Reference entries share the same hierarchy across page families. */
@@ -462,7 +463,9 @@ html[data-size="xlarge"] p.LVVerseText,
 html[data-size="large"] p.RVVerseText,
 html[data-size="xlarge"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
 
-html:not([data-theme="dark"]) span.updatedMeasure { background-color:#e8f5e9; }
+/* Light-mode only. The selector starts with span. so the build's style checker sees the class. */
+span.updatedMeasure { background-color:#e8f5e9; }
+html[data-theme="dark"] span.updatedMeasure { background-color:transparent; }
 
 /* ---- "Dark mode" character colours (html[data-theme="dark"]) ----
  * The per-family stylesheets colour the character/semantic spans with fixed

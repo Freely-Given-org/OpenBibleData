@@ -5,6 +5,7 @@
 
 CHANGELOG:
     2026-10-23 Cover combined OET titles and preservation of LV URLs/notes
+    2026-11-16 Check that OET-RV updated-measure spans have a style the build recognises
 """
 #
 # test_html_customisations.py
@@ -16,7 +17,7 @@ CHANGELOG:
 
 import unittest
 
-from openbibledata_rust import setStrictCheckingFlag
+from openbibledata_rust import checkHtmlForMissingStyles, setStrictCheckingFlag
 from html import (
     do_OET_RV_HTMLcustomisations,
     do_OET_LV_HTMLcustomisations,
@@ -140,6 +141,15 @@ class TestOETRVHTMLcustomisations(unittest.TestCase):
         self.assertEqual(
             do_OET_RV_HTMLcustomisations('test', '<span class="RVadd"><span class="wj">w</span></span>'),
             '<span class="RVadd" title="added info"><span class="wj">w</span></span>')
+
+    def test_updated_measure_has_a_recognised_style(self):
+        body = do_OET_RV_HTMLcustomisations('test', '<span class="add">$two thousand litres</span>')
+        self.assertEqual(body, '<span class="updatedMeasure" title="updated measure">two thousand litres</span>')
+        page = ('<html><head><link rel="stylesheet" type="text/css" href="../../OETChapter.css">'
+                '<link rel="stylesheet" type="text/css" href="../../common.css"></head>'
+                f'<body>\n{body}\n</body></html>')
+        missing = checkHtmlForMissingStyles('test', page)
+        self.assertNotIn('updatedMeasure', [className for _element, className, _sheet in missing])
 
 
 class TestOETLVHTMLcustomisations(unittest.TestCase):

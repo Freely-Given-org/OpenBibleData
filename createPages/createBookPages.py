@@ -37,6 +37,7 @@ CHANGELOG:
     2026-11-01 Mark the selected book in reading-page navigation.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify whole-document pages and their edition indexes in search results.
+    2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV and OET-LV document pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -347,6 +348,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
         bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, thisBible.abbreviation, bkPrevNav, bkNextNav)
+        if thisBible.abbreviation in ('OET-RV','OET-LV'):
+            bkNextNav = f'''{bkNextNav} <a title="2-column view" href="{'../'*level}OET/byDoc/{BBB}.htm#Top">⇔</a>'''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else '' if bos_books_codes_py.is_single_chapter_book(BBB) else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )

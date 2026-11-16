@@ -65,7 +65,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 LAST_MODIFIED_DATE = '2026-11-16' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.3.1'
+PROGRAM_VERSION = '1.3.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -80,14 +80,14 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.5.5' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.98' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.5.6' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.99' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = ['TOB']
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Also controls loading substituted editions
@@ -305,7 +305,7 @@ class State:
         'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
         # NOTE: The program will still run if some of these below are commented out or removed
         # (e.g., this can be done quickly for a faster test run)
-        'GHT': '../../Forked/ght-formats/ght_usfm/',
+        'GHT': '../../../Programming/ExternalPrograms/ght-formats/ght_usfm/',
         'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
         'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
         # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.exported.modified.tsv',
@@ -1142,6 +1142,7 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
             or versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
+            or versionLocation.startswith('../../../Programming/ExternalPrograms/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
 #     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
 #         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"

@@ -14,6 +14,9 @@ CHANGELOG:
     2026-10-30 Check generated DC names through the same LV spelling path as NT names.
     2026-11-09 Check URL/script exclusions, name alternatives and compounds, and unique summary entries.
     2026-11-11 Check OET-RV-only acceptance of netser and continued rejection of damaged transliterations.
+    2026-11-12 Check that unlisted hyphenated compounds are reported whole, while dashes still separate words.
+    2026-11-12 Check title-case compounds, dictionary compounds, and per-version compound exceptions.
+    2026-11-13 Check ClVg/KJB-1611 J→Y name respellings and ClVg Roman numerals, without accepting unknown words.
 """
 from types import SimpleNamespace
 from collections import defaultdict
@@ -161,12 +164,48 @@ class TestEnglishSpellingExclusions(unittest.TestCase):
 
     def test_inconsistent_names_and_damaged_compounds_still_need_review(self):
         for text, bad_word in (('Boess', 'Boess'), ('Yobedd', 'Yobedd'),
-                               ('Esar-haddonn', 'haddonn'), ('BarYonah', 'BarYonah')):
+                               ('Esar-haddonn', 'Esar-haddonn'), ('BarYonah', 'BarYonah')):
             with self.subTest(text=text):
                 self.reports['OET-RV'].clear()
                 source, checked = self.check_text(text)
                 self.assertEqual(self.reports['OET-RV'], [(bad_word, 'MAT_1:1')])
                 self.assertIn(f'class="spelling">{bad_word}</span>', checked)
+
+    def test_unlisted_compounds_are_reported_whole(self):
+        for text, bad_word in (('Beth-shemites', 'Beth-shemites'), ('stone-thrower', 'stone-thrower'),
+                               ('“Beth-shemites,”', 'Beth-shemites')):
+            with self.subTest(text=text):
+                self.reports['OET-RV'].clear()
+                source, checked = self.check_text(text)
+                self.assertEqual(self.reports['OET-RV'], [(bad_word, 'MAT_1:1')])
+                self.assertIn(f'class="spelling">{bad_word}</span>', checked)
+
+    def test_dashes_and_dangling_hyphens_separate_words(self):
+        for text in ('the stone -- the gate', 'the stone - the gate', 'stone- and gate'):
+            with self.subTest(text=text):
+                self.reports['OET-RV'].clear()
+                source, checked = self.check_text(text)
+                self.assertEqual(checked, source)
+                self.assertEqual(self.reports['OET-RV'], [])
+
+    def test_title_case_compounds_use_their_known_forms(self):
+        for text in ('Self-Denial', 'Well-Being', 'Beth-El', 'Spirit-Guided', 'burnt-offering', 'well-attested'):
+            with self.subTest(text=text):
+                self.reports['OET-RV'].clear()
+                source, checked = self.check_text(text)
+                self.assertEqual(checked, source)
+                self.assertEqual(self.reports['OET-RV'], [])
+        self.check_text('Stone-Thrower')
+        self.assertEqual(self.reports['OET-RV'], [('Stone-Thrower', 'MAT_1:1')])
+
+    def test_version_specific_compounds_stay_with_their_version(self):
+        self.state.BibleLanguages['YLT'] = 'EN-UK'
+        source, checked = self.check_text('age-during', 'YLT')
+        self.assertEqual(checked, source)
+        self.assertEqual(self.reports['YLT'], [])
+        for word in ('to-morrow', 'threshing-floor'): # BibleDict, so valid in any version
+            self.check_text(word, 'BSB')
+        self.assertEqual(self.reports['BSB'], [])
 
     def test_inline_verse_references_are_not_spelling_errors(self):
         source, checked = self.check_text('v1, v7 v176.')
@@ -191,6 +230,20 @@ class TestTranslatedVocabulary(unittest.TestCase):
     def check_text(self, version, text):
         source = f'<span class="{version}_trans">{text}</span>'
         return spelling.spellCheckAndMarkHTMLText(version, 'MAT_1:1', source, source, self.state)
+
+    def test_respelt_names_and_roman_numerals(self):
+        for version, text in (('ClVg', 'Yapheth XXXIII CIV Kiryath-arba'), ('KJB-1611', 'Yapheth Kiryath-arba')):
+            with self.subTest(version=version):
+                self.state.BibleLanguages.setdefault(version, 'EN-UK')
+                self.assertNotIn('class="spelling"', self.check_text(version, text))
+        for version, word in (('ClVg', 'Yzyzzy'), ('ClVg', 'IIX'), ('ClVg', 'VX'), ('OET-RV', 'Yapheth')):
+            with self.subTest(version=version, word=word):
+                self.assertIn(f'class="spelling">{word}</span>', self.check_text(version, word))
+
+    def test_capitalised_words_use_lowercase_glosses(self):
+        self.assertEqual(translateLatin('Columnas et columnas'), 'Columns/pillars and columns/pillars')
+        self.assertEqual(translateGerman('Neiget euer Ohr'), 'Tends/tilts your(pl) ear')
+        self.assertEqual(translateGerman('die aus- und einzogen; aus-und'), 'the out_and moved_in; out_and')
 
     def test_lsv_uppercase_headings_and_inscriptions(self):
         for text in ('A SHIGGAION OF DAVID, THAT HE SUNG TO YHWH',

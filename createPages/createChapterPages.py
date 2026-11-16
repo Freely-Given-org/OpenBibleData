@@ -47,6 +47,7 @@ CHANGELOG:
     2026-11-01 Omit Intro from chapter choices on the introduction page itself.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify chapters, introductions and chapter indexes in search results.
+    2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV and OET-LV chapter pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -484,11 +485,12 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     assert c > 1
                     leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
+                twoColumnLink = f''' <a title="2-column view" href="{'../'*level}OET/byC/{f'{BBB}_Intro' if c==-1 else f'{BBB}_C{C}'}.htm#Top">⇔</a>''' if thisBible.abbreviation in ('OET-RV','OET-LV') else ''
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
-                cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
+                cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{twoColumnLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
                 cNav = mapHtmlLinks(cNav, thisBible.abbreviation, level, state, segmentType='chapter', reference=(BBB,C))
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
 {cNav}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}''' \
