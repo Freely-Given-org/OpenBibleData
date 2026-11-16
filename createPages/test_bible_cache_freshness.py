@@ -5,6 +5,7 @@
 
 CHANGELOG:
     2026-10-27 Cover public/private cache coexistence and nested OET-LV sources.
+    2026-11-16 Cover the TOSN pickle's external dependencies (Dict.py and dictionary sources).
 """
 from contextlib import ExitStack
 import os
@@ -110,6 +111,52 @@ class BibleCacheFreshnessTests(unittest.TestCase):
                     with self.assertRaisesRegex(RuntimeError, 'Source reload requested'):
                         Bibles.preloadVersions(self.state)
                 loader.assert_called_once_with('OET-LV', self.state.BibleLocations['OET-LV-OT'], self.state)
+
+    def prepareTOSNCache(self):
+        folder = self.root / 'TOSN'
+        folder.mkdir()
+        self.state = SimpleNamespace(
+            TEST_MODE_FLAG=False, ALL_PRODUCTION_BOOKS_FLAG=True,
+            TEST_BOOK_LIST=['MRK'], TEST_VERSIONS_ONLY=None,
+            PICKLE_FILENAME_END='.OBD_Bible.pickle',
+            BibleVersions=['TOSN'], BibleLocations={'TOSN': str(folder)},
+            selectedVersesOnlyVersions=(), LOAD_RESOURCES_FROM_PICKLES_FLAG=True, preloadedBibles={},
+            CACHE_SUBSTITUTED_VERSIONS_FLAG=False, SUBSTITUTED_VERSIONS_FOLDER=self.root / 'cache',
+        )
+        pickleFilepath = folder / 'TOSN.OBD_Bible.pickle'
+        with pickleFilepath.open('wb') as output:
+            for _n in range(10): # Intros, summaries, TOBD, and seven UBS structures
+                pickle.dump({}, output)
+        os.utime(pickleFilepath, (1_000_000_100, 1_000_000_100))
+        self.dependency = self.root / 'Dict.py'
+        self.dependency.write_text('Older dictionary code', encoding='utf-8')
+        os.utime(self.dependency, (1_000_000_000, 1_000_000_000))
+        self.stack.enter_context(patch.object(Bibles, 'TOSNPickleDependencies', return_value=[self.dependency]))
+        self.stack.enter_context(patch.object(Bibles, 'prepareSubstitutedVersions'))
+        return folder
+
+    def test_older_tosn_dependencies_keep_cache(self):
+        self.prepareTOSNCache()
+        with patch.object(Bibles, 'preloadVersion',
+                          side_effect=AssertionError('Unchanged dependencies must not be reloaded')):
+            Bibles.preloadVersions(self.state)
+        self.assertNotIn('TOSN', self.state.BibleVersions) # Loaded from the pickle
+
+    def test_newer_tosn_dependency_invalidates_cache(self):
+        folder = self.prepareTOSNCache()
+        self.newerFile(self.dependency)
+        with patch.object(Bibles, 'preloadVersion', side_effect=RuntimeError('Source reload requested')) as loader:
+            with self.assertRaisesRegex(RuntimeError, 'Source reload requested'):
+                Bibles.preloadVersions(self.state)
+        loader.assert_called_once_with('TOSN', str(folder), self.state)
+
+    def test_tosn_dependencies_include_dictionary_code_and_sources(self):
+        tobd = self.root / 'TOBD'
+        (tobd / 'Maps').mkdir(parents=True)
+        (tobd / 'Maps' / 'Maps.xml').write_text('<items/>', encoding='utf-8')
+        dependencies = Bibles.TOSNPickleDependencies(SimpleNamespace(BibleLocations={'TOBD': str(tobd)}))
+        self.assertEqual(dependencies[0].name, 'Dict.py')
+        self.assertIn(tobd / 'Maps' / 'Maps.xml', dependencies)
 
 
 if __name__ == '__main__':

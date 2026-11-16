@@ -87,6 +87,7 @@ CHANGELOG:
     2026-11-09 Introduce the OET reader with its full name, draft status and available reading links.
     2026-11-09 Identify the OET reader directory as the preferred landing-page URL.
     2026-11-11 Explain the OET-RV updated-measure formatting in the OET key.
+    2026-11-16 Copy Tyndale Open Bible Dictionary maps from state.BibleLocations['TOBD'].
 """
 from pathlib import Path
 import os
@@ -122,7 +123,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-11-01' # by RJH
+LAST_MODIFIED_DATE = '2026-11-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.4.6'
@@ -455,7 +456,7 @@ def _createSitePages() -> bool:
             raise # Never publish a new search manifest against an incomplete site.
 
         try: # We also need to copy the TOBD maps across
-            TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
+            TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOBD'], 'Maps/artfiles/' )
             TOBDmapDestinationFolder = state.DESTINATION_FOLDER.joinpath( 'dct/' )
             try: os.makedirs( TOBDmapDestinationFolder )
             except FileExistsError: pass # it was already there
@@ -765,7 +766,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     for versionAbbreviation in detailsVersions:
         versionName =  state.BibleNames[versionAbbreviation]
 
-        if 'OET' not in versionAbbreviation and versionAbbreviation not in ('TOBD',): # (These don't have a BibleLocation)
+        if 'OET' not in versionAbbreviation and versionAbbreviation not in ('TOBD',): # (OET has no BibleLocation, and TOBD's is a dictionary, not a Bible)
             if versionAbbreviation in state.BibleLocations:
                 # Do some preparation for creating the details pages
                 if 'eBible' in state.BibleLocations[versionAbbreviation]:

@@ -52,6 +52,8 @@ CHANGELOG:
     2026-10-30 Load LAO in both OET versions, retaining its navigation position after COL.
     2026-11-01 Generate native search during the normal site build.
     2026-11-05 Configure the public site root for canonical links.
+    2026-11-16 Update RP-GNT source folder for upstream move of CSVs to csv-unicode/ccat/.
+    2026-11-16 Allow for the TOBD (Tyndale Open Bible Dictionary) location in the BibleLocations sanity check.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -60,7 +62,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-11-07' # by RJH
+LAST_MODIFIED_DATE = '2026-11-16' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.3.1'
@@ -362,13 +364,14 @@ class State:
         'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
         'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
         'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-        'RP-GNT': '../../Forked/byzantine-majority-text/csv-unicode/no-variants/',
+        'RP-GNT': '../../Forked/byzantine-majority-text/csv-unicode/ccat/no-variants/',
         'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
         'NETS': '../copiedBibles/English/Selected_verses_versions/NETS_verses.tsv',
         'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
         'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
         # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-        'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
+        'TOSN': '../copiedBibles/English/Tyndale/Tyndale Open Study Notes/', # This one also loads TTN (Tyndale Theme Notes)
+        'TOBD': '../copiedBibles/English/Tyndale/TyndaleOpenBibleDictionary/',
         'SOTN': '../../Forked/SILOpenTranslatorsNotes/eng/json/',
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
         }
@@ -1143,10 +1146,10 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
 #     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
 #         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
-    # Allow for OET's pseudo-version and LV's three auxiliary source folders.
-    assert len(BibleVersions)+2 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}"
+    # Allow for OET's pseudo-version, LV's three auxiliary source folders, and TOBD (loaded along with TOSN).
+    assert len(BibleVersions)+3 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}"
     assert len(BibleNames)-1 >= len(BibleLocations)
-    assert len(booksToLoad)+1 >= len(BibleLocations)
+    assert len(booksToLoad)+2 >= len(BibleLocations) # TOBD has no books to load
 
     preloadedBibles = {}
     sectionsLists = {}

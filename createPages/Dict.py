@@ -42,6 +42,8 @@ CHANGELOG:
     2026-10-30 Display readable UBS senses with original-numbered OET examples and internal domain links.
     2026-10-31 Add English glosses, filtering and reference-index navigation to UBS indexes.
     2026-11-05 Describe Tyndale and UBS entries and indexes in the page head.
+    2026-11-16 Update to UBS Hebrew dictionary v0.9.4 (v0.9.1 files were removed upstream).
+    2026-11-16 Correct the capitalisation of TOBD map artfile names (e.g., Maps.xml '1sam14.pdf' is actually '1Sam14.pdf').
 """
 import os.path
 import logging
@@ -64,13 +66,15 @@ from referenceIndexes import referenceIndexLinks, glossSummary, ubsEnglishGlosse
 from searchText import plainHtml
 
 
-LAST_MODIFIED_DATE = '2026-10-30' # by RJH
+LAST_MODIFIED_DATE = '2026-11-16' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
+UBS_HEB_VERSION = '0.9.4' # in ../../Forked/ubs-open-license/dictionaries/hebrew/JSON/ filenames
 
 NEWLINE = '\n'
 
@@ -306,6 +310,18 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Maps/', 'Maps.xml' )
+    # Maps.xml sometimes differs in capitalisation from the actual artfile names (e.g., '1sam14.pdf' vs '1Sam14.pdf')
+    #   which breaks the map images on case-sensitive web servers, so we correct them from the actual filenames
+    artfilesFolderpath = os.path.join( folderpath, 'Maps/', 'artfiles/' )
+    actualArtfileNames = { filename.lower(): filename for filename in os.listdir( artfilesFolderpath ) } \
+                            if os.path.isdir( artfilesFolderpath ) else {}
+    def fixArtfileCase( match:re.Match ) -> str:
+        givenName = match.group(1)
+        actualName = actualArtfileNames.get( givenName.lower() )
+        if actualName is None:
+            logging.warning( f"TOBD map artfile '{givenName}' (from {XML_filepath}) not found in {artfilesFolderpath}" )
+            return match.group(0)
+        return f'src="artfiles/{actualName}"'
 
     loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
@@ -398,7 +414,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else: assert False, "We want to stop here"
             # print( f"Map {thisEntry=}" )
             assert name not in state.TOBDData['Maps']
-            state.TOBDData['Maps'][name] = thisEntry
+            state.TOBDData['Maps'][name] = re.sub( r'src="artfiles/([^"]+)"', fixArtfileCase, thisEntry )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
@@ -936,7 +952,7 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Biblical Hebrew from {folderpath}…" )
-    filepath = os.path.join( folderpath, 'UBSHebrewDicLexicalDomains-v0.9.1-en.JSON')
+    filepath = os.path.join( folderpath, f'UBSHebrewDicLexicalDomains-v{UBS_HEB_VERSION}-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
         state.UBS_HEB_DOMAIN_DATA = json.load(json_file)
@@ -951,7 +967,7 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DOMAIN_DATA):,} HEB Domain entries." )
 
-    filepath = os.path.join( folderpath, 'UBSHebrewDic-v0.9.1-en.JSON')
+    filepath = os.path.join( folderpath, f'UBSHebrewDic-v{UBS_HEB_VERSION}-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
         tempList = json.load(json_file)

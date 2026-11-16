@@ -4,6 +4,7 @@
 
 CHANGELOG:
     2026-10-30 Check Strong's senses, Aramaic entries and UBS lemma indexes.
+    2026-11-16 Use Dict.UBS_HEB_VERSION for the UBS Hebrew filenames.
 """
 import json
 from pathlib import Path
@@ -74,13 +75,13 @@ class LexicalLinkTests(unittest.TestCase):
     def test_both_ubs_loaders_index_actual_lemmas(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            (root/'UBSHebrewDicLexicalDomains-v0.9.1-en.JSON').write_text('[]')
+            (root/f'UBSHebrewDicLexicalDomains-v{dictionaries.UBS_HEB_VERSION}-en.JSON').write_text('[]')
             entries = [dict(MainId=str(n),Lemma=lemma,BaseForms=[]) for n,lemma in enumerate(('first','second'))]
             state = SimpleNamespace()
             with patch.object(dictionaries,'state',state):
                 for filename,loader,attribute in (
                     ('UBSGreekNTDic-v1.0-en.JSON',dictionaries.loadAndIndexUBSGreekDictJSON,'UBS_GNT_LEMMA_INDEX'),
-                    ('UBSHebrewDic-v0.9.1-en.JSON',dictionaries.loadAndIndexUBSHebrewDictJSON,'UBS_HEB_LEMMA_INDEX')):
+                    (f'UBSHebrewDic-v{dictionaries.UBS_HEB_VERSION}-en.JSON',dictionaries.loadAndIndexUBSHebrewDictJSON,'UBS_HEB_LEMMA_INDEX')):
                     (root/filename).write_text(json.dumps(entries))
                     loader('test',root)
                     self.assertEqual(getattr(state,attribute),{'first':0,'second':1})

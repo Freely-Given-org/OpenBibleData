@@ -82,6 +82,8 @@ CHANGELOG:
     2026-10-30 Preserve complete Tyndale scripture selections and add dictionary passage previews.
     2026-11-02 Display the translation-note occurrence code -1 as All occurrences.
     2026-11-05 Read OET-LV book versions from their source folders on every build.
+    2026-11-16 Load the Tyndale Open Bible Dictionary from state.BibleLocations['TOBD'].
+    2026-11-16 Treat the TOSN pickle as obsolete when Dict.py or its dictionary sources are more recent.
 """
 from datetime import datetime
 import os, os.path
@@ -126,10 +128,10 @@ from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from utnMarkdown import livenUTNMarkdownLinks, formatUTNMarkdownBlocks
 
 
-LAST_MODIFIED_DATE = '2026-10-30' # by RJH
+LAST_MODIFIED_DATE = '2026-11-16' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.3'
+PROGRAM_VERSION = '1.1.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -205,6 +207,24 @@ def repairUSFMSourceFilenames(bible, manifest):
     bible.possibleFilenameDict.update(replacements)
     logging.warning('%s: replaced mistaken pickle sources with real USFM files: %s',
                     bible.abbreviation, replacements)
+
+
+UBS_GREEK_DICT_FOLDER = '../../Forked/ubs-open-license/dictionaries/greek/JSON'
+UBS_HEBREW_DICT_FOLDER = '../../Forked/ubs-open-license/dictionaries/hebrew/JSON'
+
+
+def TOSNPickleDependencies( state:State ) -> list[Path]:
+    """
+    The TOSN pickle also contains non-Bible data loaded from outside its own folder
+        (by code in Dict.py), so it must also be rebuilt when any of these are more recent.
+    """
+    dependencies = [Path( __file__ ).with_name( 'Dict.py' )]
+    if 'TOBD' in state.BibleLocations: # Tyndale Open Bible Dictionary (articles, textboxes, maps)
+        dependencies += sorted( Path( state.BibleLocations['TOBD'] ).rglob( '*.xml' ) )
+    for UBSFolder in (UBS_GREEK_DICT_FOLDER, UBS_HEBREW_DICT_FOLDER): # Only the English files are loaded
+        dependencies += sorted( Path( UBSFolder ).glob( '*-en.JSON' ) )
+    return dependencies
+# end of Bibles.TOSNPickleDependencies
 
 
 def preloadVersions( state:State ) -> int:
@@ -287,6 +307,13 @@ def preloadVersions( state:State ) -> int:
                         else:
                             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
                                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
+                    if versionAbbreviation == 'TOSN' and not pickleIsObsolete:
+                        for dependencyPath in TOSNPickleDependencies( state ):
+                            if dependencyPath.is_file() and dependencyPath.stat().st_mtime > pickleMTime:
+                                pickleIsObsolete = True
+                                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {dependencyPath} is more recent." )
+                                break
                     if not pickleIsObsolete:
                         try:
                             if versionAbbreviation == 'TOSN':
@@ -664,9 +691,9 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         thisExtraAbbreviation = 'TBIS'
         state.TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {state.BibleLocations['TOBD']}…" )
         thisExtraAbbreviation = 'TOBD'
-        loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
+        loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, state.BibleLocations[thisExtraAbbreviation] )
 
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
@@ -687,8 +714,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
 
-        loadAndIndexUBSGreekDictJSON( 'UGD', '../../Forked/ubs-open-license/dictionaries/greek/JSON' )
-        loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
+        loadAndIndexUBSGreekDictJSON( 'UGD', UBS_GREEK_DICT_FOLDER )
+        loadAndIndexUBSHebrewDictJSON( 'UHD', UBS_HEBREW_DICT_FOLDER )
 
         if WRITE_PICKLES_FLAG:
             pickleFolderPath = Path( state.BibleLocations[versionAbbreviation] )
