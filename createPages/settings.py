@@ -55,6 +55,7 @@ CHANGELOG:
     2026-11-16 Update RP-GNT source folder for upstream move of CSVs to csv-unicode/ccat/.
     2026-11-16 Allow for the TOBD (Tyndale Open Bible Dictionary) location in the BibleLocations sanity check.
     2026-11-17 Load TOSN and TOBD from the OET-adapted copies in ../datasets/Tyndale/OET_TyndaleOpenResources/
+    2026-11-19 Load the UBS dictionaries from the OET-adapted copies in ../../Forked/ubs-open-license/OET_ubs-open-license/
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -373,8 +374,8 @@ class State:
         # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
         'TOSN': '../datasets/Tyndale/OET_TyndaleOpenResources/Tyndale Open Study Notes/', # This one also loads TTN (Tyndale Theme Notes)
         'TOBD': '../datasets/Tyndale/OET_TyndaleOpenResources/TyndaleOpenBibleDictionary/',
-        'UGD': '../../Forked/ubs-open-license/dictionaries/greek/JSON/',
-        'UHD': '../../Forked/ubs-open-license/dictionaries/hebrew/JSON/',
+        'UGD': '../../Forked/ubs-open-license/OET_ubs-open-license/dictionaries/greek/JSON/', # OET-adapted copies
+        'UHD': '../../Forked/ubs-open-license/OET_ubs-open-license/dictionaries/hebrew/JSON/',
 
         'SOTN': '../../Forked/SILOpenTranslatorsNotes/eng/json/',
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
@@ -1122,11 +1123,12 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> and the grammar’s contributors for creating this resource to assist Bible translators. The original work by unfoldingWord is available from <a href="https://ugg.readthedocs.io/">Read the Docs</a>.</p>',
                 'notes': '<p class="note">These pages have been converted from the original reStructuredText source files, with formatting adjustments and navigation links for this site. Browse our <a href="__LEVEL__ref/UGG/index.htm#Top">Greek grammar index</a>.</p>' },
-        'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (2023).</p>',
-                'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2023 United Bible Societies.</p>
+        'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (Hebrew v0.9.4, 2026; Greek v1.1, 2023).</p>',
+                'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2026. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2026 United Bible Societies.</p>
 <p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>',
+                'notes': '<p class="note">We have adapted the English dictionary entries to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>' },
         'THBD': {'about': '<p class="about"><a href="https://devpost.com/software/theographic">Theographic Bible Database</a>.</p>',
                 'copyright': '''<p class="copyright">Developed by Robert Rouse and others, but no copyright statement discovered.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> according to <a href="https://github.com/robertrouse/theographic-bible-metadata#license">this</a>.</p>',

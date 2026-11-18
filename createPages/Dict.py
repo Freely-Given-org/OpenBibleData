@@ -44,6 +44,8 @@ CHANGELOG:
     2026-11-05 Describe Tyndale and UBS entries and indexes in the page head.
     2026-11-16 Update to UBS Hebrew dictionary v0.9.4 (v0.9.1 files were removed upstream).
     2026-11-16 Correct the capitalisation of TOBD map artfile names (e.g., Maps.xml '1sam14.pdf' is actually '1Sam14.pdf').
+    2026-11-19 Update to UBS Greek dictionary v1.1, keep only English inflection comments, and drop empty parts of speech.
+    2026-11-19 Keep the more detailed UBS Greek v1.0 parts of speech (v1.1 lost verbs and noun genders).
 """
 import os.path
 import logging
@@ -66,15 +68,17 @@ from referenceIndexes import referenceIndexLinks, glossSummary, ubsEnglishGlosse
 from searchText import plainHtml
 
 
-LAST_MODIFIED_DATE = '2026-11-18' # by RJH
+LAST_MODIFIED_DATE = '2026-11-19' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-UBS_HEB_VERSION = '0.9.4' # in ../../Forked/ubs-open-license/dictionaries/hebrew/JSON/ filenames
+UBS_GNT_VERSION = '1.1' # in state.BibleLocations['UGD'] filenames
+UBS_GNT_PARTS_OF_SPEECH_VERSION = '1.0' # v1.1 lost the verb parts of speech and noun genders, so we take them from this version (None to disable)
+UBS_HEB_VERSION = '0.9.4' # in state.BibleLocations['UHD'] filenames
 
 NEWLINE = '\n'
 
@@ -895,6 +899,53 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
 # end of Bibles.livenTyndaleMapRefs
 
 
+def tidyUBSBaseForm( baseForm:dict ) -> None:
+    """
+    Tidy a UBS dictionary base form (in place) for our English pages:
+        keep only English inflection comments
+            (the 'English' files also contain Chinese ones, coded 'zhT' in older files and 'zh-Hant' in newer ones),
+        and remove empty parts of speech (e.g., the Greek v1.1 file has '' for all verbs).
+    """
+    for inflection in baseForm.get('Inflections') or ():
+        inflection['Comments'] = [comment for comment in inflection.get('Comments') or ()
+                                    if comment.get('LanguageCode') in (None,'en')]
+    if baseForm.get('PartsOfSpeech'):
+        baseForm['PartsOfSpeech'] = [partOfSpeech for partOfSpeech in baseForm['PartsOfSpeech'] if partOfSpeech]
+# end of Dict.tidyUBSBaseForm
+
+
+def restoreUBSGreekPartsOfSpeech( entries:list[dict], folderpath ) -> None:
+    """
+    The UBS Greek dictionary v1.1 has less detailed parts of speech than v1.0,
+        e.g., '' for all verbs, 'noun' instead of 'noun, f.', 'noun nom' instead of 'noun-name, m.',
+        so replace them (in place) with the ones from the UBS_GNT_PARTS_OF_SPEECH_VERSION file (matched by BaseFormID).
+    """
+    if not UBS_GNT_PARTS_OF_SPEECH_VERSION or UBS_GNT_PARTS_OF_SPEECH_VERSION == UBS_GNT_VERSION:
+        return
+    filepath = os.path.join( folderpath, f'UBSGreekNTDic-v{UBS_GNT_PARTS_OF_SPEECH_VERSION}-en.JSON')
+    try:
+        with open( filepath, 'rt', encoding='utf-8' ) as json_file:
+            oldEntries = json.load(json_file)
+    except FileNotFoundError:
+        logging.error( f"Can't restore UBS Greek v{UBS_GNT_PARTS_OF_SPEECH_VERSION} parts of speech: no file at {filepath}" )
+        return
+    oldPartsOfSpeech = {baseForm['BaseFormID']:baseForm.get('PartsOfSpeech') for entry in oldEntries for baseForm in entry['BaseForms']}
+    numRestored, unmatchedIDs = 0, []
+    for entry in entries:
+        for baseForm in entry['BaseForms']:
+            if baseForm['BaseFormID'] not in oldPartsOfSpeech:
+                unmatchedIDs.append( baseForm['BaseFormID'] ) # We'll keep the newer version's parts of speech
+            elif (entryPartsOfSpeech := oldPartsOfSpeech[baseForm['BaseFormID']]) \
+            and baseForm.get('PartsOfSpeech') != entryPartsOfSpeech:
+                baseForm['PartsOfSpeech'] = entryPartsOfSpeech
+                numRestored += 1
+    if unmatchedIDs:
+        logging.warning( f"restoreUBSGreekPartsOfSpeech() kept v{UBS_GNT_VERSION} parts of speech for {len(unmatchedIDs)} base forms not in v{UBS_GNT_PARTS_OF_SPEECH_VERSION}: {unmatchedIDs[:10]}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  restoreUBSGreekPartsOfSpeech() restored {numRestored:,} v{UBS_GNT_PARTS_OF_SPEECH_VERSION} parts of speech." )
+# end of Dict.restoreUBSGreekPartsOfSpeech
+
+
 def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
     """
     """
@@ -904,10 +955,11 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Greek New Testament from {folderpath}…" )
-    filepath = os.path.join( folderpath, 'UBSGreekNTDic-v1.0-en.JSON')
+    filepath = os.path.join( folderpath, f'UBSGreekNTDic-v{UBS_GNT_VERSION}-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
         tempList = json.load(json_file)
+    restoreUBSGreekPartsOfSpeech( tempList, folderpath )
 
     # Something like
     # UGD entry 0/5507: tempList[0]={'MainId': '000001000000000', 'Lemma': 'α', 'Version': '0', 'HasAramaic': False, 'InLXX': False, 'AlphaPos': 'α', 'StrongCodes': [], 'Authors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '000001001000000', 'PartsOfSpeech': ['noun-name, n.'], 'Inflections': [{'Lemma': 'α', 'BaseFormIndex': 1, 'Form': '', 'Realizations': [], 'Comments': [{'LanguageCode': 'en', 'Meaning': 'indeclinable'}, {'LanguageCode': 'zhT', 'Meaning': '無語尾變化'}]}], 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': None, 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '000001001001000', 'LEXIsBiblicalTerm': 'Y', 'LEXEntryCode': '60.46', 'LEXIndent': 0, 'LEXDomains': ['Number'], 'LEXSubDomains': ['First, Second, Third, Etc. [Ordinals]'], 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2021-05-24 13:06:09', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': 'first in a series involving time, space, or set', 'Glosses': ['first'], 'Comments': 'Occurring only in titles of NT writings: πρὸς Κορινθίους α ‘First Letter to the Corinthians’; Ἰωάννου α ‘First Epistle of John.’'}], 'LEXIllustrations': None, 'LEXReferences': ['04600100000000', '05200100000000', '05400100000000', '06000100000000', '06200100000000'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': None, 'CONMeanings': None}]}]}
@@ -917,7 +969,7 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
     # print( f"{abbrev} entry 1/{len(tempList)}: {tempList[1]=}")
     # print( f"{abbrev} entry -1/{len(tempList)}: {tempList[-1]=}")
 
-    # Index and remove Chinese comments at the same time
+    # Index and remove non-English comments at the same time
     state.UBS_GNT_DATA = []
     state.UBS_GNT_ID_INDEX, state.UBS_GNT_LEMMA_INDEX = {}, {}
     for n,entry in enumerate( tempList ):
@@ -925,17 +977,8 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
         assert entry['MainId'] not in state.UBS_GNT_ID_INDEX
         assert entry['Lemma'] not in state.UBS_GNT_LEMMA_INDEX
         state.UBS_GNT_ID_INDEX[entry['MainId']] = state.UBS_GNT_LEMMA_INDEX[entry['Lemma']] = n
-        for b, baseForm in enumerate( entry['BaseForms'] ):
-            # print( f"  {b}: {type(baseForm)} {baseForm=}" )
-            if baseForm['Inflections']:
-                for i, inflection in enumerate( baseForm['Inflections']):
-                    # print( f"    {i}: {type(inflection)} {inflection=}" )
-                    for c, comment in enumerate( inflection['Comments'][:]): # Use a copy coz we're going to delete stuff
-                        # print( f"      {c}: {type(comment)} {comment=}" )
-                        if comment['LanguageCode'] == 'zhT':
-                            # print( f"        Deleting {c}: {type(comment)} {comment=}" )
-                            inflection['Comments'].pop( c )
-                            # print( f"  {n}: {entry}")
+        for baseForm in entry['BaseForms']:
+            tidyUBSBaseForm( baseForm )
         state.UBS_GNT_DATA.append( entry )
     del tempList
 
@@ -988,18 +1031,8 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
         assert entry['MainId'] not in state.UBS_HEB_ID_INDEX
         assert entry['Lemma'] not in state.UBS_HEB_LEMMA_INDEX
         state.UBS_HEB_ID_INDEX[entry['MainId']] = state.UBS_HEB_LEMMA_INDEX[entry['Lemma']] = n
-        for b, baseForm in enumerate( entry['BaseForms'] ):
-            # print( f"  {b}: {type(baseForm)} {baseForm=}" )
-            if baseForm['Inflections']:
-                for i, inflection in enumerate( baseForm['Inflections']):
-                    # print( f"    {i}: {type(inflection)} {inflection=}" )
-                    for c, comment in enumerate( inflection['Comments'][:]): # Use a copy coz we're going to delete stuff
-                        # print( f"      {c}: {type(comment)} {comment=}" )
-                        if comment['LanguageCode'] == 'zhT':
-                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-                                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"        Deleting {c}: {type(comment)} {comment=}" )
-                            inflection['Comments'].pop( c )
-                            # print( f"  {n}: {entry}")
+        for baseForm in entry['BaseForms']:
+            tidyUBSBaseForm( baseForm )
         state.UBS_HEB_DATA.append( entry )
     del tempList
 

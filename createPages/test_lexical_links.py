@@ -5,6 +5,8 @@
 CHANGELOG:
     2026-10-30 Check Strong's senses, Aramaic entries and UBS lemma indexes.
     2026-11-16 Use Dict.UBS_HEB_VERSION for the UBS Hebrew filenames.
+    2026-11-19 Use Dict.UBS_GNT_VERSION for the UBS Greek filenames.
+    2026-11-19 Check that the Greek loader restores the older parts of speech and keeps only English comments.
 """
 import json
 from pathlib import Path
@@ -80,11 +82,31 @@ class LexicalLinkTests(unittest.TestCase):
             state = SimpleNamespace()
             with patch.object(dictionaries,'state',state):
                 for filename,loader,attribute in (
-                    ('UBSGreekNTDic-v1.0-en.JSON',dictionaries.loadAndIndexUBSGreekDictJSON,'UBS_GNT_LEMMA_INDEX'),
+                    (f'UBSGreekNTDic-v{dictionaries.UBS_GNT_VERSION}-en.JSON',dictionaries.loadAndIndexUBSGreekDictJSON,'UBS_GNT_LEMMA_INDEX'),
                     (f'UBSHebrewDic-v{dictionaries.UBS_HEB_VERSION}-en.JSON',dictionaries.loadAndIndexUBSHebrewDictJSON,'UBS_HEB_LEMMA_INDEX')):
                     (root/filename).write_text(json.dumps(entries))
                     loader('test',root)
                     self.assertEqual(getattr(state,attribute),{'first':0,'second':1})
+
+    def test_greek_loader_restores_older_parts_of_speech(self):
+        def baseForm(baseFormID,partsOfSpeech,comments=()):
+            return dict(BaseFormID=baseFormID,PartsOfSpeech=partsOfSpeech,
+                        Inflections=[dict(Comments=[dict(LanguageCode=code,Meaning=code) for code in comments])])
+        newEntries = [dict(MainId='1',Lemma='ἀγαπάω',BaseForms=[baseForm('1a',[''],('en','zh-Hant','zhT'))]),
+                      dict(MainId='2',Lemma='Ἀαρών',BaseForms=[baseForm('2a',['noun nom'])]),
+                      dict(MainId='3',Lemma='νέος',BaseForms=[baseForm('3a',[''])])] # Not in the older version
+        oldEntries = [dict(MainId='1',Lemma='ἀγαπάω',BaseForms=[baseForm('1a',['verb'])]),
+                      dict(MainId='2',Lemma='Ἀαρών',BaseForms=[baseForm('2a',['noun-name, m.'])])]
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/f'UBSGreekNTDic-v{dictionaries.UBS_GNT_VERSION}-en.JSON').write_text(json.dumps(newEntries))
+            (root/f'UBSGreekNTDic-v{dictionaries.UBS_GNT_PARTS_OF_SPEECH_VERSION}-en.JSON').write_text(json.dumps(oldEntries))
+            state = SimpleNamespace()
+            with patch.object(dictionaries,'state',state), self.assertLogs(level='WARNING'):
+                dictionaries.loadAndIndexUBSGreekDictJSON('test',root)
+        baseForms = [entry['BaseForms'][0] for entry in state.UBS_GNT_DATA]
+        self.assertEqual([baseForm['PartsOfSpeech'] for baseForm in baseForms],[['verb'],['noun-name, m.'],[]])
+        self.assertEqual(baseForms[0]['Inflections'][0]['Comments'],[dict(LanguageCode='en',Meaning='en')])
 
     def test_lemma_and_strongs_pages_keep_dictionary_alternatives(self):
         state = self.state()

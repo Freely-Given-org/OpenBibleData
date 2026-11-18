@@ -6,6 +6,7 @@
 CHANGELOG:
     2026-10-27 Cover public/private cache coexistence and nested OET-LV sources.
     2026-11-16 Cover the TOSN pickle's external dependencies (Dict.py and dictionary sources).
+    2026-11-19 Give the fake state the UBS dictionary locations (UGD/UHD) that TOSNPickleDependencies now reads.
 """
 from contextlib import ExitStack
 import os
@@ -154,9 +155,17 @@ class BibleCacheFreshnessTests(unittest.TestCase):
         tobd = self.root / 'TOBD'
         (tobd / 'Maps').mkdir(parents=True)
         (tobd / 'Maps' / 'Maps.xml').write_text('<items/>', encoding='utf-8')
-        dependencies = Bibles.TOSNPickleDependencies(SimpleNamespace(BibleLocations={'TOBD': str(tobd)}))
+        ugd, uhd = self.root / 'UGD', self.root / 'UHD'
+        ugd.mkdir(); uhd.mkdir()
+        (ugd / 'UBSGreekNTDic-v1.1-en.JSON').write_text('[]', encoding='utf-8')
+        (uhd / 'UBSHebrewDic-v0.9.4-en.JSON').write_text('[]', encoding='utf-8')
+        (uhd / 'UBSHebrewDic-v0.9.4-fr.JSON').write_text('[]', encoding='utf-8') # Not loaded, so not a dependency
+        dependencies = Bibles.TOSNPickleDependencies(SimpleNamespace(BibleLocations={'TOBD': str(tobd), 'UGD': str(ugd), 'UHD': str(uhd)}))
         self.assertEqual(dependencies[0].name, 'Dict.py')
         self.assertIn(tobd / 'Maps' / 'Maps.xml', dependencies)
+        self.assertIn(ugd / 'UBSGreekNTDic-v1.1-en.JSON', dependencies)
+        self.assertIn(uhd / 'UBSHebrewDic-v0.9.4-en.JSON', dependencies)
+        self.assertNotIn(uhd / 'UBSHebrewDic-v0.9.4-fr.JSON', dependencies)
 
 
 if __name__ == '__main__':
