@@ -10,6 +10,7 @@ CHANGELOG:
     2026-11-03 Check build-time chapter/verse choices, spacing thresholds and primary anchors.
     2026-11-12 Check that reading pages get static bars with no fragment-following CSS.
     2026-11-12 Whole-document pages get a chapter bar but no verse bar.
+    2026-11-18 Only the bottom bar of selection-only pages is enlarged.
 """
 from pathlib import Path
 from hashlib import sha256
@@ -50,6 +51,15 @@ class StaticReferenceNavigationTests(unittest.TestCase):
                 self.assertIn('data-nav-chapter="1" data-nav-current="true"',page)
                 self.assertNotIn('aria-current',ElementTree.tostring(row,encoding='unicode'))
                 self.assertEqual(checkHtmlForMissingStyles(mode,page),[])
+
+    def test_selection_only_pages_enlarge_just_their_bottom_bar(self):
+        chapterBar='<h1 id="Top">MARK index</h1><p class="note">Choose.</p><p class="chLst"><a href="C1V1.htm">C1</a></p><!--chLst-->'
+        page=addReferenceNavigation(self.page(mode='par',chapter=None,counts=(),chapterBar=chapterBar))
+        self.assertEqual(re.findall(r'<p class="([^"]*)"',page)[-1],'chLst activeLst')
+        self.assertEqual(page.count('activeLst'),1)
+        self.assertEqual(checkHtmlForMissingStyles('par',page),[])
+        # Pages with real content (here, verses) keep normal-sized bars.
+        self.assertNotIn('activeLst',addReferenceNavigation(self.page(mode='byC')))
 
     def test_long_chapter_rows_keep_spacing(self):
         for last,step in ((40,1),(41,2),(61,3),(81,4),(101,5)):

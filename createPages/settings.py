@@ -54,6 +54,7 @@ CHANGELOG:
     2026-11-05 Configure the public site root for canonical links.
     2026-11-16 Update RP-GNT source folder for upstream move of CSVs to csv-unicode/ccat/.
     2026-11-16 Allow for the TOBD (Tyndale Open Bible Dictionary) location in the BibleLocations sanity check.
+    2026-11-17 Load TOSN and TOBD from the OET-adapted copies in ../datasets/Tyndale/OET_TyndaleOpenResources/
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -62,10 +63,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-11-16' # by RJH
+LAST_MODIFIED_DATE = '2026-11-18' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.3.3'
+PROGRAM_VERSION = '1.4.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -80,14 +81,14 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.5.6' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.99' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v3.6.1' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.49.0' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = ['TOB']
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Also controls loading substituted editions
@@ -370,8 +371,11 @@ class State:
         'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
         'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
         # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-        'TOSN': '../copiedBibles/English/Tyndale/Tyndale Open Study Notes/', # This one also loads TTN (Tyndale Theme Notes)
-        'TOBD': '../copiedBibles/English/Tyndale/TyndaleOpenBibleDictionary/',
+        'TOSN': '../datasets/Tyndale/OET_TyndaleOpenResources/Tyndale Open Study Notes/', # This one also loads TTN (Tyndale Theme Notes)
+        'TOBD': '../datasets/Tyndale/OET_TyndaleOpenResources/TyndaleOpenBibleDictionary/',
+        'UGD': '../../Forked/ubs-open-license/dictionaries/greek/JSON/',
+        'UHD': '../../Forked/ubs-open-license/dictionaries/hebrew/JSON/',
+
         'SOTN': '../../Forked/SILOpenTranslatorsNotes/eng/json/',
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
         }
@@ -1092,11 +1096,13 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
         'TOSN': {'about': '<p class="about">Tyndale Open Study Notes (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Tyndale House Publishers.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of these Bible study and related notes.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of these Bible study and related notes.</p>',
+                'notes': '<p class="note">We have adapted the original Tyndale notes (based on the <em>New Living Translation</em>) to make them a better match for the <em>OET-RV</em>. As per the ShareAlike licence terms, the adapted notes can be downloaded from <a href="https://GitHub.com/Freely-Given-org/OET_TyndaleOpenResources">this GitHub repo</a>.</p>' },
         'TOBD': {'about': '<p class="about">Tyndale Open Bible Dictionary (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by Tyndale House Publishers.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of this Bible dictionary.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of this Bible dictionary.</p>',
+                'notes': '<p class="note">We have adapted the original Tyndale dictionary (based on the <em>New Living Translation</em>) to make it a better match for the <em>OET-RV</em>. As per the ShareAlike licence terms, the adapted entries can be downloaded from <a href="https://GitHub.com/Freely-Given-org/OET_TyndaleOpenResources">this GitHub repo</a>.</p>' },
         'SOTN': {'about': '<p class="about">SIL Open Translator’s Notes (2024).</p>',
                 'copyright': '<p class="copyright">Copyright © 2024 by <a href="https://OpenTN.bible/">SIL International</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -1141,6 +1147,7 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
         assert isinstance( versionLocation, tuple ) \
             or versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../Bibles/') \
+            or versionLocation.startswith('../datasets/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../../Programming/ExternalPrograms/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
@@ -1148,9 +1155,9 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
 #         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
     # Allow for OET's pseudo-version, LV's three auxiliary source folders, and TOBD (loaded along with TOSN).
-    assert len(BibleVersions)+3 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}"
+    assert len(BibleVersions)+5 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}"
     assert len(BibleNames)-1 >= len(BibleLocations)
-    assert len(booksToLoad)+2 >= len(BibleLocations) # TOBD has no books to load
+    assert len(booksToLoad)+4 >= len(BibleLocations) # TOBD has no books to load
 
     preloadedBibles = {}
     sectionsLists = {}

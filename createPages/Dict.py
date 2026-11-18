@@ -66,10 +66,10 @@ from referenceIndexes import referenceIndexLinks, glossSummary, ubsEnglishGlosse
 from searchText import plainHtml
 
 
-LAST_MODIFIED_DATE = '2026-11-16' # by RJH
+LAST_MODIFIED_DATE = '2026-11-18' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -730,19 +730,19 @@ even though it was originally designed to supplement the <i>New Living Translati
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop(level, None, 'dictionaryMainIndex', None, state, metadata=(
-        'Tyndale Open Bible Dictionary — alphabetical index',
+        'Bible Dictionaries — alphabetical index',
         'Find articles on Bible books, people, places and terms by browsing the Tyndale Open Bible Dictionary by letter.'))
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
 <p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a title="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p><!--note-->
-<p class="note">Note that some of the comments refer specifically to the ‘New Living Translation’ (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <b>OET</b> issues.</p><!--note-->
+<p class="note">Note that although we have made some adaptations to their original dictionary entries, some of the comments still refer specifically to the <em>New Living Translation</em> (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <em>OET</em> issues.</p><!--note-->
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
 <h1>UBS Dictionary of New Testament Greek <small>{UBS_detailsLink}</small></h1>
-<p class="note"><a href="{'../'*(level)}UBS/Grk/index.htm#Top">Browse Greek definitions, related entries and OET passage examples.</a></p><!--note-->
+<p class="note"><a href="{'../'*(level)}UBS/Grk/index.htm#Top">Browse Greek definitions, related entries and <em>OET</em> passage examples.</a></p><!--note-->
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
-<p class="note"><a href="{'../'*(level)}UBS/Heb/index.htm#Top">Browse Hebrew definitions, related entries and OET passage examples.</a></p><!--note-->
+<p class="note"><a href="{'../'*(level)}UBS/Heb/index.htm#Top">Browse Hebrew definitions, related entries and <em>OET</em> passage examples.</a></p><!--note-->
 {makeBottom( level, None, 'dictionaryMainIndex' )}'''
     assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything

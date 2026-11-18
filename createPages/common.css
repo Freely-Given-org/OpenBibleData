@@ -47,6 +47,7 @@
  *   2026-11-11 Highlight updated OET-RV measurements with a faint light-mode green fill.
  *   2026-11-12 Drop fragment-following body:has() navigation rules (slow on long pages).
  *   2026-11-16 Restate the updated-measure fill so the style checker recognises span.updatedMeasure.
+ *   2026-11-18 Enlarge the bottom selection bar on pages that are only selection bars (activeLst).
  */
 
 /* Reference entries share the same hierarchy across page families. */
@@ -181,6 +182,9 @@ p.chLst { background-color:var(--chrome-bg-chLst); }
 .chLst a { text-decoration:none; }
 p.vsLst { background-color:var(--chrome-bg-vsLst); }
 .vsLst a { text-decoration:none; }
+/* On pages that only offer selection bars (e.g., par/index.htm), the bottom bar
+   is the one being chosen from: make it bigger for fingers on phones. */
+p.activeLst { font-size:1.4em; line-height:1.9; }
 
 p.cNav { font-size:1.8em; background-color:var(--chrome-fg-cnav); }
 p.vNav { font-size:1.8em; }
@@ -727,3 +731,7 @@ p.bibleReferenceChoices { margin: 0.5em 0; }
 /* Keep high verse numbers one click away. The build supplies every link. */
 p.bibleReferenceChoices a { white-space:nowrap; }
 [data-nav-current] { display:none; }
+/* 2026-11-18 Topic pages: the subject heading link under each title, and the list of subjects on the topic index. */
+p.topicGroup { margin-top:0; font-size:0.9em; }
+p.topicGroups { line-height:1.8; }
+p.topicGroups a { white-space:nowrap; }

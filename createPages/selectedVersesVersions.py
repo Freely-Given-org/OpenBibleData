@@ -37,7 +37,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 DEBUGGING_THIS_MODULE = False
 
 
-SOURCE_FOLDER = Path( '/srv/Documents/FreelyGiven/OpenBibleData/copiedBibles/English/' )
+SOURCE_FOLDER = Path( '/srv/FreelyGiven/OpenBibleData/copiedBibles/English/' )
 VERSION_NAME_MAP = { # Does not include 1ST, 2DT, or TPT or JQT
                      'CEV':'Contemporary English Version', 'CSB':'Christian Standard Bible',
                      'ESV':'English Standard Version',

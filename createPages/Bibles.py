@@ -84,6 +84,7 @@ CHANGELOG:
     2026-11-05 Read OET-LV book versions from their source folders on every build.
     2026-11-16 Load the Tyndale Open Bible Dictionary from state.BibleLocations['TOBD'].
     2026-11-16 Treat the TOSN pickle as obsolete when Dict.py or its dictionary sources are more recent.
+    2026-11-18 Write the TOSN pickle via a temporary file so an interrupted build can't leave a truncated pickle.
 """
 from datetime import datetime
 import os, os.path
@@ -128,10 +129,10 @@ from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from utnMarkdown import livenUTNMarkdownLinks, formatUTNMarkdownBlocks
 
 
-LAST_MODIFIED_DATE = '2026-11-16' # by RJH
+LAST_MODIFIED_DATE = '2026-11-18' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.4'
+PROGRAM_VERSION = '1.1.6'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -209,8 +210,24 @@ def repairUSFMSourceFilenames(bible, manifest):
                     bible.abbreviation, replacements)
 
 
-UBS_GREEK_DICT_FOLDER = '../../Forked/ubs-open-license/dictionaries/greek/JSON'
-UBS_HEBREW_DICT_FOLDER = '../../Forked/ubs-open-license/dictionaries/hebrew/JSON'
+def dumpTOSNPickleData( state:State, pickleOutputFile ) -> None:
+    """
+    Write the non-Bible data that's stored in the TOSN pickle
+        (in the same order that preloadVersions() loads them).
+    """
+    pickle.dump( state.TyndaleBookIntrosDict, pickleOutputFile )
+    pickle.dump( state.TyndaleBookIntroSummariesDict, pickleOutputFile )
+    pickle.dump( state.TOBDData, pickleOutputFile )
+    # UBS Greek
+    pickle.dump( state.UBS_GNT_DATA, pickleOutputFile )
+    pickle.dump( state.UBS_GNT_ID_INDEX, pickleOutputFile )
+    pickle.dump( state.UBS_GNT_LEMMA_INDEX, pickleOutputFile )
+    # UBS Hebrew
+    pickle.dump( state.UBS_HEB_DOMAIN_DATA, pickleOutputFile )
+    pickle.dump( state.UBS_HEB_DATA, pickleOutputFile )
+    pickle.dump( state.UBS_HEB_ID_INDEX, pickleOutputFile )
+    pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
+# end of Bibles.dumpTOSNPickleData
 
 
 def TOSNPickleDependencies( state:State ) -> list[Path]:
@@ -221,7 +238,7 @@ def TOSNPickleDependencies( state:State ) -> list[Path]:
     dependencies = [Path( __file__ ).with_name( 'Dict.py' )]
     if 'TOBD' in state.BibleLocations: # Tyndale Open Bible Dictionary (articles, textboxes, maps)
         dependencies += sorted( Path( state.BibleLocations['TOBD'] ).rglob( '*.xml' ) )
-    for UBSFolder in (UBS_GREEK_DICT_FOLDER, UBS_HEBREW_DICT_FOLDER): # Only the English files are loaded
+    for UBSFolder in (state.BibleLocations['UGD'], state.BibleLocations['UHD']): # Only the English files are loaded
         dependencies += sorted( Path( UBSFolder ).glob( '*-en.JSON' ) )
     return dependencies
 # end of Bibles.TOSNPickleDependencies
@@ -714,25 +731,22 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
 
-        loadAndIndexUBSGreekDictJSON( 'UGD', UBS_GREEK_DICT_FOLDER )
-        loadAndIndexUBSHebrewDictJSON( 'UHD', UBS_HEBREW_DICT_FOLDER )
+        loadAndIndexUBSGreekDictJSON( 'UGD', state.BibleLocations['UGD'] )
+        loadAndIndexUBSHebrewDictJSON( 'UHD', state.BibleLocations['UHD'] )
 
         if WRITE_PICKLES_FLAG:
             pickleFolderPath = Path( state.BibleLocations[versionAbbreviation] )
             pickleFilename = f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
-            with open( pickleFolderPath.joinpath( pickleFilename ), 'wb' ) as pickleOutputFile:
-                pickle.dump( state.TyndaleBookIntrosDict, pickleOutputFile )
-                pickle.dump( state.TyndaleBookIntroSummariesDict, pickleOutputFile )
-                pickle.dump( state.TOBDData, pickleOutputFile )
-                # UBS Greek
-                pickle.dump( state.UBS_GNT_DATA, pickleOutputFile )
-                pickle.dump( state.UBS_GNT_ID_INDEX, pickleOutputFile )
-                pickle.dump( state.UBS_GNT_LEMMA_INDEX, pickleOutputFile )
-                # UBS Hebrew
-                pickle.dump( state.UBS_HEB_DOMAIN_DATA, pickleOutputFile )
-                pickle.dump( state.UBS_HEB_DATA, pickleOutputFile )
-                pickle.dump( state.UBS_HEB_ID_INDEX, pickleOutputFile )
-                pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
+            pickleFilepath = pickleFolderPath.joinpath( pickleFilename )
+            # Write to a temporary file first, so an interrupted build can't leave a truncated pickle
+            #   (which would then look newer than its sources and be loaded by later builds)
+            temporaryPickleFilepath = pickleFilepath.with_name( f'{pickleFilename}.{os.getpid()}.tmp' )
+            try:
+                with open( temporaryPickleFilepath, 'wb' ) as pickleOutputFile:
+                    dumpTOSNPickleData( state, pickleOutputFile )
+                os.replace( temporaryPickleFilepath, pickleFilepath ) # Atomic on the same filesystem
+            finally:
+                temporaryPickleFilepath.unlink( missing_ok=True )
 
     elif versionAbbreviation in ('BSB',) and 'PTX' in folderOrFileLocation: # Paratext
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:

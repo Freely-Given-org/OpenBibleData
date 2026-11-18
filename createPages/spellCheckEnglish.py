@@ -57,10 +57,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-13' # by RJH
+LAST_MODIFIED_DATE = '2026-11-17' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -94,7 +94,7 @@ def _is_hebrew_or_greek_word( word:str ) -> bool:
     return hasLetter
 
 
-TED_DICT_FOLDERPATH = Path(__file__).parent.joinpath( '../../../Documents/RobH123/TED_Dict/sourceDicts/').resolve()
+TED_DICT_FOLDERPATH = Path(__file__).parent.joinpath( '../../../Programming/RobH123/TED_Dict/sourceDicts/').resolve()
 assert TED_DICT_FOLDERPATH.is_dir()
 OET_LV_NAMES_TSV_FILEPATH = Path(__file__).parent.joinpath( '../../OpenEnglishTranslation--OET/derivedTexts/OET-LV_names_table.tsv' ).resolve()
 assert OET_LV_NAMES_TSV_FILEPATH.is_file()

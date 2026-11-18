@@ -10,6 +10,7 @@ CHANGELOG:
     2026-10-16 Cover Luther mapping; use KJV for count-only failure fixtures.
     2026-10-22 Use Original for unverified-profile fixtures after KJV OT support.
     2026-10-30 Cover topic ranges containing RV verse bridges and contextual lookup errors.
+    2026-11-18 Stub the new topic-page subject link.
     2026-11-01 Include the book-navigation helper when exercising isolated page builders.
     2026-11-01 Accept the selected-book argument in isolated navigation fixtures.
     2026-11-03 Supply the static-navigation helper to isolated page builders.
@@ -242,6 +243,7 @@ class OETPassageTests(unittest.TestCase):
     def topicBuilder(self):
         namespace = dict(globals(), State=State, DEBUGGING_THIS_MODULE=False, NEWLINE='\n',
             topicReferenceMaterial=lambda *args:'', # Associations are covered in test_study_references.
+            topicGroupLink=lambda topic:'', # Subject grouping is covered in test_topic_table.
             TOPIC_LIST=[],
             fnPrint=lambda *a:None, vPrint=lambda *a:None, dPrint=lambda *a:None,
             getOETTidyBBB=lambda b,*a,**k:b, makeTop=lambda *a,**k:'<html>', makeBottom=lambda *a:'</html>',

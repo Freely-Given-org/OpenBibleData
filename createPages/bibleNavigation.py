@@ -11,6 +11,7 @@ CHANGELOG:
     2026-11-03 Generate chapter/verse choices at build time; hide current choices with CSS.
     2026-11-12 Remove fragment-following body:has() rules and hidden verse rows (slow on long pages).
     2026-11-12 Whole-document (byDoc) pages keep the chapter bar but no verse bar.
+    2026-11-18 Enlarge the bottom selection bar on pages that hold nothing but selection bars.
 """
 from hashlib import sha256
 from pathlib import Path
@@ -38,7 +39,35 @@ INDEPENDENT_VIEWS=('Related','Parallel','Simple','Interlinear','Topics','Referen
 def _attr(value):return escape(str(value),_ATTRIBUTE_ESCAPES)
 
 
+def markSelectionOnlyPage(pageHtml):
+    """Enlarge the final selection bar on a page that is nothing but selection bars.
+
+    Index pages (e.g., par/index.htm, OET/byC/MRK.htm) exist only to choose a
+    book/chapter/verse; the bottom bar is the one being chosen from, so it's
+    given the activeLst class (see common.css) to make finger taps on phones easier.
+    Headings, notes and remarks don't count as content.
+    """
+    split=pageHtml.find('</div><!--header-->')
+    if split==-1 or 'activeLst' in pageHtml:return pageHtml
+    split+=len('</div><!--header-->')
+    body=pageHtml[split:].split('<div class="footer"',1)[0]
+    bars=list(re.finditer(r'<p class="[^"]*Lst\b[^"]*"',body))
+    if not bars:return pageHtml
+    residue=re.sub(r'<!--.*?-->','',body,flags=re.DOTALL)
+    residue=re.sub(r'<p class="[^"]*Lst\b[^"]*"[^>]*>.*?</p>','',residue,flags=re.DOTALL)
+    residue=re.sub(r'<(h1|h2|h3)\b[^>]*>.*?</\1>','',residue,flags=re.DOTALL)
+    residue=re.sub(r'<p class="(?:note|rem)"[^>]*>.*?</p>','',residue,flags=re.DOTALL)
+    if re.sub(r'<[^>]+>','',residue).strip():return pageHtml
+    point=split+bars[-1].end()-1 # Just before the closing quote of the class attribute
+    return pageHtml[:point]+' activeLst'+pageHtml[point:]
+
+
 def addReferenceNavigation(pageHtml):
+    """Add chapter/verse navigation, then enlarge the bar on selection-only pages."""
+    return markSelectionOnlyPage(_addReferenceNavigation(pageHtml))
+
+
+def _addReferenceNavigation(pageHtml):
     """Build ordinary chapter/verse links, including when JavaScript is disabled.
 
     The bars are static: one verse row, for the page's chapter (whole-document

@@ -4,6 +4,7 @@
 
 CHANGELOG:
     2026-10-30 Reverse source associations without inferring topics from English words.
+    2026-11-18 Read the topic table from topicTable.py (moved out of createTopicPages.py).
 """
 from collections import defaultdict
 from pathlib import Path
@@ -28,7 +29,7 @@ def topicFilename(topic):
 def prepareTopicAssociations(state,topicTable=None):
     if hasattr(state,'topicAssociations'):return state.topicAssociations
     if topicTable is None:
-        from createTopicPages import TOPIC_TABLE
+        from topicTable import TOPIC_TABLE
         topicTable=TOPIC_TABLE
     graph=dict(topics={},passages=defaultdict(set),lemmas=defaultdict(set),selections=defaultdict(list))
     source=getattr(state,'BibleVersifications',{}).get('OET-RV','OET-RV')
