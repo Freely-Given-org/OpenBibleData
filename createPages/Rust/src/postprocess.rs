@@ -25,6 +25,8 @@
 //!  2026-10-30: Use supplied native Hebrew filenames for interlinear word links.
 //!  2026-10-30: Render shared local lexical and grammar cells prepared by Python.
 //!  2026-11-03: Correct the Strong's column headings in both interlinear tables.
+//!  2026-11-19: OET-LV split gives numberless added words (e.g. `\add +the\add*_pit¦n`)
+//!              the number of their joined word, and drops zero-length pieces.
 
 use std::collections::HashMap;
 
@@ -91,22 +93,17 @@ pub fn remove_greek_punctuation(greek_text: &str) -> String {
     s.trim().to_string()
 }
 
-/// Byte-identical port of the OET-LV English-word splitting chain in
-/// `createOETInterlinearVerseInner`:
+/// Split cleaned OET-LV text into `word¦number` pieces for the interlinear.
 ///
-/// ```python
-/// cleanLVText
-///     .replace(',','').replace('.','').replace(':','').replace('?','')
-///     .replace('>','').replace('<','')
-///     .replace('/messiah¦', ' messiah¦')
-///     .replace('_',' ').replace('=',' ').replace('÷',' ')
-///     .replace('   ',' ').replace('  ',' ')
-///     .strip().split( ' ' )
-/// ```
+/// Sentence punctuation (`,.:?<>`) is removed and `/messiah¦` is separated,
+/// then each space-separated group is split on the joiners `_`, `=` and `÷`.
 ///
-/// Python's `str.split(' ')` keeps zero-length pieces, so a caller that logs
-/// "zero-length word" messages (as the interlinear builder does) still sees
-/// them — behaviour is preserved exactly.
+/// Added words glued to a source word, e.g. `\add +the\add*_pit¦258922` or
+/// `\add =is\add*_not¦258925`, carry no number of their own, so they take the
+/// number of the next numbered piece in the same group (else the previous one),
+/// giving `+the¦258922`, `pit¦258922`. Pieces in a group with no numbers at all
+/// (e.g. footnote text) are returned unchanged for the caller to report.
+/// Zero-length pieces are dropped.
 pub fn split_oet_lv_interlinear_words(clean_text: &str) -> Vec<String> {
     let s = clean_text
         .replace(',', "")
@@ -115,13 +112,32 @@ pub fn split_oet_lv_interlinear_words(clean_text: &str) -> Vec<String> {
         .replace('?', "")
         .replace('>', "")
         .replace('<', "")
-        .replace("/messiah¦", " messiah¦")
-        .replace('_', " ")
-        .replace('=', " ")
-        .replace('÷', " ")
-        .replace("   ", " ")
-        .replace("  ", " ");
-    s.trim().split(' ').map(|w| w.to_string()).collect()
+        .replace("/messiah¦", " messiah¦");
+
+    fn word_number(piece: &str) -> Option<&str> {
+        let (_, after) = piece.split_once('¦')?;
+        let end = after.find(|c: char| !c.is_ascii_digit()).unwrap_or(after.len());
+        (end > 0).then(|| &after[..end])
+    }
+
+    let mut words = Vec::new();
+    for group in s.split(' ') {
+        let pieces: Vec<&str> = group.split(['_', '=', '÷']).filter(|p| !p.is_empty()).collect();
+        let numbers: Vec<Option<&str>> = pieces.iter().map(|p| word_number(p)).collect();
+        for (ix, piece) in pieces.iter().enumerate() {
+            if piece.contains('¦') {
+                words.push(piece.to_string());
+                continue;
+            }
+            let inherited = numbers[ix + 1..].iter().flatten().next()
+                .or_else(|| numbers[..ix].iter().rev().flatten().next());
+            words.push(match inherited {
+                Some(number) => format!("{piece}¦{number}"),
+                None => piece.to_string(),
+            });
+        }
+    }
+    words
 }
 
 /// Byte-identical port of the OET-RV English-word splitting chain in
@@ -533,6 +549,27 @@ mod tests {
         assert_eq!(
             split_oet_lv_interlinear_words("Say, hello: /messiah¦ 123_GOD"),
             ["Say", "hello", "messiah¦", "123", "GOD"]
+        );
+    }
+
+    #[test]
+    fn lv_splitwords_added_words_take_group_number() {
+        // OET-LV PSA 88:5 and PRO 26:19: \add words with no number of their own
+        assert_eq!(
+            split_oet_lv_interlinear_words(
+                "of¦258921 +the_pit¦258922 who¦258925_there¦258925_=is_not¦258925 strength¦258927."
+            ),
+            ["of¦258921", "+the¦258922", "pit¦258922", "who¦258925", "there¦258925",
+             "is¦258925", "not¦258925", "strength¦258927"]
+        );
+        assert_eq!(
+            split_oet_lv_interlinear_words("=Is_so¦276768 =was_I¦276779 jesting¦276778."),
+            ["Is¦276768", "so¦276768", "was¦276779", "I¦276779", "jesting¦276778"]
+        );
+        // Falls back to the previous number; numberless groups are left alone
+        assert_eq!(
+            split_oet_lv_interlinear_words("me¦258959_extra  footnote text"),
+            ["me¦258959", "extra¦258959", "footnote", "text"]
         );
     }
 

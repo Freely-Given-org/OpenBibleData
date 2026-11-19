@@ -61,6 +61,8 @@ CHANGELOG:
     2026-11-03 Omit the current chapter from interlinear chapter choices.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-03 Correct the Strong's column heading.
+    2026-11-19 Give OET-LV added words without their own number (e.g. \\add +the\\add*_pit¦n) their joined word's number,
+                and skip unsplittable words in the reverse interlinear instead of reusing the previous word's values.
 
 TODO:
     Add colour keys for LV and RV words
@@ -97,10 +99,10 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-10-30'
+LAST_MODIFIED_DATE = '2026-11-19'
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -576,6 +578,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         try: word,numberStr = extendedWord.split( '¦' )
         except ValueError:
             logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
+            continue # Otherwise we'd silently reuse word/numberStr left over from an earlier word (even an OET-RV one)
         wordNumber = getPositiveLeadingInt( numberStr )
 
         if wordNumber == lastWordNumber: # Put into the last cell
