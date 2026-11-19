@@ -59,6 +59,7 @@ CHANGELOG:
     2026-11-19 Add UBS_EXTRA_RESOURCES_FOLDER (handbooks, HOTTP, MARBLE index, parallel passages) and HOTTP details.
     2026-11-19 Load UTN and SOTN from the OET-adapted copies (OET_uW_en_tn and OET_SILOpenTranslatorsNotes).
     2026-11-19 Rename the Dictionary view decoration to Dictionaries.
+    2026-11-20 Describe the their-name-first adaptation of the UTN and SOTN notes.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -1118,12 +1119,12 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://global.SIL.org/our-work/">SIL</a> for creating <a href="https://github.com/BibleAquifer/SILOpenTranslatorsNotes">these notes</a> to assist Bible translators, and thanks to <a href="https://www.Aquifer.Bible/">Bible Aquifer</a> for making them available in a <a href="https://GitHub.com/BibleAquifer">format</a> that we could easily use.</p>',
                 'notes': '''<p class="note">These notes are currently available for all 27 books in the Messianic Update (New Testament), but only nine books from the Hebrew Scriptures (Old Testament).</p>
-<p class="note">We have adapted these notes to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_SILOpenTranslatorsNotes">here</a>.</p>''' },
+<p class="note">We have adapted these notes to the <em>OET</em>, mainly by adding the forms of names used in the <em>OET Readers’ Version</em> after the names used in their translation, e.g., ‘Samuel (Shmuel)’ (but quotes from other Bible versions are unchanged). The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_SILOpenTranslatorsNotes">here</a>.</p>''' },
         'UTN': {'about': '<p class="about">unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>',
-                'notes': '<p class="note">We have adapted these notes to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_uW_en_tn">here</a>.</p>' },
+                'notes': '<p class="note">We have adapted these notes to the <em>OET</em>, mainly by adding the forms of names used in the <em>OET Readers’ Version</em> after the names used in their translation, e.g., ‘Samuel (Shmuel)’ (but quotes from other Bible versions are unchanged). The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_uW_en_tn">here</a>.</p>' },
         'UHG': {'about': '<p class="about">unfoldingWord® Hebrew Grammar (UHG) is a reference grammar for Biblical Hebrew, organised around the morphology codes used by the Open Scriptures Hebrew Bible.</p>',
                 'copyright': '<p class="copyright">Copyright © 2019 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
