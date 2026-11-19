@@ -44,6 +44,7 @@ CHANGELOG:
     2026-11-12 Check hyphenated compounds as whole words instead of splitting them at hyphens
     2026-11-12 Accept title-case forms of known compounds, and add per-version odd compound forms
     2026-11-13 Accept ClVg/KJB-1611 J→Y respelt names and ClVg Roman numerals; add reviewed Luth/ClVg names
+    2026-11-19 Still report OET-LV bracketed unresolved Greek words such as ⟦πτωχοῦ⟧, but omit them from the per-version and WORST ENGLISH WORDS summary displays
 """
 from pathlib import Path
 from csv import  DictReader
@@ -57,10 +58,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-17' # by RJH
+LAST_MODIFIED_DATE = '2026-11-19' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1171,7 +1172,8 @@ def printSpellCheckSummary( state ) -> None:
             continue
         percent = misspellingCount * 100 / checkedCount
         percentageText = '<0.01%' if 0 < percent < 0.01 else f'{percent:.2f}%'
-        orderedWords = sorted(wordCounts, key=wordCounts.get, reverse=True)
+        orderedWords = [word for word in sorted(wordCounts, key=wordCounts.get, reverse=True)
+                        if not word.startswith('⟦')] # Still counted, but OET-LV bracketed unresolved Greek words would swamp the display
         wordsToShow = [(word, wordCounts[word]) for word in orderedWords if word.islower()][:14 if language=='ENGLISH' else 13]
         if language=='GERMAN' and len(wordsToShow) < 12: # Include capitals, which can be ordinary German nouns.
             wordsToShow = [(word, wordCounts[word]) for word in orderedWords
@@ -1192,12 +1194,15 @@ def printSpellCheckSummary( state ) -> None:
         for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
             badDict[word] += 1
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
+        # OET-LV bracketed unresolved Greek words (e.g., ⟦πτωχοῦ⟧) are still counted, but would swamp the display
+        displayableDict = [wordCountTuple for wordCountTuple in sortedDict
+                           if not (versionAbbreviation == 'OET-LV' and wordCountTuple[0].startswith('⟦'))]
         NUM_TO_DISPLAY = 40
-        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<NUM_TO_DISPLAY)][:NUM_TO_DISPLAY]
+        displayList = [wordCountTuple for wordCountTuple in displayableDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<NUM_TO_DISPLAY)][:NUM_TO_DISPLAY]
         displayedWords = {word for word,_count in displayList}
-        displayList += [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0] not in displayedWords][:NUM_TO_DISPLAY-len(displayList)]
+        displayList += [wordCountTuple for wordCountTuple in displayableDict if wordCountTuple[0] not in displayedWords][:NUM_TO_DISPLAY-len(displayList)]
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}{f', not showing {len(sortedDict)-len(displayableDict):,} ⟦Greek⟧ words' if len(displayableDict)<len(sortedDict) else ''}): {displayList}\n")
 
     totalWordsWithRef = 0
     for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
