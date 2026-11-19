@@ -12,6 +12,7 @@ CHANGELOG:
     2026-11-01 Search additional-book Greek and Latin words by gloss, transliteration and reference.
     2026-11-02 Place indented prologue previews before their reading links.
     2026-11-05 Identify Greek and Latin chapter tables and index views in the page head.
+    2026-11-19 Don't link to the dictionaries from the index pages.
 """
 from collections import defaultdict
 from pathlib import Path
@@ -225,7 +226,7 @@ def createDCWordPages(level: int, folder: Path, state) -> None:
         otherLabel='Original spelling order' if transliterated else 'Transliterated order'
         metadata = lexicalIndexMetadata(f'OET-LV additional books ({languages})', 'word', len(groups), transliterated=transliterated)
         index = (makeTop(level, None, 'wordIndex', None, state, metadata=metadata)
-            + f'<h1 id="Top">{title}</h1>\n'+referenceIndexLinks(level,state,includeCore=True)+f'{DC_DRAFT_NOTE}\n{LAO_DRAFT_NOTE}\n'
+            + f'<h1 id="Top">{title}</h1>\n'+referenceIndexLinks(level,state)+f'{DC_DRAFT_NOTE}\n{LAO_DRAFT_NOTE}\n'
             + f'<p><a href="{other}#Top">{otherLabel}</a></p>'
             + wordIndex(level,groups,folder,transliterated=transliterated,metadata=metadata,testMode=state.TEST_MODE_FLAG)
             + '<details><summary>Browse word details by chapter</summary><p>'+' '.join(indexLinks)+'</p></details>'

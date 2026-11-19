@@ -7,7 +7,8 @@ CHANGELOG:
     2026-11-01 Group word occurrences with readable references, glosses and transliterations.
     2026-11-05 Share English UBS glosses between search metadata and index labels.
     2026-11-05 Identify the subject and ordering of each complete lexical index.
-    2026-11-19 Add the UBS flora, fauna, and realia handbooks.
+    2026-11-19 Remove the dictionaries from the links on Reference pages (only dictionary pages include them),
+                and leave the UBS handbooks to the Reference contents page.
 """
 import re
 import json
@@ -114,30 +115,37 @@ def wordIndex(level, groups, outputFolder, *, transliterated=False, metadata=Non
         f'<script src="{"../"*level}referenceIndex.js" defer></script>')
 
 
-def referenceIndexLinks(level, state, *, includeCore=False):
-    links = []
-    prefix = '../'*level
-    if includeCore:
-        links.append(('ref/index.htm','All reference resources'))
-        for language,name,grammar in (('Heb','Hebrew','UHG'),('Grk','Greek','UGG')):
-            for family,label in (('Wrd','words'),('Lem','lemmas'),('Strng','Strong’s numbers')):
-                links.append((f'ref/{language}{family}/index.htm',f'{name} {label}'))
-            links.append((f'ref/{grammar}/index.htm',f'{name} grammar'))
-    for language,attribute,name in (('Heb','UBS_HEB_DATA','Hebrew'),('Grk','UBS_GNT_DATA','Greek')):
-        if getattr(state,attribute,None) is not None:
-            links.append((f'UBS/{language}/index.htm',f'UBS {name} dictionary'))
-    if getattr(state,'TOBDData',{}).get('Articles'):
-        links.append(('dct/index.htm','Bible dictionary'))
-    for handbook,label in (('Fauna','Bible animals'),('Flora','Bible plants'),('Realia','Bible objects')):
-        if getattr(state,'UBS_HANDBOOKS',{}).get(handbook):
-            links.append((f'UBS/{handbook}/index.htm',label))
+def hasDCWordPages(state):
+    """True if the additional-book (deuterocanon) word pages will be built."""
     table = getattr(state,'OETRefData',{}).get('word_tables',{}).get('OET-LV_DC_word_table.tsv')
     bible = getattr(state,'preloadedBibles',{}).get('OET-LV')
     selected = getattr(state,'booksToLoad',{}).get('OET-LV',())
-    if table and bible and any(book in bible and ('ALL' in selected or book in selected)
-                              for book in getattr(state,'OET_LV_DC_BOOK_LIST',())):
+    return bool(table and bible and any(book in bible and ('ALL' in selected or book in selected)
+                                        for book in getattr(state,'OET_LV_DC_BOOK_LIST',())))
+
+
+def referenceIndexLinks(level, state, *, includeDictionaries=False):
+    """
+    A line of links to the main reference indexes.
+
+    Only dictionary pages include the dictionaries: Reference pages don't link to them
+        (the Dictionaries view does that), and the UBS handbooks are listed on the Reference contents page.
+    """
+    links = []
+    prefix = '../'*level
+    links.append(('ref/index.htm','All reference resources'))
+    for language,name,grammar in (('Heb','Hebrew','UHG'),('Grk','Greek','UGG')):
+        for family,label in (('Wrd','words'),('Lem','lemmas'),('Strng','Strong’s numbers')):
+            links.append((f'ref/{language}{family}/index.htm',f'{name} {label}'))
+        links.append((f'ref/{grammar}/index.htm',f'{name} grammar'))
+    if includeDictionaries:
+        for language,attribute,name in (('Heb','UBS_HEB_DATA','Hebrew'),('Grk','UBS_GNT_DATA','Greek')):
+            if getattr(state,attribute,None) is not None:
+                links.append((f'UBS/{language}/index.htm',f'UBS {name} dictionary'))
+        if getattr(state,'TOBDData',{}).get('Articles'):
+            links.append(('dct/index.htm','Bible dictionary'))
+    if hasDCWordPages(state):
         links.append(('ref/DCWrd/index.htm','Additional-book Greek and Latin words'))
-    if not links: return ''
     return '<p class="note">'+' · '.join(f'<a href="{prefix}{path}#Top">{label}</a>' for path,label in links)+'</p>'
 
 

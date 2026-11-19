@@ -6,6 +6,7 @@ CHANGELOG:
     2026-10-31 Cover gloss search data, unsampled Strong's entries and reduced builds.
     2026-11-01 Cover grouped occurrences, parallel writers, DC selection and Latin identity.
     2026-11-05 Verify the subject and ordering of complete static word indexes.
+    2026-11-19 Check that only dictionary pages link to the dictionaries.
 """
 from contextlib import ExitStack
 from pathlib import Path
@@ -67,6 +68,17 @@ class ReferenceIndexTests(unittest.TestCase):
         self.assertIn('ref/DCWrd/index.htm#Top',referenceIndexLinks(2,self.state))
         self.state.booksToLoad['OET-LV']=['MRK']
         self.assertNotIn('DCWrd',referenceIndexLinks(2,self.state))
+
+    def test_only_dictionary_pages_link_to_the_dictionaries(self):
+        self.state.TOBDData={'Articles':{'Aaron':''}}
+        self.state.UBS_HANDBOOKS={'Fauna':{'0':None}}
+        links=referenceIndexLinks(2,self.state)
+        self.assertIn('ref/HebWrd/index.htm#Top',links)
+        self.assertNotIn('dct/',links)
+        self.assertNotIn('UBS/',links)
+        dictionaryLinks=referenceIndexLinks(2,self.state,includeDictionaries=True)
+        self.assertIn('dct/index.htm#Top',dictionaryLinks)
+        self.assertNotIn('UBS/Fauna',dictionaryLinks) # The handbooks are on the Reference contents page
 
     def test_strongs_index_includes_entries_between_the_old_sample_points(self):
         class Lexicon:

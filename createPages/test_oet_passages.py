@@ -12,6 +12,7 @@ CHANGELOG:
     2026-10-30 Cover topic ranges containing RV verse bridges and contextual lookup errors.
     2026-11-18 Stub the new topic-page subject link.
     2026-11-01 Include the book-navigation helper when exercising isolated page builders.
+    2026-11-19 Stub the new topic-page subheading contents helpers.
     2026-11-01 Accept the selected-book argument in isolated navigation fixtures.
     2026-11-03 Supply the static-navigation helper to isolated page builders.
     2026-11-05 Supply passage metadata to the isolated section builder.
@@ -244,6 +245,7 @@ class OETPassageTests(unittest.TestCase):
         namespace = dict(globals(), State=State, DEBUGGING_THIS_MODULE=False, NEWLINE='\n',
             topicReferenceMaterial=lambda *args:'', # Associations are covered in test_study_references.
             topicGroupLink=lambda topic:'', # Subject grouping is covered in test_topic_table.
+            topicHeadingId=lambda heading,usedIds:'Heading', topicHeadingContents=lambda headings:'', # Covered in test_topic_pages.
             TOPIC_LIST=[],
             fnPrint=lambda *a:None, vPrint=lambda *a:None, dPrint=lambda *a:None,
             getOETTidyBBB=lambda b,*a,**k:b, makeTop=lambda *a,**k:'<html>', makeBottom=lambda *a:'</html>',

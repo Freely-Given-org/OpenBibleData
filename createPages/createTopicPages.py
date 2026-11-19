@@ -44,6 +44,7 @@ CHANGELOG:
     2026-11-19 Give each topic page subheading an id, and list them (when there's more than one) in a brief contents line
                 above the people, places and dictionary entries.
     2026-11-19 List the topics under each subject on the topic index page as bulleted lists.
+    2026-11-19 Remove the dictionary links line from the kingdom index page.
 """
 from pathlib import Path
 import os
@@ -59,7 +60,6 @@ from studyReferences import topicFilename,topicReferenceMaterial,ENTITY_FOLDER
 from topicTable import TOPIC_GROUPS, TOPIC_TABLE, TOPIC_GROUP_OF
 from referenceEntities import loadReferenceEntities,entityLink,kingdomArticleLinks,KINGDOM_ENTITIES
 from referencePassages import parseReferenceSelection,renderReferencePassageGroup
-from referenceIndexes import referenceIndexLinks
 from settings import State
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -457,7 +457,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><span class="selectedBook">Promised land kingdoms index</span></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
-{referenceIndexLinks(level,state)}<h1 id="Top">Index to ‘Kingdom’ pages</h1>
+<h1 id="Top">Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
 {'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'kingdomIndex' )}'''

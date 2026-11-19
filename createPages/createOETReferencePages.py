@@ -164,6 +164,8 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-10 Move the Hebrew word colour key below the focused OET verses, before the OSHB note.
     2026-11-13 Move the Hebrew and Greek lemma colour keys below the main entry, before related lemmas.
     2026-11-19 Link the UBS flora, fauna, and realia handbooks from the main reference index.
+    2026-11-19 Remove the dictionary (and handbook) links line from the top of the reference pages;
+                link the additional-book words index from the main reference index instead.
 """
 from pathlib import Path
 import os
@@ -185,7 +187,7 @@ from referenceEntities import (loadReferenceEntities, entityMetadata, entityRela
                                entityIndexLinks, loadOETRVNameAliases, oetRVNameVariants)
 from referencePassages import parseReferenceSelection, referenceCitationLink
 from ubsHandbookPages import ubsHandbooksIndexHtml
-from referenceIndexes import (referenceIndexLinks,filterableIndex,lemmaIndexLink,strongIndexEntry,
+from referenceIndexes import (referenceIndexLinks,hasDCWordPages,filterableIndex,lemmaIndexLink,strongIndexEntry,
                               glossSummary,statisticsBookLink,transliterateIndexLinks,wordIndexRecord,
                               groupWordIndex,wordIndex,dcWordIndexRecords)
 from lexicalLinks import lexicalResourceLinks, lemmaFilename,prepareLexicalAssociations
@@ -1170,7 +1172,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
         'Bible reference resources | Open Bible Data',
         'Browse biblical words, lemmas, Strong’s numbers, grammar, people, places and statistics.'))
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-{referenceIndexLinks(level,state)}<h1 id="Top">Reference lists main contents page</h1>
+<h1 id="Top">Reference lists main contents page</h1>
 <h2>{state.SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/index.htm#Top">Hebrew words index</a> <a href="HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
@@ -1181,7 +1183,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/index.htm#Top">Bible statistics</a></p>
-{ubsHandbooksIndexHtml(level, state)}{makeBottom( level, None, 'referenceIndex' )}'''
+{'<p class="note"><a href="DCWrd/index.htm#Top">Additional-book Greek and Latin words index</a></p>'+NEWLINE if hasDCWordPages(state) else ''}{ubsHandbooksIndexHtml(level, state)}{makeBottom( level, None, 'referenceIndex' )}'''
     assert checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1214,7 +1216,7 @@ def grammarArticleHtml(level, filename, source, settings, language, code, state)
     nav = (f'<h1 id="Top">{collection} <a title="Go to {"contents" if isIndex else "index"} page" href="{up}">⌂</a> '
            f'<a title="Show details about this work" href="{"../"*level}{code}/details.htm#Top">©</a></h1>')
     if isIndex:
-        nav += referenceIndexLinks(level, state, includeCore=True)
+        nav += referenceIndexLinks(level, state)
     article = addGrammarPassages(body, level, f'{code}/{filename.name}', state)
     examples = grammarMorphologyExamples(f'{code}/{filename.name}', level, state)
     return f'{top}{nav}\n{article}{examples}{makeBottom(level, None, "word")}'
@@ -1955,7 +1957,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
-{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{wordIndex(level,wordGroups,outputFolderPath,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1980,7 +1982,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
-{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,transliterated=True,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{wordIndex(level,wordGroups,outputFolderPath,transliterated=True,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2894,7 +2896,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2921,7 +2923,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3213,7 +3215,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
-{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{wordIndex(level,wordGroups,outputFolderPath,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3239,7 +3241,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index ({len(wordGroups):,} spellings; {len(wordLinksForIndex):,} occurrences)</h1>
-{referenceIndexLinks(level,state)}{wordIndex(level,wordGroups,outputFolderPath,transliterated=True,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{wordIndex(level,wordGroups,outputFolderPath,transliterated=True,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'wordIndex' )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3721,7 +3723,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -3748,7 +3750,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
+{filterableIndex(level,'<p>'+indexText+'</p>',outputFolder=outputFolderPath,stem=filepath.stem,metadata=metadata,testMode=state.TEST_MODE_FLAG)}
 {makeBottom( level, None, 'lemmaIndex' )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4137,7 +4139,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strong\'s Hebrew Index ({len(indexList):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
+{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -4291,7 +4293,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strong\'s Greek Index ({len(indexList):,})</h1>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
+{filterableIndex(level,'<ul>'+NEWLINE.join(indexList)+'</ul>','li')}
 {makeBottom( level, None, 'StrongsIndex' )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -4397,7 +4399,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">All Bible People Index ({len(peopleKeys):,})</h1>
 <p class="note">Find people by traditional or OET-RV name. Alternative names and spellings link to the same person; verse references distinguish namesakes.</p>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(personLinks)+'</p>')}
+{filterableIndex(level,'<p>'+' '.join(personLinks)+'</p>')}
 {makeBottom( level, None, 'personIndex' )}'''
     assert checkHtml( 'personIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4639,7 +4641,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index ({len(placeKeys):,})</h1>
 <p class="note">Find places by traditional or OET-RV name. Alternative names and spellings link to the same place; verse references distinguish namesakes.</p>
-{referenceIndexLinks(level,state)}{filterableIndex(level,'<p>'+' '.join(locationLinks)+'</p>')}
+{filterableIndex(level,'<p>'+' '.join(locationLinks)+'</p>')}
 {makeBottom( level, None, 'locationIndex' )}'''
     assert checkHtml( 'locationIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -4792,7 +4794,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>
-{referenceIndexLinks(level,state)}<h1 id="Top">Bible Statistics Index</h1>
+<h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
 {makeBottom( level, None, 'statisticsIndex' )}'''
     assert checkHtml( 'statisticsIndex', indexHtml )

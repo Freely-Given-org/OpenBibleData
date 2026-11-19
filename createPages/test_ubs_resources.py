@@ -6,6 +6,7 @@
 CHANGELOG:
     2026-11-19 First version
     2026-11-19 Check that handbook images are placed together at the top of the article.
+    2026-11-19 Check the bulleted handbook list for the Reference contents page.
 """
 import json
 from pathlib import Path
@@ -129,6 +130,12 @@ class HandbookAndParallelTests(unittest.TestCase):
         self.assertLess(html.index('tree.jpg'), html.index('<h3>')) # Unplaced images also go at the top
         self.assertTrue(html.endswith('</div><!--hbArticle-->'))
         self.assertEqual(renderer.article(HandbookEntry('Flora', '9', 'Empty', [])), '')
+
+    def test_handbooks_index_is_a_bulleted_list(self):
+        from ubsHandbookPages import ubsHandbooksIndexHtml
+        html = ubsHandbooksIndexHtml(1, self.state())
+        self.assertIn('<ul><li><a href="../UBS/Flora/index.htm#Top">Plants and Trees in the Bible</a></li></ul>', html)
+        self.assertEqual(ubsHandbooksIndexHtml(1, SimpleNamespace(UBS_HANDBOOKS={})), '')
 
     def test_parallels_and_quotations(self):
         from ubsStudyLinks import ubsPassageResources, ubsSectionParallelsHtml

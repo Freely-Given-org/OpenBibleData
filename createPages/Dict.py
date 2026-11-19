@@ -48,6 +48,7 @@ CHANGELOG:
     2026-11-19 Keep the more detailed UBS Greek v1.0 parts of speech (v1.1 lost verbs and noun genders).
     2026-11-19 Create the UBS flora, fauna, and realia handbook pages (in ubsHandbookPages.py) and link them from the dictionary index.
     2026-11-19 Link the UBS handbooks from the Reference index instead of the dictionary index.
+    2026-11-19 Keep the dictionary links in the reference links line on dictionary pages.
 """
 import os.path
 import logging
@@ -722,7 +723,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
-{referenceIndexLinks(level,state,includeCore=True)}
+{referenceIndexLinks(level,state,includeDictionaries=True)}
 {state.TOBDData['Intro']}
 {makeBottom( level, None, 'dictionaryIntro' )}'''
     assert checkHtml( 'DictionaryIntro', introHtml )
@@ -1091,7 +1092,7 @@ def createUBSNavigationPages(level, outputFolderPath, entries, language, state):
            f'<a href="../{otherFolder}/index.htm#Top">{otherLanguage} dictionary</a> '
            f'<a href="{detailsHref}">Copyright and licence</a></p>')
     from referenceIndexes import referenceIndexLinks,filterableIndex,ubsIndexEntry
-    nav += referenceIndexLinks(level,state,includeCore=True)
+    nav += referenceIndexLinks(level,state,includeDictionaries=True)
     links = '\n'.join(ubsIndexEntry(entry) for entry in entries)
     indexBody = (f'{nav}\n<h2>Entries ({len(entries):,})</h2>\n'
                  +filterableIndex(level,f'<ul>\n{links}\n</ul>','li')) if entries else f'{nav}\n<p>No entries in this build.</p>'

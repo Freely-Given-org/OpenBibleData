@@ -12,6 +12,7 @@ The handbooks' images come from the UBS image collection zip files (which aren't
 CHANGELOG:
     2026-11-19 First version
     2026-11-19 Place an article's images together at the top right, and keep them clear of the footer.
+    2026-11-19 List the handbooks on the Reference contents page as bullet points.
 """
 import logging
 from pathlib import Path
@@ -207,9 +208,10 @@ def ubsHandbooksIndexHtml(level:int, state) -> str:
     """
     handbooks = [handbook for handbook in HANDBOOKS if getattr(state, 'UBS_HANDBOOKS', {}).get(handbook)]
     if not handbooks: return ''
-    links = ', '.join(f'<a href="{'../'*level}UBS/{handbook}/index.htm#Top">{escape(HANDBOOKS[handbook][1])}</a>' for handbook in handbooks)
+    links = ''.join(f'<li><a href="{'../'*level}UBS/{handbook}/index.htm#Top">{escape(HANDBOOKS[handbook][1])}</a></li>' for handbook in handbooks)
     return f'''<h2>UBS Handbooks <small><a title="Show details" href="{'../'*level}UBS/details.htm#Top">©</a></small></h2>
-<p class="note">Translator-oriented articles, with Hebrew and Greek terms, passages, and pictures: {links}.</p>
+<p class="note">Translator-oriented articles, with Hebrew and Greek terms, passages, and pictures:</p>
+<ul>{links}</ul>
 '''
 # end of ubsHandbooksIndexHtml
 
