@@ -57,6 +57,7 @@ CHANGELOG:
     2026-11-17 Load TOSN and TOBD from the OET-adapted copies in ../datasets/Tyndale/OET_TyndaleOpenResources/
     2026-11-19 Load the UBS dictionaries from the OET-adapted copies in ../../Forked/ubs-open-license/OET_ubs-open-license/
     2026-11-19 Add UBS_EXTRA_RESOURCES_FOLDER (handbooks, HOTTP, MARBLE index, parallel passages) and HOTTP details.
+    2026-11-19 Load UTN and SOTN from the OET-adapted copies (OET_uW_en_tn and OET_SILOpenTranslatorsNotes).
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -382,8 +383,8 @@ class State:
         'UGD': '../../Forked/ubs-open-license/OET_ubs-open-license/dictionaries/greek/JSON/', # OET-adapted copies
         'UHD': '../../Forked/ubs-open-license/OET_ubs-open-license/dictionaries/hebrew/JSON/',
 
-        'SOTN': '../../Forked/SILOpenTranslatorsNotes/eng/json/',
-        'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
+        'SOTN': '../../Forked/SILOpenTranslatorsNotes/OET_SILOpenTranslatorsNotes/eng/json/', # OET-adapted copies
+        'UTN': '../../../Bibles/unfoldingWordHelps/en_tn/OET_uW_en_tn/', # OET-adapted copies
         }
     WholeBibleVersions = ('BSB','MSB','LEB','SLT','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
     BibleSourceFormats = {} # Explicit formats for locally configured sources
@@ -1115,11 +1116,13 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'copyright': '<p class="copyright">Copyright © 2024 by <a href="https://OpenTN.bible/">SIL International</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://global.SIL.org/our-work/">SIL</a> for creating <a href="https://github.com/BibleAquifer/SILOpenTranslatorsNotes">these notes</a> to assist Bible translators, and thanks to <a href="https://www.Aquifer.Bible/">Bible Aquifer</a> for making them available in a <a href="https://GitHub.com/BibleAquifer">format</a> that we could easily use.</p>',
-                'notes': '''<p class="note">These notes are currently available for all New Testament books, but only nine books from the Hebrew Scriptures (Old Testament).</p>''' },
+                'notes': '''<p class="note">These notes are currently available for all New Testament books, but only nine books from the Hebrew Scriptures (Old Testament).</p>
+<p class="note">We have adapted these notes to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_SILOpenTranslatorsNotes">here</a>.</p>''' },
         'UTN': {'about': '<p class="about">unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>',
+                'notes': '<p class="note">We have adapted these notes to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_uW_en_tn">here</a>.</p>' },
         'UHG': {'about': '<p class="about">unfoldingWord® Hebrew Grammar (UHG) is a reference grammar for Biblical Hebrew, organised around the morphology codes used by the Open Scriptures Hebrew Bible.</p>',
                 'copyright': '<p class="copyright">Copyright © 2019 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -1166,6 +1169,7 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
             or versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../datasets/') \
+            or versionLocation.startswith('../../../Bibles/unfoldingWordHelps/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../../Programming/ExternalPrograms/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
