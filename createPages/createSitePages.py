@@ -1269,9 +1269,12 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often rather arbitrary divisions).</p>
 <p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
 <p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view (best viewed in portrait mode).</p>
+<p class="note">The <b><a href="lst/">Simple</a> verse list</b> view is similar to the <b>Parallel verse</b> view, except much more compact.</p>
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
-<p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
-<p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
+<p class="note"><b><a href="tpc/">Topics</a></b> takes you to an index of several hundred interesting topics which each have a list of passages displayed for you to read through to come to your own conclusions.</p>
+<p class="note">The <b><a href="ref/">Reference</a></b> link makes both Hebrew and Greek word lists and also Strong’s numbers lists available for further study, as well as lists of Bible people, places, flora, and fauna, etc.</p>
+<p class="note">The <b><a href="dct/">Dictionaries</a></b> link takes you to our adapted <em>Tyndale Bible Dictionary</em> and <em>UBS Hebrew and Greek dictionaries</em>.</p>
+<p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible texts.</p>
 <p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {state.SITE_ABBREVIATION} {SHORT_PROGRAM_NAME} {state.OBD_VERSION_NUMBER_STRING}</small></p>
 {makeBottom( level, None, 'TopIndex' )}'''
     assert checkHtml( 'TopIndex', html )

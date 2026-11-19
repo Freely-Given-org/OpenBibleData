@@ -7,6 +7,7 @@ CHANGELOG:
     2026-11-01 Group word occurrences with readable references, glosses and transliterations.
     2026-11-05 Share English UBS glosses between search metadata and index labels.
     2026-11-05 Identify the subject and ordering of each complete lexical index.
+    2026-11-19 Add the UBS flora, fauna, and realia handbooks.
 """
 import re
 import json
@@ -127,6 +128,9 @@ def referenceIndexLinks(level, state, *, includeCore=False):
             links.append((f'UBS/{language}/index.htm',f'UBS {name} dictionary'))
     if getattr(state,'TOBDData',{}).get('Articles'):
         links.append(('dct/index.htm','Bible dictionary'))
+    for handbook,label in (('Fauna','Bible animals'),('Flora','Bible plants'),('Realia','Bible objects')):
+        if getattr(state,'UBS_HANDBOOKS',{}).get(handbook):
+            links.append((f'UBS/{handbook}/index.htm',label))
     table = getattr(state,'OETRefData',{}).get('word_tables',{}).get('OET-LV_DC_word_table.tsv')
     bible = getattr(state,'preloadedBibles',{}).get('OET-LV')
     selected = getattr(state,'booksToLoad',{}).get('OET-LV',())

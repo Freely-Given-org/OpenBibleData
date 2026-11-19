@@ -11,6 +11,7 @@ The handbooks' images come from the UBS image collection zip files (which aren't
 
 CHANGELOG:
     2026-11-19 First version
+    2026-11-19 Place an article's images together at the top right, and keep them clear of the footer.
 """
 import logging
 from pathlib import Path
@@ -66,6 +67,7 @@ class HandbookRenderer:
     def __init__(self, level:int, handbook:str, state, availableImages:set[str]) -> None:
         self.level, self.handbook, self.state, self.availableImages = level, handbook, state, availableImages
         self.usedImages:dict[str,HandbookImage] = {}
+        self.articleFigures:list[str] = [] # Figures for the article being rendered (placed together at the top)
 
     def figure(self, image:HandbookImage|None) -> str:
         if image is None or image.filename not in self.availableImages: return ''
@@ -79,17 +81,18 @@ class HandbookRenderer:
     def paragraph(self, innerXML:str, images:dict[str,HandbookImage]) -> str:
         """
         Convert the inner XML of a handbook <Paragraph> to HTML.
+
+        Any <Image> placements are collected in self.articleFigures (rather than left inline).
         """
-        figures = []
         def imagePlacement(match:re.Match) -> str:
-            figures.append( self.figure(images.get(match.group(1))) )
+            self.articleFigures.append( self.figure(images.get(match.group(1))) )
             return ''
         html = re.sub(r'<Image Id="([^"]*)"\s*/>', imagePlacement, innerXML)
         html = re.sub(r'<s>([^<]*)</s>', lambda match: ', '.join(_referenceLinks(self.level, match.group(1).split(), self.state)), html)
         html = re.sub(r'<l target="([^"]*)">(.*?)</l>', lambda match: self.articleLink(match.group(1), match.group(2)), html)
         html = re.sub(r'<a>(.*?)</a>', r'<cite>\1</cite>', html) # Bibliography abbreviations
         html = re.sub(r'<(?!/?(?:i|b|u|sup|cite|a|span|small)\b)[^>]*>', '', html) # Remove any other source markup
-        return ''.join(figures) + (f'<p class="hbPara">{html.strip()}</p>' if html.strip() else '')
+        return f'<p class="hbPara">{html.strip()}</p>' if html.strip() else ''
 
     def articleLink(self, target:str, labelHtml:str) -> str:
         prefix, _colon, key = target.partition(':')
@@ -113,6 +116,11 @@ class HandbookRenderer:
         return f'<li>{escape(language)} {lemmaHtml}{transliteration}: {referencesHtml}</li>'
 
     def article(self, entry:HandbookEntry) -> str:
+        """
+        Return the article HTML, with all its images floated together at the top right
+            (and wrapped so that the floats can't run into the page footer).
+        """
+        self.articleFigures = []
         html = ''
         if entry.index:
             items = ''.join(f'<li>{self.articleLink(f"{self.handbook}:{key}", escape(description))}</li>' for key, description in entry.index)
@@ -123,12 +131,15 @@ class HandbookRenderer:
                 sectionHtml += f'''<div class="hbLemmas"><ul>{''.join(self.lemmaSet(lemmaSet) for lemmaSet in section.lemmaSets)}</ul></div><!--hbLemmas-->'''
             sectionHtml += ''.join(self.paragraph(paragraph, section.images) for paragraph in section.paragraphs)
             placedImageIDs = {imageID for paragraph in section.paragraphs for imageID in re.findall(r'<Image Id="([^"]*)"', paragraph)}
-            sectionHtml += ''.join(self.figure(image) for imageID, image in section.images.items() if imageID not in placedImageIDs)
+            self.articleFigures.extend(self.figure(image) for imageID, image in section.images.items() if imageID not in placedImageIDs)
             if sectionHtml:
                 heading = section.heading.rstrip(':') or section.content.capitalize()
                 subheading = f'<h4>{escape(section.subheading)}</h4>' if section.subheading else ''
                 html += f'<h3>{escape(heading)}</h3>{subheading}{sectionHtml}'
-        return html
+        figures = ''.join(figure for figure in self.articleFigures if figure)
+        if figures:
+            html = f'<div class="hbImages">{figures}</div><!--hbImages-->{html}'
+        return f'<div class="hbArticle">{html}</div><!--hbArticle-->' if html else ''
 # end of HandbookRenderer class
 
 
@@ -190,6 +201,19 @@ def handbookNavigationParagraph(level:int, handbook:str, entries:list[HandbookEn
     return f'''<p class="dNav">{previousLink}<a title="Go to {escape(HANDBOOKS[handbook][1])} contents" href="index.htm#Top">Contents</a>{nextLink} {otherHandbooks} <a title="Go to copyright and licence" href="{'../'*level}UBS/details.htm#Top">©</a></p>'''
 
 
+def ubsHandbooksIndexHtml(level:int, state) -> str:
+    """
+    Return the heading and links for the UBS handbooks (for the main Reference index page), or ''.
+    """
+    handbooks = [handbook for handbook in HANDBOOKS if getattr(state, 'UBS_HANDBOOKS', {}).get(handbook)]
+    if not handbooks: return ''
+    links = ', '.join(f'<a href="{'../'*level}UBS/{handbook}/index.htm#Top">{escape(HANDBOOKS[handbook][1])}</a>' for handbook in handbooks)
+    return f'''<h2>UBS Handbooks <small><a title="Show details" href="{'../'*level}UBS/details.htm#Top">©</a></small></h2>
+<p class="note">Translator-oriented articles, with Hebrew and Greek terms, passages, and pictures: {links}.</p>
+'''
+# end of ubsHandbooksIndexHtml
+
+
 def createUBSHandbookPages(level:int, outputFolderPath:Path, state) -> int:
     """
     Create the handbook pages in outputFolderPath (the UBS/ folder, which is at level-1).
@@ -215,7 +239,7 @@ def createUBSHandbookPages(level:int, outputFolderPath:Path, state) -> int:
             pageType = 'dictionaryIntro' if entry.key == '0' else 'dictionaryEntry'
             top = makeTop(level, None, pageType, None, state, metadata=(title, description))
             heading = f"{'TEST ' if state.TEST_MODE_FLAG else ''}{escape(title)}"
-            if not articleHtml: articleHtml = '<p class="hbPara">(This article has no content yet.)</p>'
+            if not articleHtml: articleHtml = '<div class="hbArticle"><p class="hbPara">(This article has no content yet.)</p></div><!--hbArticle-->'
             html = f'''{top}{handbookNavigationParagraph(level, handbook, entries, index).replace('<p class="dNav">', '<p id="Top" class="dNav">', 1)}
 <h1>{heading}</h1>
 {articleHtml}

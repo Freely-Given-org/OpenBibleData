@@ -163,6 +163,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-09 Move the Greek word colour key below the focused OET verses, before the companion website note.
     2026-11-10 Move the Hebrew word colour key below the focused OET verses, before the OSHB note.
     2026-11-13 Move the Hebrew and Greek lemma colour keys below the main entry, before related lemmas.
+    2026-11-19 Link the UBS flora, fauna, and realia handbooks from the main reference index.
 """
 from pathlib import Path
 import os
@@ -183,6 +184,7 @@ from referenceEntities import (loadReferenceEntities, entityMetadata, entityRela
                                entityTaggedWords, entityRelatedResources, selectedPassageControls,
                                entityIndexLinks, loadOETRVNameAliases, oetRVNameVariants)
 from referencePassages import parseReferenceSelection, referenceCitationLink
+from ubsHandbookPages import ubsHandbooksIndexHtml
 from referenceIndexes import (referenceIndexLinks,filterableIndex,lemmaIndexLink,strongIndexEntry,
                               glossSummary,statisticsBookLink,transliterateIndexLinks,wordIndexRecord,
                               groupWordIndex,wordIndex,dcWordIndexRecords)
@@ -1179,7 +1181,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><a href="Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/index.htm#Top">Bible statistics</a></p>
-{makeBottom( level, None, 'referenceIndex' )}'''
+{ubsHandbooksIndexHtml(level, state)}{makeBottom( level, None, 'referenceIndex' )}'''
     assert checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

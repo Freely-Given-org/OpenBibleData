@@ -58,6 +58,7 @@ CHANGELOG:
     2026-11-19 Load the UBS dictionaries from the OET-adapted copies in ../../Forked/ubs-open-license/OET_ubs-open-license/
     2026-11-19 Add UBS_EXTRA_RESOURCES_FOLDER (handbooks, HOTTP, MARBLE index, parallel passages) and HOTTP details.
     2026-11-19 Load UTN and SOTN from the OET-adapted copies (OET_uW_en_tn and OET_SILOpenTranslatorsNotes).
+    2026-11-19 Rename the Dictionary view decoration to Dictionaries.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -84,7 +85,7 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.6.1' # Incremented after most updates to OBD web page generation code
+    OBD_VERSION_NUMBER_STRING = 'v3.6.2' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.49.0' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
@@ -292,7 +293,7 @@ class State:
         'UHB':('<b>','</b>'),
         'BrTr':('<small>','</small>'),'BrLXX':('',''),
         'Related':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Simple':('<b>','</b>'),
-                'Topics':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
+                'Topics':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionaries':('<b>','</b>'), 'Search':('<b>','</b>'),
         # NOTES:
         'TOSN':('',''),'UTN':('',''),
         }
@@ -1116,7 +1117,7 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'copyright': '<p class="copyright">Copyright © 2024 by <a href="https://OpenTN.bible/">SIL International</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://global.SIL.org/our-work/">SIL</a> for creating <a href="https://github.com/BibleAquifer/SILOpenTranslatorsNotes">these notes</a> to assist Bible translators, and thanks to <a href="https://www.Aquifer.Bible/">Bible Aquifer</a> for making them available in a <a href="https://GitHub.com/BibleAquifer">format</a> that we could easily use.</p>',
-                'notes': '''<p class="note">These notes are currently available for all New Testament books, but only nine books from the Hebrew Scriptures (Old Testament).</p>
+                'notes': '''<p class="note">These notes are currently available for all 27 books in the Messianic Update (New Testament), but only nine books from the Hebrew Scriptures (Old Testament).</p>
 <p class="note">We have adapted these notes to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_SILOpenTranslatorsNotes">here</a>.</p>''' },
         'UTN': {'about': '<p class="about">unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',

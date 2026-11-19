@@ -48,6 +48,7 @@
  *   2026-11-12 Drop fragment-following body:has() navigation rules (slow on long pages).
  *   2026-11-16 Restate the updated-measure fill so the style checker recognises span.updatedMeasure.
  *   2026-11-18 Enlarge the bottom selection bar on pages that are only selection bars (activeLst).
+ *   2026-11-19 Add the topic page subheading contents line (p.topicContents).
  */
 
 /* Reference entries share the same hierarchy across page families. */
@@ -736,3 +737,5 @@ p.bibleReferenceChoices a { white-space:nowrap; }
 p.topicGroup { margin-top:0; font-size:0.9em; }
 p.topicGroups { line-height:1.8; }
 p.topicGroups a { white-space:nowrap; }
+p.topicContents { line-height:1.8; }
+p.topicContents a { white-space:nowrap; }

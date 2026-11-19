@@ -10,6 +10,7 @@ CHANGELOG:
     2026-11-02 Navigate from the first verse of section-start bridges; fall back for invalid references.
     2026-11-03 Generate chapter/verse choices at build time; hide current choices with CSS.
     2026-11-12 Remove fragment-following body:has() rules and hidden verse rows (slow on long pages).
+    2026-11-19 Rename the Dictionary view to Dictionaries.
     2026-11-12 Whole-document (byDoc) pages keep the chapter bar but no verse bar.
     2026-11-18 Enlarge the bottom selection bar on pages that hold nothing but selection bars.
 """
@@ -33,7 +34,7 @@ _ATTRIBUTE_ESCAPES={'"':'&quot;'}
 # must change its URL: the CDN otherwise serves the previous controls for hours.
 _SCRIPT_VERSION=sha256(Path(__file__).with_suffix('.js').read_bytes()).hexdigest()[:12]
 _COMMON_STYLE_VERSION=sha256(Path(__file__).with_name('common.css').read_bytes()).hexdigest()[:12]
-INDEPENDENT_VIEWS=('Related','Parallel','Simple','Interlinear','Topics','Reference','Dictionary','Search')
+INDEPENDENT_VIEWS=('Related','Parallel','Simple','Interlinear','Topics','Reference','Dictionaries','Search')
 
 
 def _attr(value):return escape(str(value),_ATTRIBUTE_ESCAPES)

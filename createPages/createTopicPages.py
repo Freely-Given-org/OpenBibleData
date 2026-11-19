@@ -41,9 +41,13 @@ CHANGELOG:
     2026-11-05 Describe site resources and navigation pages in their search metadata.
     2026-11-18 Moved TOPIC_TABLE into topicTable.py, expanded it to 300 topics, and grouped them under subject headings
                 on the topic index page (with a contents list), with each topic page linking back to its subject.
+    2026-11-19 Give each topic page subheading an id, and list them (when there's more than one) in a brief contents line
+                above the people, places and dictionary entries.
+    2026-11-19 List the topics under each subject on the topic index page as bulleted lists.
 """
 from pathlib import Path
 import os
+import re
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -103,6 +107,37 @@ def topicGroupLink( topic:str ) -> str:
 # end of createTopicPages.topicGroupLink
 
 
+def topicHeadingId( headingHtml:str, usedIds:set[str] ) -> str:
+    """
+    Make a unique HTML id for a topic page subheading (which might contain inline HTML),
+        e.g., 'Witness through words and conduct' -> 'WitnessThroughWordsAndConduct'
+
+    The id is added to usedIds.
+    """
+    baseId = topicGroupId( re.sub( '<[^>]*>', '', headingHtml ) ) or 'Heading'
+    if baseId[0].isdigit() or re.fullmatch( r'(C\d.*|V\d.*|Top)', baseId ): # Keep clear of our chapter/verse ids
+        baseId = f'H{baseId}'
+    headingId, suffix = baseId, 1
+    while headingId in usedIds:
+        suffix += 1
+        headingId = f'{baseId}{suffix}'
+    usedIds.add( headingId )
+    return headingId
+# end of createTopicPages.topicHeadingId
+
+
+def topicHeadingContents( headings:list[tuple[str,str]] ) -> str:
+    """
+    Given a list of (id, headingHtml) for a topic page,
+        return a brief contents paragraph linking down to the subheadings
+        (or an empty string if there's less than two of them).
+    """
+    if len( headings ) < 2: return ''
+    links = ' · '.join( f'<a href="#{headingId}">{re.sub( '<[^>]*>', '', headingHtml ).strip()}</a>' for headingId,headingHtml in headings )
+    return f'<p class="topicContents">Contents: {links}</p>\n'
+# end of createTopicPages.topicHeadingContents
+
+
 def makeTopicIndexHtml() -> str:
     """
     Return the HTML for the topic index: a contents list of the subject headings,
@@ -111,9 +146,9 @@ def makeTopicIndexHtml() -> str:
     contentsHtml = ' · '.join( f'<a href="#{topicGroupId(group)}">{group}</a>' for group in TOPIC_GROUPS )
     groupHtmls = []
     for group,topics in TOPIC_GROUPS.items():
-        topicLinks = '<br>'.join( f'<a href="{topicFilename(topic)}#Top">{topic}</a>' for topic in topics )
+        topicLinks = ''.join( f'<li><a href="{topicFilename(topic)}#Top">{topic}</a></li>' for topic in topics )
         groupHtmls.append( f'''<h2 id="{topicGroupId(group)}">{group}</h2>
-<p>{topicLinks}</p>
+<ul>{topicLinks}</ul>
 <p class="pageNav"><small><a title="Back to the list of subjects" href="#Subjects">↑ Subjects</a></small></p>''' )
     return f'''<h2 id="Subjects">Subjects</h2>
 <p class="topicGroups">{contentsHtml}</p>
@@ -191,12 +226,15 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     homeLink = f' <a title="Topic index" href="index.htm">⌂</a>'
 
     combinedHtmlChunks = []
+    headings, usedHeadingIds = [], set() # For the contents list
     lvChapterCache = {}
     for rr,ref in enumerate( refsList, start=1 ):
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
         if ref.startswith( 'H3 '): # Then it's a heading (we'll remove this initial part of the string)
-            combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
+            headingId = topicHeadingId( ref[3:], usedHeadingIds )
+            headings.append( (headingId, ref[3:]) )
+            combinedHtmlChunks.append( f'''<h3 id="{headingId}">{ref[3:]}</h3>
 <h3> </h3>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
         elif '/' in ref: # we'll assume it's a lemma reference
             path, word = ref.split( '/' )
@@ -273,7 +311,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <h1 id="Top">{topic}</h1>
 {topicGroupLink(topic)}<p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. Minimal commentary is included (only some headings)—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
-{topicReferenceMaterial(level,topic,state)}{removeDuplicateCVids(combinedHtml)}
+{topicHeadingContents(headings)}{topicReferenceMaterial(level,topic,state)}{removeDuplicateCVids(combinedHtml)}
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>

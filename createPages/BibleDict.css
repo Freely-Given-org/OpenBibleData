@@ -157,8 +157,10 @@ span.add { color:#6b6b6b; }
 div.hbIndex { }
 div.hbLemmas { }
 p.hbPara { }
-div.hbImage { max-width:450px; margin:0.5em 0 0.5em 1em; float:right; clear:right; }
+div.hbArticle { display:flow-root; } /* Keeps the floated images clear of the page footer */
+div.hbImages { width:400px; max-width:45%; margin:0 0 0.5em 1em; float:right; } /* All the article's images, at the top right */
+div.hbImage { margin-bottom:0.8em; }
 .hbImage img { width:100%; height:auto; } /* Not div.… because loadCSSStyles allows only one div.hbImage rule */
 p.hbCaption { font-size:0.85em; margin-top:0.1em; }
 small.hbCredit { color:grey; }
-@media only screen and (max-width: 600px) { div.hbImage { float:none; max-width:100%; margin-left:0; } }
+@media only screen and (max-width: 600px) { div.hbImages { float:none; width:auto; max-width:100%; margin-left:0; } }

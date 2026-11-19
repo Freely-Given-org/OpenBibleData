@@ -43,6 +43,7 @@ CHANGELOG:
         matrix.
     2026-11-01 Check base Rust chrome independently of the reference-aware navigation wrapper.
     2026-11-06 Add Downloads beside OET Key in the reference chrome.
+    2026-11-19 Rename the Dictionary link to Dictionaries.
 """
 import unittest
 
@@ -239,9 +240,9 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
     else: # add a link for reference
         initialVersionList.append( f'''{state.BibleVersionDecorations['Reference'][0]}<a title="Reference index" href="{'../'*level}ref/">Reference</a>{state.BibleVersionDecorations['Reference'][1]}''' )
     if pageType == 'dictionaryMainIndex':
-        initialVersionList.append( 'Dictionary' )
-    else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}dct/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
+        initialVersionList.append( 'Dictionaries' )
+    else: # add a link for dictionaries
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionaries'][0]}<a title="Bible dictionaries index" href="{'../'*level}dct/">Dictionaries</a>{state.BibleVersionDecorations['Dictionaries'][1]}''' )
     if pageType == 'search':
         initialVersionList.append( 'Search' )
     else: # add a link for search

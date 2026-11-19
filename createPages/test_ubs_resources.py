@@ -5,6 +5,7 @@
 
 CHANGELOG:
     2026-11-19 First version
+    2026-11-19 Check that handbook images are placed together at the top of the article.
 """
 import json
 from pathlib import Path
@@ -107,12 +108,27 @@ class HandbookAndParallelTests(unittest.TestCase):
         renderer = HandbookRenderer(2, 'Flora', self.state(), {'almond.jpg'})
         html = renderer.paragraph('<Image Id="A" />In <s>00103003700018</s> see <l target="FLORA:2.1">Almond</l> (<a>FFB</a>).',
                                   {'A':HandbookImage('A','WEB','almond.jpg','© Someone','Almond nut')})
-        self.assertTrue(html.startswith('<div class="hbImage"><img src="../img/almond.jpg"'))
-        self.assertIn('(© Someone)', html)
+        self.assertTrue(html.startswith('<p class="hbPara">In ')) # The image is collected for the top of the article
+        self.assertTrue(renderer.articleFigures[0].startswith('<div class="hbImage"><img src="../img/almond.jpg"'))
+        self.assertIn('(© Someone)', renderer.articleFigures[0])
         self.assertIn('href="../../par/GEN/C30V37.htm#Top">GEN 30:37</a>', html)
         self.assertIn('<a href="../Flora/2.1.htm#Top">Almond</a>', html)
         self.assertIn('<cite>FFB</cite>', html)
         self.assertEqual(renderer.paragraph('<Image Id="B" />', {'B':HandbookImage('B','OPEN-AI','missing.jpg','','')}), '') # Not available
+        self.assertEqual(renderer.articleFigures[-1], '')
+
+    def test_handbook_article_images_at_top(self):
+        from ubsHandbookPages import HandbookRenderer
+        from ubsHandbooks import HandbookEntry, HandbookSection
+        renderer = HandbookRenderer(2, 'Flora', self.state(), {'almond.jpg', 'tree.jpg'})
+        entry = HandbookEntry('Flora', '2.1', 'Almond', [], [
+            HandbookSection('discussion', 'Discussion', '', [], ['First.', 'Second <Image Id="A" />here.'],
+                            {'A':HandbookImage('A','WEB','almond.jpg','',''), 'B':HandbookImage('B','WEB','tree.jpg','','Tree')})])
+        html = renderer.article(entry)
+        self.assertTrue(html.startswith('<div class="hbArticle"><div class="hbImages"><div class="hbImage"><img src="../img/almond.jpg"'))
+        self.assertLess(html.index('tree.jpg'), html.index('<h3>')) # Unplaced images also go at the top
+        self.assertTrue(html.endswith('</div><!--hbArticle-->'))
+        self.assertEqual(renderer.article(HandbookEntry('Flora', '9', 'Empty', [])), '')
 
     def test_parallels_and_quotations(self):
         from ubsStudyLinks import ubsPassageResources, ubsSectionParallelsHtml

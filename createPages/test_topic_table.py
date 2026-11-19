@@ -8,6 +8,7 @@ The reference check reads the OET-RV ESFM source files directly (so it doesn't n
 
 CHANGELOG:
     2026-11-18 First version, for the grouped and expanded topic table.
+    2026-11-19 Allow ‘Rest Day/Sabbath’ (like ‘Immersion/Baptism’ and ‘Yeshua/Jesus’), but not a bare ‘Sabbath’.
 """
 from pathlib import Path
 import re
@@ -82,7 +83,7 @@ class TopicTableTests( unittest.TestCase ):
             if 'Christadelphian' in topic: continue # This page quotes other people's claims
             for text in [topic] + [item[3:] for item in items if item.startswith('H3 ')]:
                 with self.subTest( topic=topic, text=text ):
-                    self.assertNotIn( 'Sabbath', text )
+                    self.assertIsNone( re.search( r'(?<!Rest Day/)\bSabbath', text ), "Use ‘Rest Day/Sabbath’" )
                     self.assertIsNone( re.search( r'(?<!/)\b[Bb]aptis', text ), "Use ‘Immersion/Baptism’" )
                     self.assertIsNone( re.search( r'(?<!Yeshua/)\bJesus\b', text ), "Use ‘Yeshua/Jesus’" )
 

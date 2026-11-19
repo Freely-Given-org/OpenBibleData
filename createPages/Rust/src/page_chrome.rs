@@ -9,6 +9,7 @@
 //!
 //! Byte-for-byte output fidelity with the original Python functions is
 //! guarded by createPages/golden_makeTop.py.
+//! Changelog: 2026-11-19 Rename the Dictionary link to Dictionaries.
 //! Changelog: 2026-11-06 Add Downloads beside OET Key.
 //! Changelog: 2026-11-01 Adapt missing-book links after section-to-chapter rewrites.
 
@@ -54,7 +55,7 @@ pub struct PageChromeConfig {
     pub safe_names: HashMap<String, String>,
     /// Decoration key -> [prefix, suffix]; includes pseudo entries such as
     /// 'Related', 'Topics', 'Parallel', 'Interlinear', 'Reference',
-    /// 'Dictionary', 'Search'.
+    /// 'Dictionaries', 'Search'.
     pub decorations: HashMap<String, [String; 2]>,
     /// Version abbreviation -> long Bible name (state.BibleNames).
     pub bible_names: HashMap<String, String>,
@@ -453,8 +454,8 @@ fn work_nav_list_core(
     append_pseudo_link(
         &mut initial_version_list,
         &["dictionaryMainIndex"],
-        "Dictionary",
-        "Dictionary index",
+        "Dictionaries",
+        "Bible dictionaries index",
         "dct/",
     )?;
     append_pseudo_link(
@@ -665,7 +666,7 @@ mod tests {
                 ("Simple", bold.clone()),
                 ("Topics", bold.clone()),
                 ("Reference", bold.clone()),
-                ("Dictionary", bold.clone()),
+                ("Dictionaries", bold.clone()),
                 ("Search", bold.clone()),
             ]
             .iter()
