@@ -118,6 +118,7 @@ CHANGELOG:
     2026-11-02 Open chapters at verse 1 except Psalms with verse-zero text; retain access to introductory notes.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify parallel translations pages and their book indexes in search metadata.
+    2026-11-19 Add the UBS Hebrew Old Testament Text Project (HOTTP) notes to OT verse pages.
 """
 from pathlib import Path
 import os
@@ -149,6 +150,7 @@ from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappin
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
+from ubsHOTTP import formatHOTTPNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_GHT_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
@@ -161,10 +163,10 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-30'
+LAST_MODIFIED_DATE = '2026-11-19'
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.12'
+PROGRAM_VERSION = '1.0.13'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1278,6 +1280,13 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     captureNote(state,'UTN',(BBB,C,V),utnHtml)
                     utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*BBBLevel}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->'''
                     parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{utnHtml}'
+
+                # Handle UBS Hebrew Old Testament Text Project (HOTTP) text-critical notes
+                if isOT and (hottpHtml := formatHOTTPNotes( BBBLevel, BBB, C, V, state )):
+                    from searchSupplement import captureNote
+                    captureNote(state,'HOTTP',(BBB,C,V),hottpHtml)
+                    hottpHtml = f'''<div id="HOTTP" class="parallelHOTTP"><a title="Go to HOTTP copyright page" href="{'../'*BBBLevel}HOTTP/details.htm#Top">HOTTP</a> <b>UBS Hebrew Old Testament Text Project</b>: {hottpHtml}</div><!--end of HOTTP-->'''
+                    parallelHtml = f'{parallelHtml}{NEWLINE if parallelHtml else ""}<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{hottpHtml}'
 
                 # Handle BibleMapper maps and notes
                 if bmmHtml := getBibleMapperMaps( BBBLevel, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state ):

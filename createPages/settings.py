@@ -56,6 +56,7 @@ CHANGELOG:
     2026-11-16 Allow for the TOBD (Tyndale Open Bible Dictionary) location in the BibleLocations sanity check.
     2026-11-17 Load TOSN and TOBD from the OET-adapted copies in ../datasets/Tyndale/OET_TyndaleOpenResources/
     2026-11-19 Load the UBS dictionaries from the OET-adapted copies in ../../Forked/ubs-open-license/OET_ubs-open-license/
+    2026-11-19 Add UBS_EXTRA_RESOURCES_FOLDER (handbooks, HOTTP, MARBLE index, parallel passages) and HOTTP details.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -297,6 +298,10 @@ class State:
 
         ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
         ## 'Wycl': '../copiedBibles/English/eBible.org/Wycliffe/',
+    # The UBS handbooks, HOTTP, MARBLE index, and parallel passages (loaded along with TOSN — see ubsResources.py)
+    UBS_EXTRA_RESOURCES_FOLDER = '../../Forked/ubs-open-license/OET_ubs-open-license/'
+    UBS_IMAGES_FOLDER = '../../Forked/ubs-open-license/images/' # The original UBS image collection zip files (used by the handbooks)
+    UBS_IMAGE_CACHE_FOLDER = '../derivedImages/UBS/' # Resized copies of the UBS handbook images (not committed)
     BibleLocations = {
         'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
         'OET-LV': '../../OpenEnglishTranslation--OET/derivedTexts/', # Only .pickle here
@@ -463,6 +468,7 @@ class State:
         'UHG': 'unfoldingWord® Hebrew Grammar',
         'UGG': 'unfoldingWord® Greek Grammar',
         'UBS': 'United Bible Societies open-licenced resources (2023)',
+        'HOTTP': 'UBS Hebrew Old Testament Text Project (1973–1980, 2003–2023)',
         'THBD': 'Theographic Bible Database',
         'BMM': 'BibleMapper.com Maps',
         'OBI': 'OpenBibleImages.org Pictures',
@@ -546,6 +552,7 @@ class State:
         'SOTN': 'EN-USA',
         'UTN': 'EN-USA',
         'UBS': 'EN-USA',
+        'HOTTP': 'EN-USA',
         'THBD': 'EN-USA',
         'BMM': 'EN-USA',
         }
@@ -1123,12 +1130,21 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> and the grammar’s contributors for creating this resource to assist Bible translators. The original work by unfoldingWord is available from <a href="https://ugg.readthedocs.io/">Read the Docs</a>.</p>',
                 'notes': '<p class="note">These pages have been converted from the original reStructuredText source files, with formatting adjustments and navigation links for this site. Browse our <a href="__LEVEL__ref/UGG/index.htm#Top">Greek grammar index</a>.</p>' },
-        'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (Hebrew v0.9.4, 2026; Greek v1.1, 2023).</p>',
+        'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (Hebrew v0.9.4, 2026; Greek v1.1, 2023), handbooks on animals, plants, and objects in the Bible, the MARBLE index (linking each Hebrew word to its dictionary sense), and the parallel passages database.</p>',
                 'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2026. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2026 United Bible Societies.</p>
-<p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
+<p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>
+<p class="copyright"><b>Animals in the Bible</b>, Copyright © United Bible Societies, 2025. Adapted from <i>All Creatures Great and Small: Living Things in the Bible</i>, by Edward R. Hope, © 2005 United Bible Societies. <b>Plants and Trees in the Bible</b> and <b>Objects in the Bible</b>, Copyright © United Bible Societies. The images have their own copyright and licence details, shown with each image.</p>
+<p class="copyright"><b>MARBLE index</b> (Modular Aggregation of Resources on the Bible), Copyright © United Bible Societies. <b>UBS Parallel Passage Database</b>, Copyright © 2023 United Bible Societies.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>',
-                'notes': '<p class="note">We have adapted the English dictionary entries to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>' },
+                'notes': '<p class="note">We have adapted the English dictionary and handbook entries to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>' },
+        'HOTTP': {'about': '<p class="about">The Preliminary and Interim Report of the Hebrew Old Testament Text Project (HOTTP): a concise textual analysis of about 4,500 Old Testament passages with text-critical issues. For each passage, the committee of Hebrew scholars gives the alternative readings, rates the one they preferred (A to D), and lists the factors which influenced their decision. This report formed the foundation of Barthélemy’s <i>Critique Textuelle de l’Ancien Testament</i>.</p>',
+                'copyright': '<p class="copyright">Copyright © United Bible Societies 1973–1980, 2003–2023.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to the <a href="https://github.com/ubsicap/ubs-open-license">United Bible Societies</a> for making this available.</p>',
+                'notes': '''<p class="note">The ratings mean: A — This form of the text has a very high probability of representing the earliest attested text; B — it probably does, but there is some doubt; C — it possibly does, but there is considerable doubt; D — there is a possibility that it does, but this is highly uncertain.</p>
+<p class="note">The ‘base translations’ quoted are the RSV (Revised Standard Version), NEB (New English Bible), BJ (Bible de Jérusalem), LUT (Luther Bible), and TOB (Traduction œcuménique de la Bible).</p>
+<p class="note">We have adapted the English remarks, suggestions, and literal translations to the OET, mainly by changing names to the forms used in the OET Readers’ Version. The adapted files are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>''' },
         'THBD': {'about': '<p class="about"><a href="https://devpost.com/software/theographic">Theographic Bible Database</a>.</p>',
                 'copyright': '''<p class="copyright">Developed by Robert Rouse and others, but no copyright statement discovered.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> according to <a href="https://github.com/robertrouse/theographic-bible-metadata#license">this</a>.</p>',

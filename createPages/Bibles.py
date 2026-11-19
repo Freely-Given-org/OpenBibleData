@@ -85,6 +85,8 @@ CHANGELOG:
     2026-11-16 Load the Tyndale Open Bible Dictionary from state.BibleLocations['TOBD'].
     2026-11-16 Treat the TOSN pickle as obsolete when Dict.py or its dictionary sources are more recent.
     2026-11-18 Write the TOSN pickle via a temporary file so an interrupted build can't leave a truncated pickle.
+    2026-11-19 Also load (and pickle) the UBS handbooks, HOTTP, MARBLE index, and parallel passages with TOSN.
+    2026-11-19 Copy the TOBD and UBS dictionary data onto the given state when it isn't the global one (so the TOSN pickle can be written).
 """
 from datetime import datetime
 import os, os.path
@@ -125,14 +127,15 @@ from settings import State
 from versification import configureBibleVersification, _referenceLabel
 from html import checkHtml
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
+from ubsResources import loadUBSExtraResources, UBS_EXTRA_STATE_ATTRIBUTES, sourceFilepaths as ubsExtraSourceFilepaths
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from utnMarkdown import livenUTNMarkdownLinks, formatUTNMarkdownBlocks
 
 
-LAST_MODIFIED_DATE = '2026-11-18' # by RJH
+LAST_MODIFIED_DATE = '2026-11-19' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.6'
+PROGRAM_VERSION = '1.1.7'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -227,6 +230,9 @@ def dumpTOSNPickleData( state:State, pickleOutputFile ) -> None:
     pickle.dump( state.UBS_HEB_DATA, pickleOutputFile )
     pickle.dump( state.UBS_HEB_ID_INDEX, pickleOutputFile )
     pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
+    # UBS handbooks, HOTTP, MARBLE index, and parallel passages
+    for attributeName in UBS_EXTRA_STATE_ATTRIBUTES:
+        pickle.dump( getattr( state, attributeName ), pickleOutputFile )
 # end of Bibles.dumpTOSNPickleData
 
 
@@ -235,11 +241,14 @@ def TOSNPickleDependencies( state:State ) -> list[Path]:
     The TOSN pickle also contains non-Bible data loaded from outside its own folder
         (by code in Dict.py), so it must also be rebuilt when any of these are more recent.
     """
-    dependencies = [Path( __file__ ).with_name( 'Dict.py' )]
+    dependencies = [Path( __file__ ).with_name( 'Dict.py' ), Path( __file__ ).with_name( 'ubsResources.py' ),
+                    Path( __file__ ).with_name( 'ubsHandbooks.py' ), Path( __file__ ).with_name( 'ubsHOTTP.py' )]
     if 'TOBD' in state.BibleLocations: # Tyndale Open Bible Dictionary (articles, textboxes, maps)
         dependencies += sorted( Path( state.BibleLocations['TOBD'] ).rglob( '*.xml' ) )
     for UBSFolder in (state.BibleLocations['UGD'], state.BibleLocations['UHD']): # Only the English files are loaded
         dependencies += sorted( Path( UBSFolder ).glob( '*-en.JSON' ) )
+    if getattr( state, 'UBS_EXTRA_RESOURCES_FOLDER', None ):
+        dependencies += ubsExtraSourceFilepaths( state.UBS_EXTRA_RESOURCES_FOLDER )
     return dependencies
 # end of Bibles.TOSNPickleDependencies
 
@@ -347,6 +356,9 @@ def preloadVersions( state:State ) -> int:
                                     state.UBS_HEB_DATA = pickle.load( pickleInputFile )
                                     state.UBS_HEB_ID_INDEX = pickle.load( pickleInputFile )
                                     state.UBS_HEB_LEMMA_INDEX = pickle.load( pickleInputFile )
+                                    # UBS handbooks, HOTTP, MARBLE index, and parallel passages
+                                    for attributeName in UBS_EXTRA_STATE_ATTRIBUTES:
+                                        setattr( state, attributeName, pickle.load( pickleInputFile ) )
                                 if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
                                     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, "preloadVersions() loaded pickled TOSN and UBS reference data" )
                                 state.BibleVersions.remove( versionAbbreviation )
@@ -733,6 +745,17 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 
         loadAndIndexUBSGreekDictJSON( 'UGD', state.BibleLocations['UGD'] )
         loadAndIndexUBSHebrewDictJSON( 'UHD', state.BibleLocations['UHD'] )
+        # Dict.py's loaders put their data into the global settings.state,
+        #   so copy it across if we were given a different state (e.g., the State class in some tests),
+        #   otherwise dumpTOSNPickleData() below would fail (and previously left a truncated pickle)
+        from settings import state as globalState
+        if state is not globalState:
+            for attributeName in ('TOBDData', 'UBS_GNT_DATA','UBS_GNT_ID_INDEX','UBS_GNT_LEMMA_INDEX',
+                                    'UBS_HEB_DOMAIN_DATA','UBS_HEB_DATA','UBS_HEB_ID_INDEX','UBS_HEB_LEMMA_INDEX'):
+                setattr( state, attributeName, getattr( globalState, attributeName ) )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS handbooks, HOTTP, MARBLE index, and parallel passages from {state.UBS_EXTRA_RESOURCES_FOLDER}…" )
+        loadUBSExtraResources( state.UBS_EXTRA_RESOURCES_FOLDER, state )
 
         if WRITE_PICKLES_FLAG:
             pickleFolderPath = Path( state.BibleLocations[versionAbbreviation] )

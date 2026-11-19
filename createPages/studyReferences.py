@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-30 Reverse source associations without inferring topics from English words.
     2026-11-18 Read the topic table from topicTable.py (moved out of createTopicPages.py).
+    2026-11-19 Add UBS handbook, parallel passage, and OT quotation links to the passage reference material.
 """
 from collections import defaultdict
 from pathlib import Path
@@ -17,6 +18,7 @@ from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus,Versi
 from referenceEntities import loadReferenceEntities,prepareEntityWordIndex,entityLink,ENTITY_DICTIONARY_ARTICLES
 from referencePassages import parseReferenceSelection
 from oetWords import mappedWordRows,wordTableName
+from ubsStudyLinks import prepareUBSStudyAssociations,ubsPassageResources
 
 ENTITY_FOLDER=Path(__file__).resolve().parents[2]/'Bible_speaker_identification/outsideSources/TheographicBibleData/derivedFiles'
 
@@ -65,6 +67,7 @@ def prepareStudyAssociations(state,entityFolder=ENTITY_FOLDER):
         for language,row,_reference in occurrences:
             wordEntities[(f'OET-LV_{language}_word_table.tsv',row)].add(key)
     state.studyAssociations=dict(topics=topics,entities=entities,wordEntities=dict(wordEntities))
+    prepareUBSStudyAssociations(state) # Before page creation is forked
     return state.studyAssociations
 
 
@@ -112,6 +115,7 @@ def passageReferenceMaterial(level,reference,sourceSystem,state):
     if mapping.status==MappingStatus.EXACT:
         topics=set().union(*(graph['topics']['passages'].get(ref,()) for ref in mapping.references))
         if topics:html+='<p class="note">Used in these topics: '+_topicLinks(level,topics,graph['topics'])+'</p>'
+        html+=ubsPassageResources(level,mapping.references,state)
     return '<details><summary>Reference material for this passage</summary>'+html+'</details>' if html else ''
 
 

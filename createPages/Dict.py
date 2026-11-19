@@ -46,6 +46,7 @@ CHANGELOG:
     2026-11-16 Correct the capitalisation of TOBD map artfile names (e.g., Maps.xml '1sam14.pdf' is actually '1Sam14.pdf').
     2026-11-19 Update to UBS Greek dictionary v1.1, keep only English inflection comments, and drop empty parts of speech.
     2026-11-19 Keep the more detailed UBS Greek v1.0 parts of speech (v1.1 lost verbs and noun genders).
+    2026-11-19 Create the UBS flora, fauna, and realia handbook pages (in ubsHandbookPages.py) and link them from the dictionary index.
 """
 import os.path
 import logging
@@ -747,6 +748,8 @@ even though it was originally designed to supplement the <i>New Living Translati
 <p class="note"><a href="{'../'*(level)}UBS/Grk/index.htm#Top">Browse Greek definitions, related entries and <em>OET</em> passage examples.</a></p><!--note-->
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
 <p class="note"><a href="{'../'*(level)}UBS/Heb/index.htm#Top">Browse Hebrew definitions, related entries and <em>OET</em> passage examples.</a></p><!--note-->
+<h1>UBS Handbooks <small>{UBS_detailsLink}</small></h1>
+<p class="note">Translator-oriented articles, with Hebrew and Greek terms, passages, and pictures: <a href="{'../'*(level)}UBS/Fauna/index.htm#Top">Animals in the Bible</a>, <a href="{'../'*(level)}UBS/Flora/index.htm#Top">Plants and Trees in the Bible</a>, and <a href="{'../'*(level)}UBS/Realia/index.htm#Top">Objects in the Bible</a>.</p><!--note-->
 {makeBottom( level, None, 'dictionaryMainIndex' )}'''
     assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1055,6 +1058,8 @@ def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
 
     createUBSHebrewDictionaryPages( level+1, outputFolderPath.joinpath( 'Heb/'), state )
     createUBSGreekDictionaryPages ( level+1, outputFolderPath.joinpath( 'Grk/'), state )
+    from ubsHandbookPages import createUBSHandbookPages
+    createUBSHandbookPages( level+1, outputFolderPath, state ) # Into UBS/Fauna/, UBS/Flora/, and UBS/Realia/
 # end of Bibles.createUBSDictionaryPages
 
 

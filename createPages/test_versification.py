@@ -23,6 +23,7 @@ CHANGELOG:
     2026-11-02 Enter ordinary chapters at verse 1 while retaining backwards introduction navigation.
     2026-11-03 Supply the static-navigation helper to isolated page loops.
     2026-11-05 Supply study metadata to the isolated verse and index writers.
+    2026-11-19 Stub formatHOTTPNotes in the parallel verse page namespace.
 """
 from pageMetadata import studyIndexMetadata, verseStudyMetadata
 import ast
@@ -414,6 +415,7 @@ class ParallelPageTests(unittest.TestCase):
             formatTyndaleBookIntro=lambda *args: '', formatTyndaleNotes=lambda *args: '',
             formatUnfoldingWordTranslationNotes=lambda *args: '',
             getFormattedSILOpenTranslationNotes=lambda *args: '',
+            formatHOTTPNotes=lambda *args: '',
             getBibleMapperMaps=lambda *args: '',
             UntranslatedVerseError=type('UntranslatedVerseError',(Exception,),{}),
             **{name:getattr(vf,name) for name in ('navigationVersification','parallelVerseReferences','parallelVersePassage',

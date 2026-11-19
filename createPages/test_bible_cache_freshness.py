@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-27 Cover public/private cache coexistence and nested OET-LV sources.
     2026-11-16 Cover the TOSN pickle's external dependencies (Dict.py and dictionary sources).
     2026-11-19 Give the fake state the UBS dictionary locations (UGD/UHD) that TOSNPickleDependencies now reads.
+    2026-11-19 Include the extra UBS resources (handbooks, HOTTP, MARBLE, parallels) in the fake TOSN pickle.
 """
 from contextlib import ExitStack
 import os
@@ -126,7 +127,7 @@ class BibleCacheFreshnessTests(unittest.TestCase):
         )
         pickleFilepath = folder / 'TOSN.OBD_Bible.pickle'
         with pickleFilepath.open('wb') as output:
-            for _n in range(10): # Intros, summaries, TOBD, and seven UBS structures
+            for _n in range(10 + len(Bibles.UBS_EXTRA_STATE_ATTRIBUTES)): # Intros, summaries, TOBD, seven UBS dictionary structures, and the extra UBS resources
                 pickle.dump({}, output)
         os.utime(pickleFilepath, (1_000_000_100, 1_000_000_100))
         self.dependency = self.root / 'Dict.py'

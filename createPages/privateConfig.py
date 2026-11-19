@@ -6,6 +6,7 @@
 CHANGELOG:
     2026-10-23 Separate private destinations, staging, and Bible definitions.
     2026-11-01 Reserve the native search output folder.
+    2026-11-19 Reserve the HOTTP output folder.
 """
 from copy import deepcopy
 from pathlib import Path
@@ -15,7 +16,7 @@ import tomllib
 
 PRIVATE_SETTINGS_PATH = Path(__file__).with_name('privateSettings.toml')
 _PAGE_FOLDERS = {'par', 'lst', 'ilr', 'rel', 'tpc', 'ref', 'app', 'dct', 'UBS',
-                 'pagefind', 'search', 'PLBL', 'HAP', 'SOTN', 'UTN', 'TOSN', 'TOBD', 'THBD', 'BMM', 'OBI'}
+                 'pagefind', 'search', 'PLBL', 'HAP', 'SOTN', 'UTN', 'TOSN', 'TOBD', 'HOTTP', 'THBD', 'BMM', 'OBI'}
 
 
 def configurePrivateBuild(state, *, debug=False, configPath=PRIVATE_SETTINGS_PATH):

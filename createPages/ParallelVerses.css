@@ -385,6 +385,13 @@ p.theme-refs {}
 
 /* unfoldingWord translation notes (UTNs) */
 div.parallelUTN {}
+div.parallelHOTTP {}
+div.HOTTPnote { margin-left:1em; }
+.HOTTPnote ul { margin-top:0.2em; margin-bottom:0.2em; } /* Not div.… because loadCSSStyles allows only one div.HOTTPnote rule */
+span.HOTTPrating { font-weight:bold; color:darkgreen; border:1px solid darkgreen; border-radius:0.3em; padding:0 0.2em; }
+span.HOTTPversion { font-variant:small-caps; }
+span.HOTTPfactor { text-decoration:underline dotted; }
+p.HOTTP { margin-top:0.2em; margin-bottom:0.2em; }
 p.UTN {}
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }

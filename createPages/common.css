@@ -536,6 +536,7 @@ html[data-theme="dark"] span.t4tFoS { color:#6fc7a8; }
 html[data-theme="dark"] span.glossHelper { color:#b0b0b0; }
 html[data-theme="dark"] span.spelling { color:#e89ce8; }
 html[data-theme="dark"] p.OL { color:#a8a8f0; }
+html[data-theme="dark"] span.HOTTPrating { color:lightgreen; border-color:lightgreen; }
 html[data-theme="dark"] span.nominaSacra { text-decoration-color:#b0b0b0; }
 
 /* Interlinear verse lists: the lemma transliterations, Strong's numbers,

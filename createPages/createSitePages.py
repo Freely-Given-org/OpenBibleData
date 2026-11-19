@@ -88,6 +88,7 @@ CHANGELOG:
     2026-11-09 Identify the OET reader directory as the preferred landing-page URL.
     2026-11-11 Explain the OET-RV updated-measure formatting in the OET key.
     2026-11-16 Copy Tyndale Open Bible Dictionary maps from state.BibleLocations['TOBD'].
+    2026-11-19 Make the UBS HOTTP details page (and clean its folder).
 """
 from pathlib import Path
 import os
@@ -123,10 +124,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-11-16' # by RJH
+LAST_MODIFIED_DATE = '2026-11-19' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.6'
+PROGRAM_VERSION = '1.4.7'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -563,7 +564,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','UHG','UGG','TOSN','TOBD','UBS','THBD','BMM','OBI']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','UHG','UGG','TOSN','TOBD','UBS','HOTTP','THBD','BMM','OBI']:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: cleanVersionFolder(folder / versionAbbreviation,
@@ -758,7 +759,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    detailsVersions = ['OET'] + list(state.preloadedBibles) + ['SOTN','TOBD','UBS','THBD','PLBL','HAP','BMM','OBI']
+    detailsVersions = ['OET'] + list(state.preloadedBibles) + ['SOTN','TOBD','UBS','HOTTP','THBD','PLBL','HAP','BMM','OBI']
     # The grammars are reference resources, so include them even when a reduced build omits UTN.
     grammarIndex = detailsVersions.index('UTN') + 1 if 'UTN' in detailsVersions else len(detailsVersions)
     detailsVersions[grammarIndex:grammarIndex] = ['UHG','UGG']

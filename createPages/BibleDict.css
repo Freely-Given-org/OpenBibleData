@@ -153,3 +153,12 @@ span.add { color:#6b6b6b; }
 .grkVoc {} /* { background-color:orchid; } */
 .grkVrb {} /* { background-color:khaki; } */
 .grkNeg {} /* { background-color:crimson; } */
+/* UBS flora, fauna, and realia handbooks */
+div.hbIndex { }
+div.hbLemmas { }
+p.hbPara { }
+div.hbImage { max-width:450px; margin:0.5em 0 0.5em 1em; float:right; clear:right; }
+.hbImage img { width:100%; height:auto; } /* Not div.… because loadCSSStyles allows only one div.hbImage rule */
+p.hbCaption { font-size:0.85em; margin-top:0.1em; }
+small.hbCredit { color:grey; }
+@media only screen and (max-width: 600px) { div.hbImage { float:none; max-width:100%; margin-left:0; } }

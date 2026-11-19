@@ -5,6 +5,7 @@
 CHANGELOG:
     2026-10-30 Build lexical associations independently of page-generation order.
     2026-11-02 Identify UBS links explicitly as dictionary entries.
+    2026-11-19 Link OT words to their UBS dictionary sense and handbook articles (from the UBS MARBLE index).
 """
 from collections import defaultdict
 from pathlib import Path
@@ -111,6 +112,7 @@ def prepareLexicalAssociations(state):
                 if code:=normaliseStrongs(raw,language):
                     graph['ubsByCode'][code[1]].add(key)
                     graph['ubsByStrong'][code[0]].add(key)
+    graph['ubsMarbleByWordRef'] = _ubsMarbleByWordRef(state)
     # Plain dictionaries/sets can be inherited or serialised by page workers.
     for key,value in tuple(graph.items()):
         if isinstance(value,defaultdict): graph[key] = dict(value)
@@ -170,6 +172,11 @@ def lexicalResourceLinks(level, language, state, *, lemma=None, strong=None, wor
         label = entry['Lemma']+(f' ({identifier})' if identifier else '')
         entryLinks.append(ubsEntryLink(level,key,graph,label))
     if entryLinks: groups.append('UBS dictionary entries sharing a lemma or Strong’s identifier: '+' · '.join(entryLinks))
+    if wordFields is not None and language=='Heb':
+        if senseLinks:=ubsWordSenseLinks(level,wordFields[0],state):
+            groups.append('UBS dictionary sense for this word (from the UBS MARBLE index): '+senseLinks)
+        if handbookLinks:=ubsWordHandbookLinks(level,wordFields[0],state):
+            groups.append('UBS handbook: '+handbookLinks)
     if lemma is not None and hasattr(state,'BibleVersifications'):
         from studyReferences import lemmaTopics
         if links:=lemmaTopics(level,language,lemma,state):groups.append('Used in these topics: '+links)
@@ -211,6 +218,73 @@ def _grammarPages(family):
     return {path.stem for path in Path(f'/srv/Bibles/unfoldingWordHelps/en_{family.lower()}/content').glob('*.rst')}
 
 
+def _ubsMarbleByWordRef(state):
+    """Map the UBS MARBLE index onto OET-LV OT word rows, e.g., 'GEN_1:1w1' -> {'senses':[(slot,MainId,LEXID)], 'thematic':[...]}.
+
+    MARBLE IDs are MACULA word/segment numbers (in the same Hebrew versification as the OET-LV OT table).
+    MACULA numbers both the ketiv and the qere, but the OET only numbers the ketiv (RowType K or AK),
+        so the following MACULA word numbers are one more than ours. (We attach the qere's links to the ketiv row.)
+    """
+    marbleIndex = getattr(state,'UBS_MARBLE_INDEX',None)
+    tableName = 'OET-LV_OT_word_table.tsv'
+    table = getattr(state,'OETRefData',{}).get('word_tables',{}).get(tableName)
+    verseIndex = getattr(state,'OETRefData',{}).get('word_table_indexes',{}).get(tableName)
+    if not marbleIndex or not table or not verseIndex: return {}
+    result = {}
+    for (BBB,C,V),marbleWords in marbleIndex.items():
+        rowRange = verseIndex.get(f'{BBB}_{C}:{V}')
+        if not rowRange: continue
+        refByMaculaWord, maculaWord = {}, 0
+        for rowNumber in range(rowRange[0],rowRange[1]+1):
+            fields = table[rowNumber].split('\t',2)
+            if 'w' not in fields[0]: continue # seg and note rows
+            maculaWord += 1
+            refByMaculaWord[maculaWord] = fields[0]
+            if fields[1] in ('K','AK'): # The qere follows the ketiv in MACULA
+                maculaWord += 1
+                refByMaculaWord[maculaWord] = fields[0]
+        for marbleWord in marbleWords:
+            if (wordRef:=refByMaculaWord.get(marbleWord.word)) is None: continue
+            links = result.setdefault(wordRef,{'senses':[],'thematic':[]})
+            for mainID,lexID in marbleWord.senses:
+                if (marbleWord.segment-1,mainID,lexID) not in links['senses']: links['senses'].append((marbleWord.segment-1,mainID,lexID))
+            for thematic in marbleWord.thematic:
+                if thematic not in links['thematic']: links['thematic'].append(thematic)
+    return result
+
+
+def _ubsSenseGlosses(entry,lexID):
+    for base in entry.get('BaseForms',()):
+        for meaning in base.get('LEXMeanings') or ():
+            if meaning.get('LEXID')==lexID:
+                return list(dict.fromkeys(gloss for sense in meaning.get('LEXSenses') or () if sense.get('LanguageCode') in (None,'en')
+                                            for gloss in sense.get('Glosses') or ()))
+    return []
+
+
+def ubsWordSenseLinks(level,wordRef,state,*,firstGlossOnly=False):
+    """Links to the UBS Hebrew dictionary senses that the MARBLE index gives for this OET-LV OT word."""
+    graph = prepareLexicalAssociations(state)
+    links = []
+    for _slot,mainID,lexID in graph.get('ubsMarbleByWordRef',{}).get(wordRef,{}).get('senses',()):
+        if (key:=('Heb',mainID)) not in graph['ubs']: continue
+        glosses = _ubsSenseGlosses(graph['ubs'][key],lexID)
+        label = (glosses[0] if firstGlossOnly else f"{graph['ubs'][key]['Lemma']} ‘{', '.join(glosses)}’") if glosses else graph['ubs'][key]['Lemma']
+        links.append(ubsEntryLink(level,key,graph,label,f'sense{lexID}'))
+    return ' · '.join(dict.fromkeys(links))
+
+
+def ubsWordHandbookLinks(level,wordRef,state):
+    """Links to the UBS handbook articles that the MARBLE index gives for this OET-LV OT word."""
+    from ubsHandbooks import handbookKeyFromLink
+    graph = prepareLexicalAssociations(state)
+    links = []
+    for thematic in graph.get('ubsMarbleByWordRef',{}).get(wordRef,{}).get('thematic',()):
+        if (target:=handbookKeyFromLink(thematic)) and (entry:=getattr(state,'UBS_HANDBOOKS',{}).get(target[0],{}).get(target[1])):
+            links.append(_link(f'UBS/{target[0]}/{"index" if target[1]=="0" else target[1]}.htm',entry.title,level))
+    return ' · '.join(dict.fromkeys(links))
+
+
 def interlinearReferenceCells(level,language,fields,state):
     """Prepare the same verified lemma, Strong's and grammar cells for both orders."""
     graph=prepareLexicalAssociations(state)
@@ -247,4 +321,7 @@ def interlinearReferenceCells(level,language,fields,state):
                   dict(N='noun',V='verb',A='adjective',P='pronoun',R='preposition',C='conjunction',D='adverb').get(morphology[:1]))
             parts.append(grammar(morphology,page))
         morphologyHtml=escape(fields[16])+'-'+','.join(parts)
-    return [' · '.join(dict.fromkeys(lemmas)) or '-',', '.join(dict.fromkeys(strongs)) or '-',morphologyHtml]
+    lemmaHtml=' · '.join(dict.fromkeys(lemmas)) or '-'
+    if language=='Heb' and (senseLinks:=ubsWordSenseLinks(level,fields[0],state,firstGlossOnly=True)):
+        lemmaHtml+=f'<br><small>UBS: {senseLinks}</small>'
+    return [lemmaHtml,', '.join(dict.fromkeys(strongs)) or '-',morphologyHtml]

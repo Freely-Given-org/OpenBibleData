@@ -32,6 +32,7 @@ CHANGELOG:
     2026-11-04 Keep matching LV passages before the RV footnote and cross-reference separators.
     2026-11-05 Identify related-passage pages by section range and heading in the page head.
     2026-11-05 Identify related passages pages and their book indexes in search metadata.
+    2026-11-19 List the UBS parallel passages and OT quotations on related-passage pages.
 """
 from pathlib import Path
 import os
@@ -51,6 +52,7 @@ from pageMetadata import sectionMetadata, studyIndexMetadata
 from navigation import scriptureLink
 from Bibles import getVerseDataListForReference
 from bibleNavigation import addReferenceNavigation
+from ubsStudyLinks import ubsSectionParallelsHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
@@ -58,10 +60,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-11-04' # by RJH
+LAST_MODIFIED_DATE = '2026-11-19' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -908,6 +910,10 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             assert '.htm#aV' not in xrefHtml and '.htm#bV' not in xrefHtml, xrefHtml
             assert '.htm#gC' not in xrefHtml and '.htm#hC' not in xrefHtml, xrefHtml
             xrefHtml = f'<div><h2>Collected OET-RV cross-references</h2>\n{xrefHtml}\n</div><!--end of collectedCrossReferences-->'
+
+        # Add the UBS parallel passages and OT quotations for this section
+        if ubsParallelsHtml := ubsSectionParallelsHtml( BBBLevel, BBB, startC, startV, endC, endV, state ):
+            xrefHtml = f"{xrefHtml}{NEWLINE if xrefHtml else ''}{ubsParallelsHtml}"
 
         filepath = BBBFolder.joinpath( sFilename )
         top = makeTop(BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state, (BBB,startC,startV),
