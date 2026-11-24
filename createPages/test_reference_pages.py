@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-23 Validate punctuation, notes, unused variants, and unloaded TEST books.
     2026-11-01 Check semantic referent links use the generated Greek occurrence filenames.
     2026-11-13 Check lemma colour keys follow the main entry.
+    2026-11-24 Check gloss summaries name the OET-LV and are followed by the OET-RV renderings.
 """
 from collections import defaultdict
 from contextlib import ExitStack
@@ -121,6 +122,7 @@ class ReferencePageTests(unittest.TestCase):
                                '', '100', '30560', 'N', '····NMS', ''])
         data['word_tables'][pages.HebrewWordFileName] = ['header', self.hebrew]
         data['word_tables'][pages.GreekWordFileName] = ['header', self.greek]
+        data['OETRVRenderings'] = {pages.HebrewWordFileName: {1: 'Created'}, pages.GreekWordFileName: {}}
         (self.root/pages.HebrewLemmaFileName).write_text('Lemma\tGlosses\nבָּרָא\tcreated\n')
         pages.preprocessHebrewWordsLemmasGlosses([], self.state)
         pages.preprocessGreekWordsLemmasGlosses([], self.state)
@@ -157,6 +159,11 @@ class ReferencePageTests(unittest.TestCase):
                 self.assertGreaterEqual(len(verses), 2)
                 for verse in verses:
                     self.assertEqual(re.findall(r'<b><a [^>]*>(.*?)</a></b>', verse), ['focused'])
+                # Gloss summaries say they're from the OET-LV, followed by the OET-RV renderings.
+                self.assertRegex(html, r'<p class="summary">In the <em>OET-LV</em>, [^<]*(?:<small>.*?</small>)?[^<]* glossed')
+                self.assertRegex(html, r'<p class="summary">In the <em>OET-RV</em>, (?:it|the word form ‘[^’]+’ <small>.*?</small>)'
+                                       r' is translated as ‘<b>Created</b>’ <small>\(its only occurrence is linked\)</small>\.</p>' if kind.startswith('Heb') else
+                                       r'<p class="summary">In the <em>OET-RV</em>, the only occurrence of (?:it|the word form .*?) isn’t linked to its source word yet\.</p>')
                 if kind.endswith('Lem'):
                     # The key follows the main entry rather than pushing it down the page.
                     self.assertNotIn('<!--ColourKey-->', html)

@@ -166,6 +166,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-19 Link the UBS flora, fauna, and realia handbooks from the main reference index.
     2026-11-19 Remove the dictionary (and handbook) links line from the top of the reference pages;
                 link the additional-book words index from the main reference index instead.
+    2026-11-24 Say that word and lemma gloss summaries are from the OET-LV, and add how the OET-RV translates them (and how many occurrences are linked).
 """
 from pathlib import Path
 import os
@@ -212,14 +213,15 @@ from BibleOrgSys.Reference.BibleVersificationMappings import MappingStatus, Vers
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
+from oetRVRenderings import loadRVRenderings, rvRenderingsSummaryHtml
 import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-11-10' # by RJH
+LAST_MODIFIED_DATE = '2026-11-24' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.0.9'
+PROGRAM_VERSION = '1.0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1094,6 +1096,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['OTStrongsRefs'] = defaultdict(set) # Key is like '358', entry is set of ref strings, e.g., {'GEN_1:1'}
     # startTime = time()
     preprocessHebrewWordsLemmasGlosses( [], state ) # Ignores these books (that must be processed manually)
+    state.OETRefData['OETRVRenderings'] = loadRVRenderings( state.BibleLocations['OET-RV'] ) # LV word-table row numbers -> linked OET-RV words
     # if state.TEST_MODE_FLAG: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
     # for ss,(sKey,refs) in enumerate( state.OETRefData['OTStrongsRefs'].items() ):
     #     print( f"{ss} {sKey=} {refs=}")
@@ -2194,13 +2197,13 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             maxWordsToShow = 50
             wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if numWordOETGlossesList > 1:
-                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
+                wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
                 #     wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
             else:
                 # assert wordOETGlossesList == [gloss], f"{wordOETGlossesList}  vs {[gloss]}"
                 # if not gloss: print( f"NO GLOSS {ref=} {rowType=} {morphemeRowList=} {lemmaRowList=} {strongs=} {morphology=} {word=} {noCantillations=} {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=} {glossCapitalisation=} {glossPunctuation=} {glossOrder=} {glossInsert=} {role=} {nesting=} {tags=}" )
-                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
+                wordsHtml = f'{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
                 # if VLTGlossWordsStr != gloss:
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{VLTGlossWordsStr}</b>’)</small>.</p>'
         else: # we can list all uses of the word
@@ -2217,14 +2220,15 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             elif len(thisWordNumberList) > 1:
                 wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if numWordOETGlossesList > 1:
-                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
+                wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
                 #     wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
             else:
                 # assert wordOETGlossesList == [gloss], f"{n} {BBB} {C}:{V} {hebrewWord=} {morphology=}: {wordOETGlossesList}  vs {[gloss]}"
-                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
+                wordsHtml = f'{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
                 # if formattedVLTGlossWords != gloss:
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{formattedVLTGlossWords}</b>’)</small>.</p>'
+        wordsHtml = f'''{wordsHtml}\n{rvRenderingsSummaryHtml(thisWordNumberList, state.OETRefData['OETRVRenderings'].get(HebrewWordFileName,{}), f'the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small>')}'''
         displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
         for oN in thisWordNumberList:
             # if oN==hh: continue # don't duplicate the word we're making the page for
@@ -2533,8 +2537,9 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
 {lexicalResourceLinks(level,'Heb',state,lemma=hebLemma)}<p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(hebLemmaFormsList)==1 else f'{len(hebLemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getHebrewWordpageFilename(getFirstHebrewWordNumber(heb,morph), state)}#Top">{heb}</a> <small>({state.OETRefData["OTLemmaFormsCountDict"][(hebLemma,heb,morph)]:,}, {morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in hebLemmaFormsList])}.</p>
-<p class="summary">It is glossed in {'only one way' if numHebLemmaOETGlossesList==1 else f'{numHebLemmaOETGlossesList:,} different ways'}: {tidy_Hebrew_lemma_gloss(', '.join(hebLemmaOETGlossesStrList))}.</p>'''
+<p class="summary">In the <em>OET-LV</em>, it is glossed in {'only one way' if numHebLemmaOETGlossesList==1 else f'{numHebLemmaOETGlossesList:,} different ways'}: {tidy_Hebrew_lemma_gloss(', '.join(hebLemmaOETGlossesStrList))}.</p>'''
 
+        lemmasHtml = f'''{lemmasHtml}\n{rvRenderingsSummaryHtml(sorted(set(hebLemmaWordRowsList)), state.OETRefData['OETRVRenderings'].get(HebrewWordFileName,{}))}'''
 
         lemmasHtml += lemmaOccurrenceSummary(level,'Heb',hebLemma,state)
         lemmasHtml = f"{lemmasHtml}\n{_make_hebrew_lemma_HTML_segment(hebLemma, hebLemmaWordRowsList, level, usedMorphologies)}{LEMMA_COLOUR_KEY_MARKER}" # Make all the Hebrew lemma pages
@@ -3439,12 +3444,12 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 maxWordsToShow = 50
                 wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                 if numWordOETGlossesList > 1:
-                    wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
+                    wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
                     if wordVLTGlossesList != wordOETGlossesList:
                         wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
                 else:
                     assert wordOETGlossesList == [OETGlossWordsStr], f"{wordOETGlossesList}  vs {[OETGlossWordsStr]}"
-                    wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> is always and only glossed as ‘<b>{OETGlossWordsStr}</b>’.</p>'
+                    wordsHtml = f'{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> is always and only glossed as ‘<b>{OETGlossWordsStr}</b>’.</p>'
                     if VLTGlossWordsStr != OETGlossWordsStr:
                         wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> was always and only glossed as ‘<b>{VLTGlossWordsStr}</b>’)</small>.</p>'
             else: # we can list all uses of the word
@@ -3461,14 +3466,15 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 else:
                     wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                 if numWordOETGlossesList > 1:
-                    wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
+                    wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
                     if wordVLTGlossesList != wordOETGlossesList:
                         wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
                 else:
                     assert wordOETGlossesList == [formattedOETGlossWords], f"{gg} {BBB} {C}:{V} {greekWord=} {roleLetter=} {morphology=}: {wordOETGlossesList}  vs {[formattedOETGlossWords]}"
-                    wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> is always and only glossed as ‘<b>{tidyGlossOfGreekWord(formattedOETGlossWords)}</b>’.</p>'
+                    wordsHtml = f'{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> is always and only glossed as ‘<b>{tidyGlossOfGreekWord(formattedOETGlossWords)}</b>’.</p>'
                     if formattedVLTGlossWords != formattedOETGlossWords:
                         wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> was always and only glossed as ‘<b>{formattedVLTGlossWords}</b>’)</small>.</p>'
+            wordsHtml = f'''{wordsHtml}\n{rvRenderingsSummaryHtml(thisWordNumberList, state.OETRefData['OETRVRenderings'].get(GreekWordFileName,{}), f'the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small>')}'''
             displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
             for oN in thisWordNumberList:
                 # if oN==gg: continue # don't duplicate the word we're making the page for
@@ -3788,9 +3794,10 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
 {lexicalResourceLinks(level,'Grk',state,lemma=lemma)}<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button></p>
 <p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
-<p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
+<p class="summary">In the <em>OET-LV</em>, it is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
         if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
             lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
+        lemmasHtml = f'''{lemmasHtml}\n{rvRenderingsSummaryHtml(grkLemmaWordRowsList, state.OETRefData['OETRVRenderings'].get(GreekWordFileName,{}))}'''
 
         lemmasHtml += lemmaOccurrenceSummary(level,'Grk',lemma,state)
         lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(lemma, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}{LEMMA_COLOUR_KEY_MARKER}"
