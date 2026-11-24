@@ -16,6 +16,7 @@ CHANGELOG:
     2026-11-01 Keep version-switching index links free of unmappable introductory anchors.
     2026-11-01 Resolve combined OET chapter links against RV numbering and stored verse bridges.
     2026-11-02 Prefer sections from reference material while preserving Bible chapter navigation.
+    2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
 """
 import logging
 import re
@@ -89,9 +90,13 @@ def bookAbbreviation(BBB, workAbbreviation, *, titleCase=False, addNotes=False):
 
 
 def bookName(BBB, workAbbreviation):
-    """Name for a book link's hover text, matching its containing page."""
-    return (getOETBookName(BBB) if usesOETBookNames(workAbbreviation)
-            else bos_books_codes_py.get_english_name_nr(BBB))
+    """Name for a book link's hover text, matching its containing page.
+
+    OET names drop the parentheses around the traditional name, e.g., Yehudah/(Jude) gives Yehudah/Jude.
+    """
+    if usesOETBookNames(workAbbreviation):
+        return re.sub(r'/\(([^()]+)\)', r'/\1', getOETBookName(BBB))
+    return bos_books_codes_py.get_english_name_nr(BBB)
 
 
 def oetBookNavigationLinks(books, BBB, workAbbreviation, previousLink, nextLink, *, sectionIndex=False):

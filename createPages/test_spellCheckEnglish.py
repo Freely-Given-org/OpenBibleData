@@ -17,6 +17,7 @@ CHANGELOG:
     2026-11-12 Check that unlisted hyphenated compounds are reported whole, while dashes still separate words.
     2026-11-12 Check title-case compounds, dictionary compounds, and per-version compound exceptions.
     2026-11-13 Check ClVg/KJB-1611 J→Y name respellings and ClVg Roman numerals, without accepting unknown words.
+    2026-11-23 Use Boaz/Oved, as the OET-RV names table no longer has Boes/Boos or Yobed/Yobel, and clear reports between subtests.
 """
 from types import SimpleNamespace
 from collections import defaultdict
@@ -155,15 +156,16 @@ class TestEnglishSpellingExclusions(unittest.TestCase):
                     self.assertIn('class="spelling">netser</span>', checked)
 
     def test_name_table_alternatives_and_compounds_pass(self):
-        for text in ('Boes/Boos Yobed/Yobel', 'Bar-Yonah', 'Esar-haddon',
+        for text in ('Boaz/Oved', 'Bar-Yonah', 'Esar-haddon',
                      '“Esar-haddon,”', 'Esar-haddon’s'):
             with self.subTest(text=text):
+                self.reports['OET-RV'].clear()
                 source, checked = self.check_text(text)
                 self.assertEqual(checked, source)
                 self.assertEqual(self.reports['OET-RV'], [])
 
     def test_inconsistent_names_and_damaged_compounds_still_need_review(self):
-        for text, bad_word in (('Boess', 'Boess'), ('Yobedd', 'Yobedd'),
+        for text, bad_word in (('Boazz', 'Boazz'), ('Ovedd', 'Ovedd'),
                                ('Esar-haddonn', 'Esar-haddonn'), ('BarYonah', 'BarYonah')):
             with self.subTest(text=text):
                 self.reports['OET-RV'].clear()

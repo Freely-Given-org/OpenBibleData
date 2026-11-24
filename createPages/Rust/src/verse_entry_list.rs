@@ -63,6 +63,10 @@
 //!              processed entry number/marker, and offending text.
 //!  2026-10-18: Preserve word separation when verse numbers are hidden between
 //!              multiple basic-mode verses (including repeated source numbers).
+//!  2026-11-23: Only show the OET-RV '⇔' (reordered verse text) marker that
+//!              starts a "v~" line on parallel and interlinear verse pages,
+//!              and warn about any '⇔' elsewhere in OET-RV text.
+//!  2026-11-23: Put the shown OET-RV '⇔' marker in a span with an explanatory pop-up title.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -171,6 +175,35 @@ fn rreplace(s: &str, old: &str, new: &str, count: usize) -> String {
 }
 
 /// Check if a marker is in the USFM Bible paragraph markers list.
+/// The OET-RV marks reordered verse text with '⇔' at the start of the ESFM line
+/// (after the marker), which reaches us at the start of a "v~" entry.
+const OET_RV_REORDERED_MARKER: char = '\u{21D4}';
+
+/// Only the parallel and interlinear verse pages show the OET-RV reordered marker.
+fn shows_oet_rv_reordered_marker(segment_type: &str) -> bool {
+    matches!(segment_type, "parallelVerse" | "interlinearVerse")
+}
+
+/// The displayed form of the OET-RV reordered marker (with its pop-up explanation).
+const OET_RV_REORDERED_MARKER_HTML: &str =
+    "<span class=\"reordered\" title=\"The RV translation reversed the text order from the original\">\u{21D4}</span>";
+
+/// Remove a leading OET-RV reordered marker from the "v~" text, returning the text
+///     and the HTML to display in front of the formatted text (empty unless this segment type shows it).
+/// Warns about any marker that's not at the start of the "v~" text (and leaves that one in place).
+fn oet_rv_reordered_text<'a>(text: &'a str, segment_type: &str, bos_book_code: &str, c: &str, v: &str) -> (&'a str, &'static str) {
+    let stripped = text.strip_prefix(OET_RV_REORDERED_MARKER);
+    if stripped.unwrap_or(text).contains(OET_RV_REORDERED_MARKER) {
+        eprintln!("Warning: OET-RV {bos_book_code} {c}:{v} has a '{OET_RV_REORDERED_MARKER}' (reordered) marker \
+                   that's not at the start of its line in {text:?}");
+    }
+    match stripped {
+        Some(rest) if shows_oet_rv_reordered_marker(segment_type) => (rest, OET_RV_REORDERED_MARKER_HTML),
+        Some(rest) => (rest, ""),
+        None => (text, ""),
+    }
+}
+
 fn is_bible_paragraph_marker(marker: &str) -> bool {
     use usfm_markers::USFM_ALL_BIBLE_PARAGRAPH_MARKERS;
     USFM_ALL_BIBLE_PARAGRAPH_MARKERS.contains(&marker)
@@ -535,10 +568,14 @@ where
         match marker {
             "v~" => {
                 // Verse text content
+                let (rest_str, reordered_html) = if version_abbreviation == "OET-RV" {
+                    oet_rv_reordered_text(rest_str, segment_type, bos_book_code, c, v)
+                } else { (rest_str, "") };
                 let formatted = convert_char_formatting(
                     version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                     &mut state.background_colour,
                 )?;
+                let formatted = format!("{reordered_html}{formatted}");
                 let span_class = if v == "0" {
                     format!("{version_abbreviation}_chapterIntro")
                 } else {
@@ -1675,6 +1712,49 @@ mod tests {
             no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
         assert!(result.contains("God created."));
+    }
+
+    #[test]
+    fn test_oet_rv_reordered_marker_only_on_parallel_and_interlinear_pages() {
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "6".into(), clean_text: "6".into() },
+            VerseEntry { marker: "v~".into(), full_text: "\u{21D4}because of the fool".into(), clean_text: "\u{21D4}because of the fool".into() },
+            VerseEntry { marker: "q1".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v~".into(), full_text: "\u{21D4}Take some elders,".into(), clean_text: "\u{21D4}Take some elders,".into() },
+        ];
+        for (segment_type, shown) in [("parallelVerse", true), ("interlinearVerse", true), ("simpleVerse", false),
+                                      ("chapter", false), ("section", false), ("book", false),
+                                      ("relatedPassage", false), ("topicalPassage", false), ("dictVerse", false)] {
+            for basic_only in [true, false] {
+                let result = convert_verse_entry_list_to_html_core(
+                    1, "OET-RV", "ECC", Some("7"), Some("6"),
+                    segment_type, &["chapters"], &entries, basic_only, false,
+                    no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+                ).unwrap();
+                assert!(result.contains("because of the fool") && result.contains("Take some elders,"), "{segment_type}: {result}");
+                let marked = |words: &str| format!("_verseTextChunk\">{OET_RV_REORDERED_MARKER_HTML}{words}");
+                assert_eq!(result.contains(&marked("because")) && result.contains(&marked("Take")), shown, "{segment_type} {basic_only}: {result}");
+                assert_eq!(result.contains("The RV translation reversed"), shown, "{segment_type} {basic_only}: {result}");
+                // (Basic-mode poetry lines have their own derived '<br> ⇔ ' line marker)
+                if !shown { assert!(!result.contains(">\u{21D4}"), "{segment_type} {basic_only}: {result}"); }
+            }
+        }
+        // Other versions keep the character
+        let result = convert_verse_entry_list_to_html_core(
+            1, "OET-LV", "ECC", Some("7"), Some("6"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        assert!(result.contains(">\u{21D4}because"), "{result}");
+    }
+
+    #[test]
+    fn test_oet_rv_reordered_text_helper() {
+        assert_eq!(oet_rv_reordered_text("\u{21D4}Then", "chapter", "COL", "3", "17"), ("Then", ""));
+        assert_eq!(oet_rv_reordered_text("\u{21D4}Then", "parallelVerse", "COL", "3", "17"), ("Then", OET_RV_REORDERED_MARKER_HTML));
+        assert_eq!(oet_rv_reordered_text("No marker", "parallelVerse", "COL", "3", "17"), ("No marker", ""));
+        // A misplaced marker is warned about but left for the editor to see
+        assert_eq!(oet_rv_reordered_text("Then \u{21D4}give", "chapter", "COL", "3", "17"), ("Then \u{21D4}give", ""));
     }
 
     #[test]

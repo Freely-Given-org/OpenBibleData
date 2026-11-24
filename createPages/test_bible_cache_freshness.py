@@ -8,6 +8,7 @@ CHANGELOG:
     2026-11-16 Cover the TOSN pickle's external dependencies (Dict.py and dictionary sources).
     2026-11-19 Give the fake state the UBS dictionary locations (UGD/UHD) that TOSNPickleDependencies now reads.
     2026-11-19 Include the extra UBS resources (handbooks, HOTTP, MARBLE, parallels) in the fake TOSN pickle.
+    2026-11-22 Test-mode pickles are now named .OBD_Test_mode_Bible.pickle.
 """
 from contextlib import ExitStack
 import os
@@ -40,7 +41,7 @@ class BibleCacheFreshnessTests(unittest.TestCase):
         self.state = SimpleNamespace(
             TEST_MODE_FLAG=testMode, ALL_PRODUCTION_BOOKS_FLAG=not testMode,
             TEST_BOOK_LIST=['MRK'], TEST_VERSIONS_ONLY=None,
-            PICKLE_FILENAME_END='.OBD_Private_Bible.pickle' if testMode else '.OBD_Bible.pickle',
+            PICKLE_FILENAME_END='.OBD_Test_mode_Bible.pickle' if testMode else '.OBD_Bible.pickle',
             BibleVersions=[version], BibleLocations={version: str(folder)},
             BibleVersifications={version: 'eng'}, selectedVersesOnlyVersions=(),
             LOAD_RESOURCES_FROM_PICKLES_FLAG=True, preloadedBibles={},
@@ -51,7 +52,7 @@ class BibleCacheFreshnessTests(unittest.TestCase):
                 sourceFolder = folder / name
                 sourceFolder.mkdir()
                 self.state.BibleLocations[f'OET-LV-{testament}'] = str(sourceFolder)
-        filename = f'{version}__MRK.OBD_Private_Bible.pickle' if testMode else f'{version}.OBD_Bible.pickle'
+        filename = f'{version}__MRK.OBD_Test_mode_Bible.pickle' if testMode else f'{version}.OBD_Bible.pickle'
         bible = Bible(versification='eng')
         bible.name = 'Expected cached edition'
         bible.discoveryResults = {}
@@ -74,7 +75,7 @@ class BibleCacheFreshnessTests(unittest.TestCase):
         for testMode in (False, True):
             with self.subTest(testMode=testMode):
                 folder = self.prepareCache(testMode=testMode)
-                other = 'YLT.OBD_Bible.pickle' if testMode else 'YLT__MRK.OBD_Private_Bible.pickle'
+                other = 'YLT.OBD_Bible.pickle' if testMode else 'YLT__MRK.OBD_Test_mode_Bible.pickle'
                 self.newerFile(folder / other)
                 self.checkCacheIsReused('YLT')
 
@@ -98,7 +99,7 @@ class BibleCacheFreshnessTests(unittest.TestCase):
         for testMode in (False, True):
             with self.subTest(testMode=testMode):
                 folder = self.prepareCache(testMode=testMode, version='OET-LV')
-                other = 'OET-LV.OBD_Bible.pickle' if testMode else 'OET-LV__MRK.OBD_Private_Bible.pickle'
+                other = 'OET-LV.OBD_Bible.pickle' if testMode else 'OET-LV__MRK.OBD_Test_mode_Bible.pickle'
                 for name in ('auto_edited_OT_ESFM', 'auto_edited_VLT_ESFM'):
                     self.newerFile(folder / name / other)
                 self.checkCacheIsReused('OET-LV')

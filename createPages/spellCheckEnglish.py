@@ -45,6 +45,9 @@ CHANGELOG:
     2026-11-12 Accept title-case forms of known compounds, and add per-version odd compound forms
     2026-11-13 Accept ClVg/KJB-1611 J→Y respelt names and ClVg Roman numerals; add reviewed Luth/ClVg names
     2026-11-19 Still report OET-LV bracketed unresolved Greek words such as ⟦πτωχοῦ⟧, but omit them from the per-version and WORST ENGLISH WORDS summary displays
+    2026-11-20 Read the renamed OET-RV names table 'Explanation' column and accept the names in it, e.g., 'Yakobos' in '\\add !(James; Grk. Yakobos)\\add*'
+    2026-11-21 OET-RV names table: Segment (OT/NT/DC) column added (with one row per segment) and 'GrkName' renamed 'SimplifiedTransliteration'
+    2026-11-22 OET-RV names table 'Explanation' column split into 'NotesExplanation' (without the \\add !(…)\\add* markup) and 'CanonicalExplanation' (the inserted text)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -58,10 +61,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-19' # by RJH
+LAST_MODIFIED_DATE = '2026-11-22' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.91'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,7 +105,7 @@ assert OET_LV_NAMES_TSV_FILEPATH.is_file()
 EXPECTED_OET_LV_NAMES_TSV_HEADER = 'TraditionalName\tLVName'
 OET_RV_NAMES_TSV_FILEPATH = Path(__file__).parent.joinpath( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' ).resolve()
 assert OET_RV_NAMES_TSV_FILEPATH.is_file()
-EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tGrkName\tRVName\tExplained\tComment'
+EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tSegment\tSimplifiedTransliteration\tRVName\tNotesExplanation\tCanonicalExplanation\tComment'
 
 
 # Globals
@@ -372,7 +375,8 @@ def load_OET_LV_names() -> bool:
 OET_RV_NAMES_SET = set()
 def load_OET_RV_names() -> bool:
     """
-    Load traditional, Greek, and RV names from the first three TSV columns.
+    Load traditional, simplified transliteration, and RV names,
+        and the names inside the 'NotesExplanation' text, e.g., 'James; Grk. Yakobos'.
     """
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_RV_NAMES_TSV_FILEPATH}…" )
@@ -391,8 +395,10 @@ def load_OET_RV_names() -> bool:
     # crossTestamentQuotes_tsv_rows = []
     dict_reader = DictReader(initialTSVLines, delimiter='\t' )
     for row in dict_reader:
-        for nameColumn in ('TraditionalName','GrkName','RVName'):
-            name = row[nameColumn].strip().replace("'", '’') # Match OET HTML apostrophes.
+        explanation = re.sub( r'Grk\.', '', row['NotesExplanation'] or '' )
+        explanationNames = [re.sub( r"['’]s?$", '', name ) for name in re.findall( r"[A-Z][\w'’-]*", explanation )]
+        for name in [row[nameColumn] or '' for nameColumn in ('TraditionalName','SimplifiedTransliteration','RVName')] + explanationNames:
+            name = name.strip().replace("'", '’') # Match OET HTML apostrophes.
             if not name:
                 continue
             OET_RV_NAMES_SET.add( name )
@@ -697,18 +703,51 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedTextToCheck = OET_FORMATTING_SPAN_REGEX.sub( '', cleanedTextToCheck )
         cleanedTextToCheck =  ( cleanedTextToCheck
                     # NOTE: Narrow no-break space in the following three lines has already been changed above to a regular space
-                    .replace( '<span class="synonParr" title="synonymous parallelism">≈ </span>', '' )
-                    .replace( '<span class="antiParr" title="antithetic parallelism">^ </span>', '' )
-                    .replace( '<span class="synthParr" title="synthetic parallelism">→ </span>', '' )
+                    # .replace( '<span class="synonParr" title="synonymous parallelism">≈ </span>', '' )
+                    # .replace( '<span class="antiParr" title="antithetic parallelism">^ </span>', '' )
+                    # .replace( '<span class="synthParr" title="synthetic parallelism">→ </span>', '' )
+                    
+                    # .replace( '<span class="reordered" title="The RV translation reversed the text order from the original">⇔</span>', '' )
 
                     .replace( '<span class="addArticle" title="added article">', '' )
                     .replace( '<span class="addArticle unsure" title="added article (less certain)">', '' )
                     .replace( '<span class="addDirectObject" title="added direct object">', '' )
                     .replace( '<span class="addDirectObject unsure" title="added direct object (less certain)">', '' )
-                    .replace( '<span class="addElided" title="added elided info">', '' )
-                    .replace( '<span class="addElided unsure" title="added elided info (less certain)">', '' )
+                    # .replace( '<span class="addElided" title="added elided info">', '' )
+                    # .replace( '<span class="addElided unsure" title="added elided info (less certain)">', '' )
                     .replace( '<span class="addExtra" title="added implied info">', '' )
                     .replace( '<span class="addExtra unsure" title="added implied info (less certain)">', '' )
+                    # .replace( '<span class="addNegated" title="negated">', '' )
+                    # .replace( '<span class="addNegated unsure" title="negated (less certain)">', '' )
+                    # .replace( '<span class="addOwner" title="added ‘owner’">', '' )
+                    # .replace( '<span class="addOwner unsure" title="added ‘owner’ (less certain)">', '' )
+                    # .replace( '<span class="addNumberChange" title="changed number">', '' )
+                    # .replace( '<span class="addNumberChange unsure" title="changed number (less certain)">', '' )
+                    # .replace( '<span class="addPersonChange" title="changed person">', '' )
+                    # .replace( '<span class="addPersonChange unsure" title="changed person (less certain)">', '' )
+                    # .replace( '<span class="addPronoun" title="used pronoun">', '' )
+                    # .replace( '<span class="addPronoun unsure" title="used pronoun (less certain)">', '' )
+                    # .replace( '<span class="addReferent" title="inserted referent">', '' )
+                    # .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
+                    # .replace( '<span class="addTradName" title="traditional name">', '' )
+                    # # .replace( '<span class="addTradName unsure" title="traditional name (less certain)">', '' )
+                    # .replace( '<span class="updatedMeasure" title="updated measure">', '' )
+                    # # .replace( '<span class="updatedMeasure unsure" title="updated measure (less certain)">', '' )
+                    # .replace( '<span class="addReword" title="reworded">', '' )
+                    # .replace( '<span class="addReword unsure" title="reworded (less certain)">', '' )
+                    # .replace( '<span class="RVadd unsure" title="added info (less certain)">', '' ) # (plain) RVadd is removed by RegEx
+                    )
+        if versionAbbreviation == 'OET-RV':
+            cleanedTextToCheck =  ( cleanedTextToCheck
+                    # NOTE: Narrow no-break space in the following three lines has already been changed above to a regular space
+                    .replace( '<span class="synonParr" title="synonymous parallelism">≈ </span>', '' )
+                    .replace( '<span class="antiParr" title="antithetic parallelism">^ </span>', '' )
+                    .replace( '<span class="synthParr" title="synthetic parallelism">→ </span>', '' )
+                    
+                    .replace( '<span class="reordered" title="The RV translation reversed the text order from the original">⇔</span>', '' )
+
+                    .replace( '<span class="addElided" title="added elided info">', '' )
+                    .replace( '<span class="addElided unsure" title="added elided info (less certain)">', '' )
                     .replace( '<span class="addNegated" title="negated">', '' )
                     .replace( '<span class="addNegated unsure" title="negated (less certain)">', '' )
                     .replace( '<span class="addOwner" title="added ‘owner’">', '' )

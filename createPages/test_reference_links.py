@@ -6,6 +6,7 @@ CHANGELOG:
     2026-10-30 Check person/place navigation, chapter citations and kingdom links.
     2026-10-31 Check approved kingdom readings, retained maps and prophet identities.
     2026-11-02 Verify the same reading selections through the grouped preview renderer.
+    2026-11-20 Expect the OET-RV spelling Shmuel in the kingdom pages.
 """
 from contextlib import ExitStack
 import json
@@ -112,7 +113,7 @@ class ReferenceLinkTests(unittest.TestCase):
         with patch.object(topics,'getBibleMapperMaps',return_value=''):
             topics.createKingdomPages(2,self.root/'ref/Kingdoms',self.state)
         html = (self.root/'ref/Kingdoms/FullKingdom.htm').read_text()
-        self.assertIn('Shemuel (Samuel)',html)
+        self.assertIn('Shmuel (Samuel)',html)
         self.assertNotIn('SA1_C7',html)
 
     def test_kingdom_readings_keep_full_ranges_and_distinct_prophet_identities(self):

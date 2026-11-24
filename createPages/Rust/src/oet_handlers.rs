@@ -5,6 +5,11 @@
 //!     2026-10-31 Colour DC draft morphology only when every analysis agrees
 //!     2026-11-03 Add more OET bookname spellings to `get_bbb_from_oet_book_name_core`
 //!     2026-11-11 Treat OET-RV updated-measure additions as specially formatted text.
+//!     2026-11-20 Table the OT book-code renames and add CEN, SHM, IYOV, SONGS, YESH, SOR,
+//!                    YEHEZ, OVA, HAV, TSEF and ZEK; fix the HERO hover title and Title-case JOS
+//!     2026-11-20 Make `oet_book_name` a per-book table matching the OET-RV `\h` names
+//!     2026-11-20 Replace `apply_oet_tidy_renames` with the per-book `oet_tidy_bbb` table
+//!                    following the OET-RV `\toc3` abbreviations
 //!
 //! The PyO3 wrappers that expose these functions to Python live in `lib.rs`
 //! (they pull rows out of `state.OETRefData` and build/inspect BOS
@@ -153,192 +158,167 @@ pub fn liven_dc_word_links(
 
 // ── getOETTidyBBB ───────────────────────────────────────────────────────────
 
-/// Apply the OET-specific renames after `bos_books_codes::tidy_bbb`
-/// (port of the if-chain in `getOETTidyBBB`).
+/// Our name-bar abbreviations for the books that we've renamed (or respelt).
+/// These follow the `\toc3` lines of the OET-RV ESFM files,
+/// except for using UPPERCASE in the default (non-Title-case) form.
 ///
+/// Columns: (BOS book code, book number (or other) prefix, UPPERCASE form, Title-case form, hover title).
+/// The prefix (if any) is joined to the abbreviation by the `insert_char`.
+/// Text is inserted directly into HTML, so must be HTML-escaped (e.g., `&amp;`).
+const OET_BOOK_ABBREVIATIONS: &[(&str, &str, &str, &str, &str)] = &[
+    // OT
+    ("NUM", "", "CEN", "Cen", "Census (commonly called ‘Numbers’)"),
+    ("JOS", "", "YEHO", "Yeho", "Yehoshua (which is closer to the Hebrew יְהוֹשֻׁעַ/Yəhōshūˊa)"),
+    ("JDG", "", "H&amp;G", "H&amp;G", "Various Heroes and Guides (commonly called ‘Judges’)"),
+    ("SA1", "1", "SHM", "Shm", SHMUEL_TITLE),
+    ("SA2", "2", "SHM", "Shm", SHMUEL_TITLE),
+    ("JOB", "", "IYOV", "Iyov", "Iyov (which is closer to the Hebrew אִיּוֹב/ʼIyyōⱱ)"),
+    ("PSA", "", "SONGS", "Songs", "Songs (commonly called ‘Psalms’)"),
+    ("ECC", "", "REFL", "Refl", "Reflections (sometimes also called Ecclesiastes, or from the Hebrew, Kohelet)"),
+    ("ISA", "", "YESH", "Yesh", "Yeshayah (which is closer to the Hebrew יְשַׁעְיָה/Yəshaˊyāh)"),
+    ("JER", "", "YIR", "Yir", "Yirmiyah (which is closer to the Hebrew יִרְמְיָ֖הוּ/Yirməyāhu)"),
+    ("LAM", "", "SOR", "Sor", "Sorrows (commonly called ‘Lamentations’)"),
+    ("EZE", "", "YEHEZ", "Yehez", "Yehezkel (which is closer to the Hebrew יְחֶזְקֵאל/Yəḩezqēʼl)"),
+    ("JOL", "", "YOEL", "Yoel", "Yoel (which is closer to the Hebrew יוֹאֵ֖ל/Yōʼēl)"),
+    ("OBA", "", "OVAD", "Ovad", "Ovadyah (which is closer to the Hebrew עֹבַדְיָה/ˊOⱱadyāh)"),
+    ("JNA", "", "YONAH", "Yonah", "Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)"),
+    ("MIC", "", "MIK", "Mik", "Mikah (which is closer to the Hebrew מִיכָה/Mīkāh)"),
+    ("HAB", "", "HAV", "Hav", "Havakuk (which is closer to the Hebrew חֲבַקּוּק/Ḩₐⱱaqqūq)"),
+    ("ZEP", "", "TSEF", "Tsef", "Tsefanyah (which is closer to the Hebrew צְפַנְיָה/Tsəfanyāh)"),
+    ("ZEC", "", "ZEK", "Zek", "Zekaryah (which is closer to the Hebrew זְכַרְיָה/Zəkaryāh)"),
+    // DC (the OET-RV DAG/ES1/ES2 files are the BOS DNG/GES/LES books)
+    ("TOB", "", "TOVI", "Tovi", "Tovi (commonly called ‘Tobit’)"),
+    ("JDT", "", "YDT", "Ydt", "Yehudit (commonly called ‘Judith’)"),
+    ("ESG", "", "ESG", "EsG", "Ester (Greek) (commonly called ‘Greek Esther’)"),
+    ("GES", "1", "ES", "Es", "1 Ezra (also called ‘1 Esdras’ or ‘Greek Esdras’)"),
+    ("LES", "2", "ES", "Es", "2 Ezra (also called ‘2 Esdras’ or ‘Latin Esdras’)"),
+    ("DNG", "", "DAG", "DaG", "Daniyel (Greek) (commonly called ‘Greek Daniel’)"),
+    ("LJE", "L", "YIR", "Yir", "Letter of Yirmiyah (commonly called ‘Letter of Jeremiah’)"),
+    // NT
+    ("JHN", "", "YHN", "Yhn", YOHAN_TITLE),
+    ("JAM", "", "YAK", "Yak", "Ya’akov (commonly called ‘James’)"),
+    ("CO1", "1", "KOR", "Kor", KORINTHOS_TITLE),
+    ("CO2", "2", "KOR", "Kor", KORINTHOS_TITLE),
+    ("EPH", "", "EFE", "Efe", "Efesos (commonly called ‘Ephesians’)"),
+    ("PHP", "", "FILI", "Fili", "Filippou (commonly called ‘Philippians’)"),
+    ("COL", "", "KOL", "Kol", "Kolossai (commonly called ‘Colossians’)"),
+    ("PHM", "", "FILEM", "Filem", "Filemon (commonly called ‘Philemon’)"),
+    ("HEB", "", "IVR", "Ivr", "Ivrim (commonly called ‘Hebrews’)"),
+    ("PE1", "1", "KEF", "Kef", KEFA_TITLE),
+    ("PE2", "2", "KEF", "Kef", KEFA_TITLE),
+    ("JN1", "1", "YN", "Yn", YOHAN_TITLE),
+    ("JN2", "2", "YN", "Yn", YOHAN_TITLE),
+    ("JN3", "3", "YN", "Yn", YOHAN_TITLE),
+    ("JDE", "", "YEHU", "Yehu", "Yehudah (commonly called ‘Jude’)"),
+];
+const SHMUEL_TITLE: &str = "Shmuel (which is closer to the Hebrew שְׁמוּאֵל/Shəmūʼēl)";
+const YOHAN_TITLE: &str = "Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)";
+const KORINTHOS_TITLE: &str = "Korinthos (commonly called ‘Corinthians’)";
+const KEFA_TITLE: &str = "Kefa (commonly called ‘Peter’)";
+
+/// Our customised version of `bos_books_codes::tidy_bbb` (port of `getOETTidyBBB`),
+/// which uses our own abbreviations for the books in `OET_BOOK_ABBREVIATIONS`.
+///
+/// With `add_notes`, a renamed book gets a hover title and is followed by
+/// the usual (tidied) abbreviation in brackets, e.g., `CEN (NUM)`.
 /// `insert_char` must already have `None` mapped to `""` (as the
 /// `bos_books_codes_py.tidy_bbb` binding does).
-pub fn apply_oet_tidy_renames(new_bbb: &str, insert_char: &str, add_notes: bool) -> String {
-    let yosh_title = "Yehoshua (which is closer to the Hebrew יְהוֹשֻׁעַ/Yəhōshūˊa)";
-    let jdg_title = "Yehoshua (which is closer to the Hebrew יְהוֹשֻׁעַ/Yəhōshūˊa)";
-    let yonah_title = "Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)";
-    let yir_title = "Yir (which is closer to the Hebrew יִרְמְיָ֖הוּ/Yirməyāhu)";
-    let yoel_title = "Yoel (which is closer to the Hebrew יוֹאֵ֖ל/Yōʼēl)";
-    let yohan_title = "Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)";
-    let yudas_title = "Yudas (which is closer to the Greek Ἰούδας/Youdas)";
-    let lje_title = "L Yir (which is closer to the Hebrew יִרְמְיָ֖הוּ/Yirməyāhu)";
-
-    // OT
-    if new_bbb == "JOSH" {
-        return if add_notes { format!("<span title=\"{yosh_title}\">YEHO</span> (JOS)")
-            } else { "YEHO".to_string() };
-    }
-    if new_bbb == "Josh" {
-        return if add_notes { format!("<span title=\"{yosh_title}\">Yeho</span> (Jos)")
-            } else { "Yeho".to_string() };
-    }
-    if new_bbb == "JDG" {
-        return if add_notes { format!("<span title=\"{jdg_title}\">HERO</span> (JDG)")
-            } else { "HERO".to_string() };
-    }
-    if new_bbb == "Jdg" {
-        return if add_notes { format!("<span title=\"{jdg_title}\">Hero</span> (Jdg)")
-            } else { "Hero".to_string() };
-    }
-    if new_bbb == "JNA" {
-        return if add_notes { format!("<span title=\"{yonah_title}\">YNA</span> (JNA)")
-            } else { "YNA".to_string() };
-    }
-    if new_bbb == "Jna" {
-        return if add_notes { format!("<span title=\"{yonah_title}\">Yna</span> (Jna)")
-            } else { "Yna".to_string() };
-    }
-    if new_bbb == "JER" {
-        return if add_notes { format!("<span title=\"{yir_title}\">YIR</span> (JER)")
-            } else { "YIR".to_string() };
-    }
-    if new_bbb == "Jer" {
-        return if add_notes { format!("<span title=\"{yir_title}\">Yir</span> (Jer)")
-            } else { "Yir".to_string() };
-    }
-    if new_bbb == "JOEL" {
-        return if add_notes { format!("<span title=\"{yoel_title}\">YOEL</span> (JOEL)")
-            } else { "YOEL".to_string() };
-    }
-    if new_bbb == "Joel" {
-        return if add_notes { format!("<span title=\"{yoel_title}\">Yoel</span> (Joel)")
-            } else { "Yoel".to_string() };
-    }
-
-    // NT
-    if new_bbb == "JHN" || new_bbb == "JOHN" {
-        return if add_notes {
-            format!("<span title=\"{yohan_title}\">YHN</span> (JHN)")
-        } else {
-            "YHN".to_string()
-        };
-    }
-    if new_bbb == "Jhn" || new_bbb == "John" {
-        return if add_notes {
-            format!("<span title=\"{yohan_title}\">Yhn</span> (Jhn)")
-        } else {
-            "Yhn".to_string()
-        };
-    }
-    if new_bbb == "JAM" {
-        return if add_notes { "YAC (JAM)".to_string() } else { "YAC".to_string() };
-    }
-    if new_bbb == "Jam" {
-        return if add_notes { "Yac (Jam)".to_string() } else { "Yac".to_string() };
-    }
-    if new_bbb == "ACTS" {
-        return "ACTs".to_string();
-    }
-    for n in ["1", "2", "3"] {
-        // UPPERCASE variants (1JN, 2JN…)
-        let upper = format!("{n}{insert_char}JN");
-        if new_bbb == upper {
-            return if add_notes {
-                format!("{n}{insert_char}<span title=\"{yohan_title}\">YN</span> ({upper})")
-            } else {
-                format!("{n}{insert_char}YN")
-            };
-        }
-        // Title case variants (1Jn, 2Jn…)
-        let title = format!("{n}{insert_char}Jn");
-        if new_bbb == title {
-            return if add_notes {
-                format!("{n}{insert_char}<span title=\"{yohan_title}\">Yn</span> ({title})")
-            } else {
-                format!("{n}{insert_char}Yn")
-            };
-        }
-        // All-uppercase variants (1JHN, 2JHN…)
-        let all_upper = format!("{n}{insert_char}JHN");
-        if new_bbb == all_upper {
-            return if add_notes {
-                format!("{n}{insert_char}<span title=\"{yohan_title}\">YHN</span> ({all_upper})")
-            } else {
-                format!("{n}{insert_char}YHN")
-            };
-        }
-        // Mixed variants (1Jhn, 2Jhn…)
-        let mixed = format!("{n}{insert_char}Jhn");
-        if new_bbb == mixed {
-            return if add_notes {
-                format!(
-                    "{n}{insert_char}<span title=\"{yohan_title}\">Yhn</span> ({n}{insert_char}Yohan or {mixed})"
-                )
-            } else {
-                format!("{n}{insert_char}Yhn")
-            };
-        }
-    }
-    if new_bbb == "JUDE" {
-        return if add_notes {
-            format!("<span title=\"{yudas_title}\">YUD</span> (JUD)")
-        } else {
-            "YUD".to_string()
-        };
-    }
-    if new_bbb == "Jude" {
-        return if add_notes {
-            format!("<span title=\"{yudas_title}\">Yud</span> (Jud)")
-        } else {
-            "Yud".to_string()
-        };
-    }
-
-    // DC and other
-    if new_bbb == "L JER" {
-        return if add_notes { format!("<span title=\"{lje_title}\">L YIR</span> (L JER)")
-            } else { "L YIR".to_string() };
-    }
-    if new_bbb == "L Jer" {
-        return if add_notes { format!("<span title=\"{lje_title}\">L Yir</span> (L Jer)")
-            } else { "L Yir".to_string() };
-    }
-
-    new_bbb.to_string()
+pub fn oet_tidy_bbb(bos_book_code: &str, title_case: bool, allow_four_chars: bool,
+                    insert_char: &str, add_notes: bool) -> String {
+    let tidied = bos_books_codes::tidy_bbb(bos_book_code, title_case, allow_four_chars, insert_char);
+    let Some((_, prefix, upper, title, hover)) = OET_BOOK_ABBREVIATIONS.iter()
+            .find(|(bbb, ..)| *bbb == bos_book_code) else {
+        return if tidied == "ACTS" { "ACTs".to_string() } else { tidied.to_string() };
+    };
+    let ours = if title_case { title } else { upper };
+    let prefix = if prefix.is_empty() { String::new() } else { format!("{prefix}{insert_char}") };
+    if add_notes { format!("{prefix}<span title=\"{hover}\">{ours}</span> ({tidied})") }
+    else { format!("{prefix}{ours}") }
 }
 
 // ── getOETBookName ──────────────────────────────────────────────────────────
+
+/// Our OET-RV book names (from the `\h` lines of the OET-RV ESFM files) for the books
+/// where they differ from the BibleOrgSys English name, formatted as
+/// `OET name/(traditional name)` -- the parts can be split on `/` for search aliases.
+/// For numbered books, the traditional name omits the number, e.g., `1 Shmuel/(Samuel)`.
+const OET_BOOK_NAMES: &[(&str, &str)] = &[
+    // OT
+    ("NUM", "Census/(Numbers)"),
+    ("JOS", "Yehoshua/(Joshua)"),
+    ("JDG", "Heroes and Guides/(Judges)"),
+    ("SA1", "1 Shmuel/(Samuel)"),
+    ("SA2", "2 Shmuel/(Samuel)"),
+    ("NEH", "Nehemyah/(Nehemiah)"),
+    ("EST", "Ester/(Esther)"),
+    ("JOB", "Iyov/(Job)"),
+    ("PSA", "Songs/(Psalms)"),
+    ("ECC", "Reflections/(Ecclesiastes)"),
+    ("SNG", "Song of Songs/(Song of Solomon)"),
+    ("ISA", "Yeshayah/(Isaiah)"),
+    ("JER", "Yirmiyah/(Jeremiah)"),
+    ("LAM", "Sorrows/(Lamentations)"),
+    ("EZE", "Yehezkel/(Ezekiel)"),
+    ("DAN", "Daniyel/(Daniel)"),
+    ("HOS", "Hoshea/(Hosea)"),
+    ("JOL", "Yoel/(Joel)"),
+    ("OBA", "Ovadyah/(Obadiah)"),
+    ("JNA", "Yonah/(Jonah)"),
+    ("MIC", "Mikah/(Micah)"),
+    ("HAB", "Havakuk/(Habakkuk)"),
+    ("ZEP", "Tsefanyah/(Zephaniah)"),
+    ("HAG", "Hagay/(Haggai)"),
+    ("ZEC", "Zekaryah/(Zechariah)"),
+    ("MAL", "Malaki/(Malachi)"),
+    // NT
+    ("MAT", "Matay/(Matthew)"),
+    ("MRK", "Markos/(Mark)"),
+    ("LUK", "Lukas/(Luke)"),
+    ("JHN", "Yohan/(John)"),
+    ("ROM", "Romai/(Romans)"),
+    ("CO1", "1 Korinthos/(Corinthians)"),
+    ("CO2", "2 Korinthos/(Corinthians)"),
+    ("GAL", "Galatia/(Galatians)"),
+    ("EPH", "Efesos/(Ephesians)"),
+    ("PHP", "Filippou/(Philippians)"),
+    ("COL", "Kolossai/(Colossians)"),
+    ("TH1", "1 Thessalonikai/(Thessalonians)"),
+    ("TH2", "2 Thessalonikai/(Thessalonians)"),
+    ("TI1", "1 Timotheos/(Timothy)"),
+    ("TI2", "2 Timotheos/(Timothy)"),
+    ("TIT", "Titos/(Titus)"),
+    ("PHM", "Filemon/(Philemon)"),
+    ("HEB", "Ivrim/(Hebrews)"),
+    ("JAM", "Ya’akov/Jacob/(James)"),
+    ("PE1", "1 Kefa/(Peter)"),
+    ("PE2", "2 Kefa/(Peter)"),
+    ("JN1", "1 Yohan/(John)"),
+    ("JN2", "2 Yohan/(John)"),
+    ("JN3", "3 Yohan/(John)"),
+    ("JDE", "Yehudah/(Jude)"),
+    // DC (the OET-RV DAG/ES1/ES2 files are the BOS DNG/GES/LES books)
+    ("TOB", "Tovi/(Tobit)"),
+    ("JDT", "Yehudit/(Judith)"),
+    ("ESG", "Greek Ester/(Greek Esther)"),
+    ("WIS", "Wisdom of Shelomoh/(Wisdom of Solomon)"),
+    ("SIR", "Sira/(Sirach)"),
+    ("BAR", "Baruk/(Baruch)"),
+    ("MAN", "Prayer of Menasheh/(Prayer of Manasseh)"),
+    ("GES", "1 Ezra/(Esdras)"),
+    ("LES", "2 Ezra/(Esdras)"),
+    ("DNG", "Greek Daniyel/(Greek Daniel)"),
+    ("LAO", "Laodikeia/(Laodiceans)"),
+];
 
 /// Handle our different spellings of well-known book names
 /// (port of `getOETBookName`). Returns `None` when the BBB is unknown
 /// (the Python code crashed on `None.replace(...)` in that case).
 pub fn oet_book_name(bos_book_code: &str) -> Option<String> {
-    const REPLACEMENTS: [(&str, &str); 24] = [
-        ("Joshua", "Yehoshua/(Joshua)"),
-        ("‘Judges’", "Heroes/(‘Judges’)"),
-        ("1 Samuel", " 1 Shemuel/(Samuel)"),
-        ("2 Samuel", " 2 Shemuel/(Samuel)"),
-        ("Job", "Iyyov/(Job)"),
-        ("Psalms", "Songs/(Psalms)"),
-        ("Isaiah", "Yeshayah/(Isaiah)"),
-        ("Jeremiah", "Yermeyah/(Jeremiah)"),
-        ("Ezekiel", "Yehezkel/(Ezekiel)"),
-        ("Joel", "Yoel/(Joel)"),
-        ("Amos", "Amots/(Amos)"),
-        ("Obadiah", "Ovadyah/(Obadiah)"),
-        ("Jonah", "Yonah/(Jonah)"),
-        ("Micah", "Mikah/(Micah)"),
-        ("Habakkuk", "Havakkuk/(Habakkuk)"),
-        ("Zephaniah", "Tsefanyah/(Zephaniah)"),
-        ("Zechariah", "Zekaryah/(Zechariah)"),
-        ("Malachi", "Malaki/(Malachi)"),
-        ("John", "Yohan/(John)"),
-        ("James", "Yacob/Jacob/(James)"),
-        ("1 John", " 1 Yohan/(John)"),
-        ("2 John", " 2 Yohan/(John)"),
-        ("3 John", " 3 Yohan/(John)"),
-        ("Jude", "Yudas/(Jude)"),
-    ];
-    let mut name = bos_books_codes::get_english_name_nr(bos_book_code)?.to_string();
-    for (from, to) in REPLACEMENTS {
-        name = name.replace(from, to);
-    }
-    Some(name)
+    let name = bos_books_codes::get_english_name_nr(bos_book_code)?;
+    Some(OET_BOOK_NAMES.iter()
+        .find(|(bbb, _)| *bbb == bos_book_code)
+        .map_or(name, |(_, oet_name)| oet_name)
+        .to_string())
 }
 
 // ── getBBBFromOETBookName ───────────────────────────────────────────────────
@@ -1366,87 +1346,84 @@ mod tests {
 
     const IDENTITY_NFC: fn(&str) -> String = |s| s.to_string();
 
-    // ── getOETTidyBBB renames ───────────────────────────────────────────────
+    // ── getOETTidyBBB ───────────────────────────────────────────────────────
 
     #[test]
-    fn test_tidy_renames_passthrough() {
-        assert_eq!(apply_oet_tidy_renames("GEN", "", false), "GEN");
-        assert_eq!(apply_oet_tidy_renames("MAT", " ", true), "MAT");
+    fn test_oet_tidy_bbb_passthrough() {
+        assert_eq!(oet_tidy_bbb("GEN", false, true, "", false), "GEN");
+        assert_eq!(oet_tidy_bbb("MAT", false, true, " ", true), "MAT");
+        assert_eq!(oet_tidy_bbb("MRK", true, true, "", true), "Mark");
+        assert_eq!(oet_tidy_bbb("KI1", false, true, "\u{202F}", true), "1\u{202F}KI");
+        assert_eq!(oet_tidy_bbb("ACT", false, true, "", true), "ACTs"); // no notes variant!
+        assert_eq!(oet_tidy_bbb("ACT", true, true, "", false), "Acts");
     }
 
     #[test]
-    fn test_tidy_renames_yonah_yohan() {
-        assert_eq!(apply_oet_tidy_renames("JNA", "", false), "YNA");
-        assert_eq!(
-            apply_oet_tidy_renames("JNA", "", true),
-            "<span title=\"Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)\">YNA</span> (JNA)"
-        );
-        assert_eq!(apply_oet_tidy_renames("Jna", "", false), "Yna");
-        assert_eq!(apply_oet_tidy_renames("JHN", "", false), "YHN");
-        assert_eq!(apply_oet_tidy_renames("JOHN", "", false), "YHN");
-        assert_eq!(apply_oet_tidy_renames("John", "", true),
-            "<span title=\"Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)\">Yhn</span> (Jhn)");
-        assert_eq!(apply_oet_tidy_renames("Jhn", "", false), "Yhn");
+    fn test_oet_tidy_bbb_renames() {
+        assert_eq!(oet_tidy_bbb("NUM", false, true, "", false), "CEN");
+        assert_eq!(oet_tidy_bbb("NUM", true, true, "", true),
+            "<span title=\"Census (commonly called ‘Numbers’)\">Cen</span> (Num)");
+        assert_eq!(oet_tidy_bbb("JOS", true, true, "", false), "Yeho");
+        assert_eq!(oet_tidy_bbb("JDG", false, true, "", false), "H&amp;G");
+        assert_eq!(oet_tidy_bbb("JNA", false, true, "", true),
+            "<span title=\"Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)\">YONAH</span> (JNA)");
+        assert_eq!(oet_tidy_bbb("JHN", true, true, "", false), "Yhn");
+        assert_eq!(oet_tidy_bbb("JAM", false, true, "", false), "YAK");
+        assert_eq!(oet_tidy_bbb("JDE", true, true, "", true),
+            "<span title=\"Yehudah (commonly called ‘Jude’)\">Yehu</span> (Jude)");
+        assert_eq!(oet_tidy_bbb("EZE", false, false, "", false), "YEHEZ"); // even without four chars
     }
 
     #[test]
-    fn test_tidy_renames_james_acts_jude() {
-        assert_eq!(apply_oet_tidy_renames("JAM", "", false), "YAC");
-        assert_eq!(apply_oet_tidy_renames("Jam", "", true), "Yac (Jam)");
-        assert_eq!(apply_oet_tidy_renames("ACTS", "", true), "ACTs"); // no notes variant!
-        assert_eq!(apply_oet_tidy_renames("ACTS", "", false), "ACTs");
-        assert_eq!(apply_oet_tidy_renames("JUDE", "", false), "YUD");
-        assert_eq!(apply_oet_tidy_renames("Jude", "", true),
-            "<span title=\"Yudas (which is closer to the Greek Ἰούδας/Youdas)\">Yud</span> (Jud)");
-    }
-
-    #[test]
-    fn test_tidy_renames_johns_with_insert_char() {
-        let nnbsp = NARROW_NON_BREAK_SPACE.to_string();
-        for (insert_char, sep) in [
-            ("\u{202F}", "\u{202F}"),
-            (" ", " "),
-            ("", ""),
-        ] {
-            let _ = insert_char;
-            assert_eq!(apply_oet_tidy_renames(&format!("1{sep}JN"), sep, false), format!("1{sep}YN"));
-            assert_eq!(
-                apply_oet_tidy_renames(&format!("3{sep}Jn"), sep, false),
-                format!("3{sep}Yn")
-            );
-            assert_eq!(
-                apply_oet_tidy_renames(&format!("2{sep}JHN"), sep, true),
-                format!("2{sep}<span title=\"Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)\">YHN</span> (2{sep}JHN)")
-            );
-            assert_eq!(
-                apply_oet_tidy_renames(&format!("1{sep}Jhn"), sep, false),
-                format!("1{sep}Yhn")
-            );
-            assert_eq!(
-                apply_oet_tidy_renames(&format!("1{sep}Jhn"), sep, true),
-                format!("1{sep}<span title=\"Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)\">Yhn</span> (1{sep}Yohan or 1{sep}Jhn)")
-            );
+    fn test_oet_tidy_bbb_numbered() {
+        for insert_char in ["\u{202F}", " ", ""] {
+            assert_eq!(oet_tidy_bbb("SA1", false, true, insert_char, false), format!("1{insert_char}SHM"));
+            assert_eq!(oet_tidy_bbb("SA2", true, true, insert_char, true),
+                format!("2{insert_char}<span title=\"{SHMUEL_TITLE}\">Shm</span> (2{insert_char}Sam)"));
+            assert_eq!(oet_tidy_bbb("JN3", true, true, insert_char, false), format!("3{insert_char}Yn"));
+            assert_eq!(oet_tidy_bbb("CO1", false, true, insert_char, false), format!("1{insert_char}KOR"));
+            assert_eq!(oet_tidy_bbb("PE2", false, true, insert_char, true),
+                format!("2{insert_char}<span title=\"{KEFA_TITLE}\">KEF</span> (2{insert_char}PET)"));
         }
-        assert_eq!(
-            apply_oet_tidy_renames(&format!("2{nnbsp}JN"), &nnbsp, true),
-            format!("2{nnbsp}<span title=\"Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)\">YN</span> (2{nnbsp}JN)")
-        );
+    }
+
+    #[test]
+    fn test_oet_book_abbreviations_table() {
+        for (i, (bbb, prefix, upper, title, hover)) in OET_BOOK_ABBREVIATIONS.iter().enumerate() {
+            assert!(bos_books_codes::get_english_name_nr(bbb).is_some(), "{bbb}");
+            assert!(OET_BOOK_ABBREVIATIONS[i+1..].iter().all(|(b, ..)| b != bbb), "{bbb} repeated");
+            // No two books display the same
+            assert!(OET_BOOK_ABBREVIATIONS[i+1..].iter().all(|(_, p, u, ..)| (p, u) != (prefix, upper)), "{bbb}");
+            assert_eq!(upper.to_uppercase(), title.to_uppercase(), "{bbb}");
+            assert!(!hover.is_empty() && !hover.contains('"') && !hover.contains('<'), "{bbb}");
+            assert!(!upper.replace("&amp;", "").contains('&'), "{bbb} needs HTML-escaping");
+        }
     }
 
     // ── getOETBookName ──────────────────────────────────────────────────────
 
     #[test]
     fn test_oet_book_name() {
-        assert_eq!(oet_book_name("JOB").unwrap(), "Iyyov/(Job)");
+        assert_eq!(oet_book_name("GEN").unwrap(), "Genesis"); // same name as BOS
+        assert_eq!(oet_book_name("AMO").unwrap(), "Amos");
+        assert_eq!(oet_book_name("JOB").unwrap(), "Iyov/(Job)");
         assert_eq!(oet_book_name("PSA").unwrap(), "Songs/(Psalms)");
         assert_eq!(oet_book_name("JNA").unwrap(), "Yonah/(Jonah)"); // JNA is Jonah's BOS code
-        assert_eq!(oet_book_name("JAM").unwrap(), "Yacob/Jacob/(James)");
+        assert_eq!(oet_book_name("JAM").unwrap(), "Ya’akov/Jacob/(James)");
         assert_eq!(oet_book_name("JOS").unwrap(), "Yehoshua/(Joshua)");
-        // BOS English name is plain 'Judges' (no curly quotes) so no rename hits
-        assert_eq!(oet_book_name("JDG").unwrap(), "Judges");
+        assert_eq!(oet_book_name("JDG").unwrap(), "Heroes and Guides/(Judges)");
+        assert_eq!(oet_book_name("SA1").unwrap(), "1 Shmuel/(Samuel)");
+        assert_eq!(oet_book_name("JN3").unwrap(), "3 Yohan/(John)");
+        assert_eq!(oet_book_name("DNG").unwrap(), "Greek Daniyel/(Greek Daniel)");
         // JON is not a valid BOS code -> get_english_name_nr returns None
         assert!(oet_book_name("JON").is_none());
         assert!(oet_book_name("ZZZ").is_none());
+        // Every table entry is a valid, unique BOS book code with an `OET/(traditional)` name
+        for (i, (bbb, name)) in OET_BOOK_NAMES.iter().enumerate() {
+            assert!(bos_books_codes::get_english_name_nr(bbb).is_some(), "{bbb}");
+            assert!(OET_BOOK_NAMES[i+1..].iter().all(|(b, _)| b != bbb), "{bbb}");
+            assert!(!name.starts_with(' ') && name.ends_with(')') && name.contains("/("), "{bbb}");
+        }
     }
 
     // ── getBBBFromOETBookName ───────────────────────────────────────────────

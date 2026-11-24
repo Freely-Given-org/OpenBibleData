@@ -89,6 +89,7 @@ CHANGELOG:
     2026-11-11 Explain the OET-RV updated-measure formatting in the OET key.
     2026-11-16 Copy Tyndale Open Bible Dictionary maps from state.BibleLocations['TOBD'].
     2026-11-19 Make the UBS HOTTP details page (and clean its folder).
+    2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
 """
 from pathlib import Path
 import os
@@ -124,10 +125,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-11-19' # by RJH
+LAST_MODIFIED_DATE = '2026-11-22' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.7'
+PROGRAM_VERSION = '1.4.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -237,7 +238,7 @@ def _createSitePages() -> bool:
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'
                 ourTidyBBB = getOETTidyBBB( BBB, addNotes=True )
-                state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+                state.BBBLinks['OET'].append( f'''<a title="{bookName(BBB,'OET')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
             if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY: continue # Didn't load these ones
             thisBible = state.preloadedBibles[versionAbbreviation]
@@ -989,7 +990,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
-<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 4.4 million of them) created for several main reasons:</p>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_PROGRAM_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 4.4 million of them) created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -1266,16 +1267,16 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 {bodyHtml}
 <p class="note">Welcome to this <em>{state.SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
-<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often rather arbitrary divisions).</p>
-<p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
-<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view (best viewed in portrait mode).</p>
-<p class="note">The <b><a href="lst/">Simple</a> verse list</b> view is similar to the <b>Parallel verse</b> view, except much more compact.</p>
-<p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
+<p class="note">Choose a <b>version abbreviation</b> above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often rather arbitrary divisions).</p>
+<p class="note">The <a href="rel/"><b>Related</b> passage</a> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
+<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <a href="par/"><b>Parallel</b> verse</a> view (best viewed in portrait mode).</p>
+<p class="note">The <a href="lst/"><b>Simple</b> verse list</a> view is similar to the <em>Parallel verse</em> view, except much more compact.</p>
+<p class="note">The <a href="ilr/"><b>Interlinear</b> verse</a> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note"><b><a href="tpc/">Topics</a></b> takes you to an index of several hundred interesting topics which each have a list of passages displayed for you to read through to come to your own conclusions.</p>
 <p class="note">The <b><a href="ref/">Reference</a></b> link makes both Hebrew and Greek word lists and also Strong’s numbers lists available for further study, as well as lists of Bible people, places, flora, and fauna, etc.</p>
 <p class="note">The <b><a href="dct/">Dictionaries</a></b> link takes you to our adapted <em>Tyndale Bible Dictionary</em> and <em>UBS Hebrew and Greek dictionaries</em>.</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible texts.</p>
-<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {state.SITE_ABBREVIATION} {SHORT_PROGRAM_NAME} {state.OBD_VERSION_NUMBER_STRING}</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {state.SITE_ABBREVIATION} {SHORT_PROGRAM_NAME} {state.OBD_PROGRAM_VERSION_NUMBER_STRING}</small></p>
 {makeBottom( level, None, 'TopIndex' )}'''
     assert checkHtml( 'TopIndex', html )
 

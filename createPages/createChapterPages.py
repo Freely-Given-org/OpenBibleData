@@ -48,6 +48,7 @@ CHANGELOG:
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify chapters, introductions and chapter indexes in search results.
     2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV and OET-LV chapter pages.
+    2026-11-23 Add RV and LV single-column links after the next arrow on OET side-by-side chapter pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -62,7 +63,7 @@ import bos_books_codes_py
 from pageMetadata import chapterReadingMetadata, readingIndexMetadata
 from navigation import mapHtmlLinks, bookAbbreviation
 from settings import State, state, CNTR_BOOK_ID_MAP
-from oetPassages import renderOETSideBySideChunks, oetLVSourceLink
+from oetPassages import renderOETSideBySideChunks, oetLVSourceLink, oetSingleColumnLinks
 from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -181,10 +182,14 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                 assert c > 1
                 leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
                 rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
+            # This English chapter may span different native LV chapters, so oldLVLink is replaced after rendering
+            oldLVLink = f"{'../'*level}OET-LV/byC/{BBB}_{'Intro' if c == -1 else f'C{c}'}.htm#Top"
+            singleColumnLinks = oetSingleColumnLinks(
+                f"{'../'*level}OET-RV/byC/{BBB}_{'Intro' if c == -1 else f'C{c}'}.htm#Top", oldLVLink )
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
             detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
-            cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
+            cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{singleColumnLinks}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
             chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
 {cNav}
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
@@ -200,8 +205,9 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
             combinedHtml, firstNative = renderOETSideBySideChunks(
                 level, rvBible, lvBible, BBB, 'chapter', state, str(c) )
             # This English chapter may span different native LV chapters.
-            oldLVLink = f"{'../'*level}OET-LV/byC/{BBB}_{'Intro' if c == -1 else f'C{c}'}.htm#Top"
-            chapterHtml = chapterHtml.replace(oldLVLink, oetLVSourceLink(level, BBB, firstNative))
+            newLVLink = oetLVSourceLink(level, BBB, firstNative)
+            chapterHtml = chapterHtml.replace(oldLVLink, newLVLink)
+            cNav = cNav.replace(oldLVLink, newLVLink) # For the bottom navigation bar
             combinedHtml = f'{removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->'
 
             # Handle BibleMapper maps and notes -- the function handles chapters automatically

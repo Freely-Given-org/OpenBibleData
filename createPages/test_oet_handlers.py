@@ -20,6 +20,10 @@
 # 2026-09-14: livenOETWordLinks and livenOETCompatibleBereanWordLinks now share
 #     one Rust implementation in lib.rs; the UnboundLocalError quirk for
 #     non-OT/NT books was dropped (FRT now passes through unchanged).
+# 2026-11-20: getOETTidyBBB now also renames NUM, SA1/SA2, JOB, PSA, ISA, LAM,
+#     EZE, OBA, HAB, ZEP and ZEC (and Title-case JOS) to match the OET-RV names,
+#     and getOETBookName now returns the OET-RV name for every book that has one.
+# 2026-11-20: getOETTidyBBB renames now follow the OET-RV \toc3 abbreviations for every renamed book.
 
 import logging
 import unittest
@@ -42,35 +46,62 @@ class TestGetOETTidyBBB(unittest.TestCase):
 
     def test_numberedBooks(self):
         # Default insertChar is a narrow non-breaking space
-        self.assertEqual(getOETTidyBBB('SA1'), f'1\u202fSAM')
-        self.assertEqual(getOETTidyBBB('CO2', insertChar=' '), '2 COR')
-        self.assertEqual(getOETTidyBBB('JN3'), f'3\u202fYHN') # renamed after tidying
+        self.assertEqual(getOETTidyBBB('KI1'), f'1\u202fKI')
+        self.assertEqual(getOETTidyBBB('SA1'), f'1\u202fSHM') # renamed
+        self.assertEqual(getOETTidyBBB('CO2', insertChar=' '), '2 KOR') # renamed
+        self.assertEqual(getOETTidyBBB('JN3'), f'3\u202fYN') # renamed
 
     def test_fourCharsDisallowed(self):
         self.assertEqual(getOETTidyBBB('MRK', allowFourChars=False), 'MRK')
-        self.assertEqual(getOETTidyBBB('SA1', allowFourChars=False), f'1\u202fSA')
+        self.assertEqual(getOETTidyBBB('KI1', allowFourChars=False), f'1\u202fKI')
+        self.assertEqual(getOETTidyBBB('SA1', allowFourChars=False), f'1\u202fSHM') # our renames don't change
 
     def test_titleCase(self):
         self.assertEqual(getOETTidyBBB('GEN', titleCase=True), 'Gen')
-        self.assertEqual(getOETTidyBBB('SA1', titleCase=True), f'1\u202fSam')
+        self.assertEqual(getOETTidyBBB('KI1', titleCase=True), f'1\u202fKi')
+        self.assertEqual(getOETTidyBBB('SA1', titleCase=True), f'1\u202fShm') # renamed
         self.assertEqual(getOETTidyBBB('MRK', titleCase=True), 'Mark')
-
-    def test_OET_renames(self):
-        self.assertEqual(getOETTidyBBB('JNA'), 'YNA')
-        self.assertEqual(getOETTidyBBB('JHN'), 'YHN')
-        self.assertEqual(getOETTidyBBB('JOHN'), 'YHN')  # even this spelling
-        self.assertEqual(getOETTidyBBB('JAM'), 'YAC')
-        self.assertEqual(getOETTidyBBB('ACTS'), 'ACTs')
-        self.assertEqual(getOETTidyBBB('JDE'), 'YUD')
-        self.assertEqual(getOETTidyBBB('JN1'), f'1\u202fYHN') # JN1 tidies to 1 JHN, then renamed
         self.assertEqual(getOETTidyBBB('TI2', titleCase=True), f'2\u202fTim')
 
+    def test_OET_renames(self):
+        """These follow the \\toc3 abbreviations in the OET-RV ESFM files."""
+        for BBB, expected, expectedTitleCase in (
+                ('NUM', 'CEN', 'Cen'), ('JOS', 'YEHO', 'Yeho'), ('JDG', 'H&amp;G', 'H&amp;G'),
+                ('SA2', '2\u202fSHM', '2\u202fShm'), ('JOB', 'IYOV', 'Iyov'),
+                ('PSA', 'SONGS', 'Songs'), ('ECC', 'REFL', 'Refl'), ('ISA', 'YESH', 'Yesh'),
+                ('JER', 'YIR', 'Yir'), ('LAM', 'SOR', 'Sor'), ('EZE', 'YEHEZ', 'Yehez'),
+                ('JOL', 'YOEL', 'Yoel'), ('OBA', 'OVAD', 'Ovad'), ('JNA', 'YONAH', 'Yonah'),
+                ('MIC', 'MIK', 'Mik'), ('HAB', 'HAV', 'Hav'), ('ZEP', 'TSEF', 'Tsef'), ('ZEC', 'ZEK', 'Zek'),
+                ('TOB', 'TOVI', 'Tovi'), ('JDT', 'YDT', 'Ydt'), ('ESG', 'ESG', 'EsG'),
+                ('GES', '1\u202fES', '1\u202fEs'), ('LES', '2\u202fES', '2\u202fEs'), ('DNG', 'DAG', 'DaG'),
+                ('JHN', 'YHN', 'Yhn'), ('JAM', 'YAK', 'Yak'), ('CO1', '1\u202fKOR', '1\u202fKor'),
+                ('EPH', 'EFE', 'Efe'), ('PHP', 'FILI', 'Fili'), ('COL', 'KOL', 'Kol'),
+                ('PHM', 'FILEM', 'Filem'), ('HEB', 'IVR', 'Ivr'), ('PE1', '1\u202fKEF', '1\u202fKef'),
+                ('JN1', '1\u202fYN', '1\u202fYn'), ('JDE', 'YEHU', 'Yehu'),
+                ):
+            with self.subTest(BBB=BBB):
+                self.assertEqual(getOETTidyBBB(BBB), expected)
+                self.assertEqual(getOETTidyBBB(BBB, titleCase=True), expectedTitleCase)
+                self.assertIn('<span title="', getOETTidyBBB(BBB, addNotes=True))
+        self.assertEqual(getOETTidyBBB('ACT'), 'ACTs')
+        # Not renamed
+        for BBB in ('GEN', 'KI1', 'SNG', 'PS2', 'DAN', 'MAL', 'MAT', 'ROM', 'GAL', 'REV'):
+            with self.subTest(BBB=BBB):
+                self.assertNotIn('<span', getOETTidyBBB(BBB, addNotes=True))
+
     def test_addNotes(self):
-        self.assertEqual(getOETTidyBBB('JAM', addNotes=True), 'YAC (JAM)')
+        self.assertEqual(getOETTidyBBB('JAM', addNotes=True),
+                         '<span title="Ya’akov (commonly called ‘James’)">YAK</span> (JAM)')
         self.assertEqual(getOETTidyBBB('JNA', addNotes=True),
-                         '<span title="Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)">YNA</span> (JNA)')
+                         '<span title="Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)">YONAH</span> (JNA)')
         self.assertEqual(getOETTidyBBB('JDE', addNotes=True),
-                         '<span title="Yudas (which is closer to the Greek Ἰούδας/Youdas)">YUD</span> (JUD)')
+                         '<span title="Yehudah (commonly called ‘Jude’)">YEHU</span> (JUDE)')
+        self.assertEqual(getOETTidyBBB('NUM', addNotes=True),
+                         '<span title="Census (commonly called ‘Numbers’)">CEN</span> (NUM)')
+        self.assertEqual(getOETTidyBBB('SA1', addNotes=True),
+                         '1\u202f<span title="Shmuel (which is closer to the Hebrew שְׁמוּאֵל/Shəmūʼēl)">SHM</span> (1\u202fSAM)')
+        self.assertEqual(getOETTidyBBB('EZE', titleCase=True, insertChar=' ', addNotes=True),
+                         '<span title="Yehezkel (which is closer to the Hebrew יְחֶזְקֵאל/Yəḩezqēʼl)">Yehez</span> (Eze)')
 
 
 class TestGetOETBookName(unittest.TestCase):
@@ -79,9 +110,13 @@ class TestGetOETBookName(unittest.TestCase):
     def test_knownBooks(self):
         self.assertEqual(getOETBookName('GEN'), 'Genesis')
         self.assertEqual(getOETBookName('JNA'), 'Yonah/(Jonah)')
-        self.assertEqual(getOETBookName('JAM'), 'Yacob/Jacob/(James)')
-        self.assertEqual(getOETBookName('JOB'), 'Iyyov/(Job)')
+        self.assertEqual(getOETBookName('JAM'), 'Ya’akov/Jacob/(James)')
+        self.assertEqual(getOETBookName('JOB'), 'Iyov/(Job)')
         self.assertEqual(getOETBookName('PSA'), 'Songs/(Psalms)')
+        self.assertEqual(getOETBookName('SA2'), '2 Shmuel/(Samuel)')
+        self.assertEqual(getOETBookName('MRK'), 'Markos/(Mark)')
+        self.assertEqual(getOETBookName('AMO'), 'Amos')
+        self.assertEqual(getOETBookName('MA1'), '1 Maccabees')
 
     def test_unknownBookRaises(self):
         with self.assertRaises(ValueError):

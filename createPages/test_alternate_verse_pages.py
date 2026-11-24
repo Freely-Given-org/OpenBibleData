@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-26 Cover alternate URLs, grouped/conflicting mappings and generator integration.
     2026-11-03 Supply the static-navigation helper to isolated parent generators.
     2026-11-05 Verify alternate descriptions and production canonical links.
+    2026-11-22 Supply bookName to the page builders now that book-link titles use it.
 """
 import ast
 from pageMetadata import studyIndexMetadata
@@ -254,7 +255,7 @@ class AlternateVersePageTests(unittest.TestCase):
                         addReferenceNavigation=addReferenceNavigation,
                         createAlternateVersePages=av.createAlternateVersePages,
                         reorderBooksForOETVersions=lambda books:books,
-                        getOETTidyBBB=lambda book,**kwargs:book,getOETBookName=lambda book:book,
+                        getOETTidyBBB=lambda book,**kwargs:book,getOETBookName=lambda book:book,bookName=lambda book,version:book,
                         makeBookNavListParagraph=lambda *args:'',
                         studyIndexMetadata=studyIndexMetadata,
                         makeTop=lambda *args,**kwargs:'<!DOCTYPE html><html><head><title>__TITLE__</title></head><body>',

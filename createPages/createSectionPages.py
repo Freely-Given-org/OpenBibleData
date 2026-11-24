@@ -75,6 +75,7 @@ CHANGELOG:
     2026-11-05 Use full passage ranges and headings in individual section metadata.
     2026-11-05 Distinguish edition and book section indexes, including books without headings.
     2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV section pages.
+    2026-11-23 Add RV and LV single-column links after the next arrow on OET side-by-side section pages.
 """
 from pathlib import Path
 import os
@@ -91,7 +92,7 @@ import bos_books_codes_py
 from navigation import mapHtmlLinks, bookAbbreviation, oetBookNavigationLinks
 from pageMetadata import metadataBookName, readingIndexMetadata, sectionMetadata
 from settings import State
-from oetPassages import renderOETLVPassage, oetLVSourceLink
+from oetPassages import renderOETLVPassage, oetLVSourceLink, oetSingleColumnLinks
 from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -464,9 +465,12 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">‴</a>'''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+            oldLVLink = f"{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}" # Replaced after rendering
+            singleColumnLinks = oetSingleColumnLinks( f"{'../'*level}OET-RV/bySec/{BBB}_S{n}.htm#Top", oldLVLink )
+            secNav = f'<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{singleColumnLinks}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
 
             sectionHtml = f'''<h1 id="Top"><span title="Open English Translation">OET</span> by section {ourTidyBBBwithNotes.replace('YHN','YOHAN')} {'Intro' if startC=='-1' else startC}:{startV}</h1>
-<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{secNav}
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
@@ -478,9 +482,9 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 
             lvHtml, firstNative = renderOETLVPassage(
                 level, lvBible, (BBB,startC,startV), rvVerseEntryList, 'section', state, lvChapterCache )
-            sectionHtml = sectionHtml.replace(
-                f"{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}",
-                oetLVSourceLink(level, BBB, firstNative) )
+            newLVLink = oetLVSourceLink(level, BBB, firstNative)
+            sectionHtml = sectionHtml.replace( oldLVLink, newLVLink )
+            secNav = secNav.replace( oldLVLink, newLVLink ) # For the bottom navigation bar
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvHtml = rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
             lvHtml = lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
@@ -510,7 +514,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {sectionHtml}
 {combinedHtml}
-<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{secNav}
 {pageChapterLinksParagraph}
 {makeBottom( level, 'OET', 'section' )}'''
             sectionHtml = addReferenceNavigation(sectionHtml)

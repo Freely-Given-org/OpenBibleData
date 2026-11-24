@@ -87,6 +87,8 @@ CHANGELOG:
     2026-11-18 Write the TOSN pickle via a temporary file so an interrupted build can't leave a truncated pickle.
     2026-11-19 Also load (and pickle) the UBS handbooks, HOTTP, MARBLE index, and parallel passages with TOSN.
     2026-11-19 Copy the TOBD and UBS dictionary data onto the given state when it isn't the global one (so the TOSN pickle can be written).
+    2026-11-22 Make preloadVersions load the BibleOrgSys USFM marker lists if its caller (e.g., a test) hasn't,
+                because without them USFM \\w lines are silently dropped and textless Bibles get pickled.
 """
 from datetime import datetime
 import os, os.path
@@ -132,10 +134,10 @@ from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from utnMarkdown import livenUTNMarkdownLinks, formatUTNMarkdownBlocks
 
 
-LAST_MODIFIED_DATE = '2026-11-19' # by RJH
+LAST_MODIFIED_DATE = '2026-11-22' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.7'
+PROGRAM_VERSION = '1.1.8'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -266,6 +268,13 @@ def preloadVersions( state:State ) -> int:
 
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+
+    if not BibleOrgSysGlobals.USFMCharacterMarkers or not BibleOrgSysGlobals.USFMParagraphMarkers:
+        # Callers that skip BibleOrgSysGlobals.addStandardOptionsAndProcess() (e.g., unittest scripts)
+        #   would otherwise load USFM with every line-leading \w word silently dropped
+        #   -- and then pickle those textless Bibles where later builds will use them.
+        logging.warning( "preloadVersions: BibleOrgSys USFM marker lists weren't loaded -- loading them now" )
+        BibleOrgSysGlobals.preloadCommonData()
 
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
         if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY:

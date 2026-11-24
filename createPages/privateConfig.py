@@ -7,6 +7,7 @@ CHANGELOG:
     2026-10-23 Separate private destinations, staging, and Bible definitions.
     2026-11-01 Reserve the native search output folder.
     2026-11-19 Reserve the HOTTP output folder.
+    2026-11-22 Name test-mode pickles .OBD_Test_mode_Bible.pickle (was .OBD_Private_Bible.pickle).
 """
 from copy import deepcopy
 from pathlib import Path
@@ -54,9 +55,9 @@ def configurePrivateBuild(state, *, debug=False, configPath=PRIVATE_SETTINGS_PAT
     if not state.TEST_MODE_FLAG:
         return
 
-    # Private editions must not populate the public source caches, even when
-    # their files share a directory with a publicly configured edition.
-    state.PICKLE_FILENAME_END = '.OBD_Private_Bible.pickle'
+    # Test-mode (possibly private) editions must not populate the public source caches,
+    # even when their files share a directory with a publicly configured edition.
+    state.PICKLE_FILENAME_END = '.OBD_Test_mode_Bible.pickle'
     state.SUBSTITUTED_VERSIONS_FOLDER = state.SUBSTITUTED_VERSIONS_FOLDER / 'private' / folder
 
     versions = config.get('versions', {})

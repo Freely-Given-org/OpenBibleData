@@ -6,6 +6,10 @@
 # Item 3: bulk per-chapter fetch `getChapterVerseEntriesWithContext` (one
 # Rust call per chapter per version) must produce byte-identical
 # (entries, context) to per-verse `thisBible.getContextVerseData((BBB,C,V))`.
+#
+# CHANGELOG:
+# 2026-11-22: Check that word-aligned USFM (SR-GNT, UGNT) loads with its verse text,
+#     since loading without the BibleOrgSys USFM marker lists once pickled textless Bibles.
 
 import unittest
 
@@ -46,6 +50,17 @@ class TestGetChapterVerseEntriesWithContext(unittest.TestCase):
 
     def test_PSA_23(self):
         self.check_book('OET-RV', 'PSA', '23')
+
+    def test_word_aligned_USFM_keeps_verse_text(self):
+        # Every SR-GNT and UGNT word line starts with \w, which BibleOrgSys drops
+        #   if its USFM marker lists weren't loaded (giving textless Bibles that then get pickled).
+        for versionAbbreviation in ('SR-GNT', 'UGNT'):
+            with self.subTest(versionAbbreviation):
+                if versionAbbreviation not in State.preloadedBibles:
+                    self.skipTest(f"{versionAbbreviation} isn't loaded in this configuration")
+                entries, _context = State.preloadedBibles[versionAbbreviation].getContextVerseData(('MRK', '1', '1'))
+                verseText = ''.join(entry.getCleanText() for entry in entries if entry.getMarker() == 'v~')
+                self.assertTrue(verseText.strip(), f"{versionAbbreviation} MRK 1:1 loaded without any text: {[entry.getMarker() for entry in entries]}")
 
 
 if __name__ == '__main__':

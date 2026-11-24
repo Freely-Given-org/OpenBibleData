@@ -8,6 +8,10 @@ CHANGELOG:
     2026-11-01 Cover OET-only 66-book menus, adjacent links and continued generation of extra books.
     2026-11-01 Check selected books on generated reading pages, including GHT.
     2026-11-13 Check the ⇔ 2-column links on OET-RV and OET-LV reading pages.
+    2026-11-20 Expect the OET name-bar abbreviations that follow the OET-RV \\toc3 lines.
+    2026-11-20 Check that a selected hideable book's separator is outside its selected (underlined) span.
+    2026-11-22 Expect OET hover titles without parentheses, e.g., Yohan/John.
+    2026-11-23 Check the bottom copy of the navigation bar on whole-document pages.
 """
 from contextlib import ExitStack
 from pathlib import Path
@@ -31,6 +35,9 @@ from settings import State
 
 def text(element):
     return ''.join(element.itertext())
+
+def selectedSpans(paragraph):
+    return [span for span in paragraph.iter('span') if 'selectedBook' in (span.get('class') or '').split()]
 
 
 def links(bookCodes, template='{BBB}.htm#Top'):
@@ -56,10 +63,10 @@ class BookNavigationTests(unittest.TestCase):
                 expected = [f'../{BBB}/C1V1.htm#chLst' if verseView else template.format(BBB=BBB) for BBB in self.oetOrder]
                 self.assertEqual([a.get('href') for a in anchors], expected)
                 byBook = dict(zip(self.oetOrder, anchors))
-                for BBB, label in (('JNA','YNA (JNA)'), ('JHN','YHN (JHN)'), ('JAM','YAC (JAM)'), ('JDE','YUD (JUD)'),
-                                   ('JN1','1\u202fYHN (1\u202fJHN)'), ('JN2','2\u202fYHN (2\u202fJHN)'), ('JN3','3\u202fYHN (3\u202fJHN)')):
+                for BBB, label in (('JNA','YONAH (JNA)'), ('JHN','YHN (JOHN)'), ('JAM','YAK (JAM)'), ('JDE','YEHU (JUDE)'),
+                                   ('JN1','1\u202fYN (1\u202fJHN)'), ('JN2','2\u202fYN (2\u202fJHN)'), ('JN3','3\u202fYN (3\u202fJHN)')):
                     self.assertEqual(text(byBook[BBB]), label)
-                self.assertEqual(byBook['JHN'].get('title'), 'Yohan/(John)')
+                self.assertEqual(byBook['JHN'].get('title'), 'Yohan/John')
 
     def test_other_versions_use_only_traditional_labels_titles_and_order(self):
         for version in ('BSB','Luth','KJB-1611'):
@@ -76,11 +83,11 @@ class BookNavigationTests(unittest.TestCase):
 
     def test_selected_book_retains_both_names_without_a_self_link(self):
         for version in ('ParallelVerse','InterlinearVerse','VerseList'):
-            for BBB, label in (('JHN','YHN (JHN)'), ('JN2','2\u202fYHN (2\u202fJHN)')):
+            for BBB, label in (('JHN','YHN (JOHN)'), ('JN2','2\u202fYN (2\u202fJHN)')):
                 with self.subTest(version=version, book=BBB):
                     paragraph = ElementTree.fromstring(makeBookNavListParagraph(
                         links(self.inputBooks, '../{BBB}/index.htm#Top'), version, self.state, currentBBB=BBB))
-                    selected = next(span for span in paragraph.findall('./span') if 'selectedBook' in span.get('class').split())
+                    selected = selectedSpans(paragraph)[0]
                     self.assertEqual(text(selected), label)
                     self.assertIsNone(selected.find('.//a'))
                     self.assertFalse(any(f'/{BBB}/' in a.get('href') for a in paragraph.findall('.//a')))
@@ -117,7 +124,10 @@ class BookNavigationTests(unittest.TestCase):
                     self.assertEqual(len(hidden), 4 if version in VERSE_BOOK_NAVIGATION_VIEWS else 5)
                     self.assertTrue(all({'OT','NT'} & set(span.get('class').split()) for span in visible))
                     self.assertTrue(all(span.text.startswith(' ') for span in hidden))
-                    self.assertTrue(any('selectedBook' in span.get('class').split() for span in hidden))
+                    selected = [span for span in hidden if span.find('./span[@class="selectedBook"]') is not None]
+                    self.assertEqual(len(selected), 1)
+                    self.assertNotIn('selectedBook', selected[0].get('class').split())
+                    self.assertEqual(text(selected[0].find('./span[@class="selectedBook"]')), text(selected[0]).lstrip())
 
     def test_oet_adjacent_book_links_skip_extra_books_in_both_directions(self):
         bookList = ['index','FRT','GEN','TOB','JDT','JHN','LAO']
@@ -147,7 +157,7 @@ class BookNavigationTests(unittest.TestCase):
                 paragraph = ElementTree.fromstring(makeBookNavListParagraph(links(['JHN'], href), version, self.state))
                 anchor = paragraph.find('.//a')
                 self.assertEqual(anchor.get('href'), href)
-                self.assertEqual(text(anchor), 'YHN (JHN)' if version=='OET' else 'JOHN')
+                self.assertEqual(text(anchor), 'YHN (JOHN)' if version=='OET' else 'JOHN')
 
     def test_generated_version_chapter_document_and_section_pages(self):
         with TemporaryDirectory() as temporary, ExitStack() as stack:
@@ -189,20 +199,24 @@ class BookNavigationTests(unittest.TestCase):
                             traditional=version in ('KJB-1769','GHT')
                             expected = ['TOB','MAT','MRK','JHN','JAM'] if traditional else ['TOB','JHN','MRK','MAT','JAM']
                             current=page.stem.split('_')[0] if page.stem!='index' else None
-                            selected=[span for span in paragraph.findall('./span') if 'selectedBook' in span.get('class').split()]
+                            selected=selectedSpans(paragraph)
                             self.assertEqual(len(selected), int(current is not None), page)
                             if current:
                                 self.assertIsNone(selected[0].find('.//a'), page)
                                 self.assertIn(text(selected[0]), text(paragraph), page)
                             self.assertEqual([a.get('href') for a in anchors], [f'{BBB}.htm#Top' for BBB in expected if BBB!=current], page)
-                            self.assertIn('JOHN' if traditional else 'YHN (JHN)', text(paragraph), page)
+                            self.assertIn('JOHN' if traditional else 'YHN (JOHN)', text(paragraph), page)
                             if traditional:
                                 self.assertNotIn('YHN', rendered, page)
-                                self.assertNotIn('YAC', rendered, page)
+                                self.assertNotIn('YAK', rendered, page)
                             navBars = re.findall(r'<p class="(?:bkNav|cNav|secNav)">.*?</p>', rendered)
                             if current is None or page.stem.endswith('_Intro') \
                             or (view!='byDoc' and '_' not in page.stem): continue # Only reading pages
                             self.assertTrue(navBars, page)
+                            if view == 'byDoc': # Top and adapted bottom copies
+                                self.assertEqual(len(navBars), 2, page)
+                                self.assertEqual(navBars[1], navBars[0].replace(' id="Top"', ''), page)
+                                self.assertEqual(rendered.count('id="Top"'), 1, page)
                             for navBar in navBars:
                                 twoColumn = re.findall(r'<a title="2-column view"[^>]* href="([^"]+)"[^>]*>⇔</a>', navBar)
                                 if traditional or (view=='bySec' and version=='OET-LV'):

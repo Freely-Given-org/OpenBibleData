@@ -17,6 +17,8 @@ CHANGELOG:
     2026-11-03 Supply the static-navigation helper to isolated page builders.
     2026-11-05 Supply passage metadata to the isolated section builder.
     2026-11-05 Exercise book and chapter metadata through the same page writers.
+    2026-11-23 Check the RV and LV navigation-bar links match the column-heading links.
+    2026-11-23 Expect the bottom navigation bar on whole-document pages too, with only one Top anchor.
 """
 import ast
 from collections import defaultdict
@@ -234,11 +236,11 @@ class OETPassageTests(unittest.TestCase):
             do_OET_RV_HTMLcustomisations=lambda _,h:h,
             getBibleMapperMaps=lambda *a:'',findSectionNumber=lambda *a:0,
             SECTION_REASON_NAME_DICT={},
-            **{name:getattr(op,name) for name in ('renderOETSideBySideChunks','renderOETLVPassage','oetLVSourceLink')})
+            **{name:getattr(op,name) for name in ('renderOETSideBySideChunks','renderOETLVPassage','oetLVSourceLink','oetSingleColumnLinks')})
         source=Path(__file__).with_name(filename)
-        function=next(n for n in ast.parse(source.read_text()).body
-                      if isinstance(n,ast.FunctionDef) and n.name==name)
-        exec(compile(ast.Module(body=[function],type_ignores=[]),str(source),'exec'),namespace)
+        functions=[n for n in ast.parse(source.read_text()).body # The builder plus its small local helpers
+                   if isinstance(n,ast.FunctionDef) and n.name in (name,'bottomBookNavBar')]
+        exec(compile(ast.Module(body=functions,type_ignores=[]),str(source),'exec'),namespace)
         return namespace[name]
 
     def topicBuilder(self):
@@ -383,6 +385,14 @@ class OETPassageTests(unittest.TestCase):
                     self.assertIn('href="MAL_S0.htm#Top"', html)
                     self.assertIn('id="Top"', html)
                     self.assertNotIn('href="MAL_S0.htm#C4"', html)
+                headingLinks = re.findall(r'<h2><a title="View just the (?:Readers’|Literal) Version by itself" href="([^"]+)"', html)
+                self.assertEqual(len(headingLinks), 2)
+                navBars = re.findall(r'<p class="(?:bkNav|cNav|secNav)">.*?</p>', html)
+                self.assertEqual(len(navBars), 2) # Top and bottom
+                self.assertEqual(html.count('id="Top"'), 1)
+                for navBar in navBars: # Same single-column destinations as the column headings
+                    self.assertEqual(re.findall(r'href="([^"]+)">[RL]V</a>', navBar), headingLinks, navBar)
+                    self.assertIn('\u2003<a title="View just the Readers’ Version by itself"', navBar)
                 if filename!='createBookPages.py':
                     self.assertNotIn('Native-3-18.',html)
                     self.assertIn('OET-LV/byDoc/MAL.htm#C3V19',html)

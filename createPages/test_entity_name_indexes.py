@@ -28,14 +28,14 @@ class EntityNameIndexTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
         self.table = self.root/'names.tsv'
-        self.table.write_text('\ufeffTraditionalName\tGrkName\tRVName\tExplained\tComment\n'
-            'Goliath\t\tGalyat\tY\tMan\n'
-            'Jerusalem\t\tHierousalaim\t\tCity\n'
-            'Jerusalem\t\tYerushalem\tY\tCity\n'
-            'Jerusalem\t\tYerushalem\tY\tRepeated row\n'
-            'Abdi\t\tAvdi\t\tPeople\n'
-            'Peter\t\tKefa\t\tMan\n'
-            'Lebanon\t\tLevanon\t\tPlace\n',encoding='utf-8')
+        self.table.write_text('\ufeffTraditionalName\tSegment\tSimplifiedTransliteration\tRVName\tNotesExplanation\tCanonicalExplanation\tComment\n'
+            'Goliath\tOT\t\tGalyat\tGoliath\t\\add !(Goliath)\\add*\tMan\n'
+            'Jerusalem\tNT\t\tHierousalaim\t\t\tCity\n'
+            'Jerusalem\tOT\t\tYerushalem\tJerusalem\t\\add !(Jerusalem)\\add*\tCity\n'
+            'Jerusalem\tNT\t\tYerushalem\tJerusalem\t\\add !(Jerusalem)\\add*\tRepeated row\n'
+            'Abdi\tOT\t\tAvdi\t\t\tPeople\n'
+            'Peter\tNT\t\tKefa\t\t\tMan\n'
+            'Lebanon\tOT\t\tLevanon\t\t\tPlace\n',encoding='utf-8')
         self.patch = patch.object(entities,'OET_RV_NAMES_TABLE_PATH',self.table)
         self.patch.start()
         self.addCleanup(self.patch.stop)

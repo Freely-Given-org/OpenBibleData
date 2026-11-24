@@ -129,6 +129,7 @@ CHANGELOG:
     2026-11-05 Accept a site-relative path for a preferred public URL.
     2026-11-09 Link the footer's full OET name directly to the preferred project domain.
     2026-11-11 Document the updated-measure marker in OET-RV customisations.
+    2026-11-20 Don't underline the preceding space when a hideable book (e.g., INT/FRT) is selected.
 """
 import logging
 import re
@@ -158,10 +159,10 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-11-09' # by RJH
+LAST_MODIFIED_DATE = '2026-11-20' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.14'
+PROGRAM_VERSION = '1.0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -320,16 +321,18 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             bookClasses.append('GospelsActs')
         elif BBB in ('ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT','PHM'):
             bookClasses.append('PaulLetters')
-        if BBB == currentBBB:
-            bookClasses.append('selectedBook')
-            contents = label
-        else:
-            contents = f'<a title="{bookName(BBB, workAbbrevPlus)}" href="{bookLinks[BBB]}">{label}</a>'
+        contents = label if BBB == currentBBB \
+                    else f'<a title="{bookName(BBB, workAbbrevPlus)}" href="{bookLinks[BBB]}">{label}</a>'
         separator = ' ' if any(newList) else ''
         if usesOETBookNames(workAbbrevPlus) and BBB not in BOOKLIST_OT39 and BBB not in BOOKLIST_NT27:
             # Hide the separator with the book, avoiding gaps where omitted books were.
+            # The selected styling goes on an inner span so that the separator isn't underlined.
+            if BBB == currentBBB:
+                contents = f'<span class="selectedBook">{contents}</span>'
             newList.append(f'<span class="{" ".join(bookClasses)}" data-oet-books="all">{separator}{contents}</span>')
         else:
+            if BBB == currentBBB:
+                bookClasses.append('selectedBook')
             newList.append(f'{separator}<span class="{" ".join(bookClasses)}">{contents}</span>')
 
     return f'''<p class="bkLst">{''.join( newList )}</p><!--bkLst-->'''
@@ -358,7 +361,7 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
 
     html = f"""<div class="footer" id="footer">
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
-<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by {state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by {state.SITE_ABBREVIATION} {state.OBD_PROGRAM_VERSION_NUMBER_STRING} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 {f'''<p class="note"><small>Visit the <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible/"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="" height="20"> <em>Open English Translation (OET)</em></a> main site.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html

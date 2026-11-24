@@ -60,6 +60,7 @@ CHANGELOG:
     2026-11-19 Load UTN and SOTN from the OET-adapted copies (OET_uW_en_tn and OET_SILOpenTranslatorsNotes).
     2026-11-19 Rename the Dictionary view decoration to Dictionaries.
     2026-11-20 Describe the their-name-first adaptation of the UTN and SOTN notes.
+    2026-11-20 Use the OET-RV spelling Ya’akov in the James name note.
 """
 from pathlib import Path
 from privateConfig import configurePrivateBuild
@@ -68,10 +69,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-11-18' # by RJH
+LAST_MODIFIED_DATE = '2026-11-22' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.4.1'
+PROGRAM_VERSION = '1.4.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -86,8 +87,8 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v3.6.2' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.49.0' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OET_VERSION_NUMBER_STRING = 'v0.49.5' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_PROGRAM_VERSION_NUMBER_STRING = 'v3.7.1' # Incremented after most updates to OBD web page generation code
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
@@ -158,17 +159,15 @@ class State:
                             'JN1','JN2','JN3', 'REV']
     assert len(OET_NT_BOOK_ORDER) == 27
     # Having these books in our book order variables doesn't necessarily mean that the books exist
-    OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLS','GLO','TDX','NDX','OTH','BAK']
+    OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLS','GLO','TDX','NDX','OTH','BAK']
     # LAO belongs beside the Pauline letters in navigation, while the NT load list stays at 27 books.
     OET_BOOK_ORDER.insert(OET_BOOK_ORDER.index('COL') + 1, 'LAO')
     assert len(OET_BOOK_ORDER) >= 88
     assert len(OET_BOOK_ORDER) == len(set(OET_BOOK_ORDER))
 
-    TEST_BOOK_LIST = ['INT','FRT'] + TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
+    TEST_BOOK_LIST = ['FRT','INT'] + TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_LV_DC_BOOK_LIST + OET_NT_BOOK_ORDER
     OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_OT_BOOK_ORDER + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
-#     # TODO: What about 'INT' ?
-#     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
     # The version to link to when the OET doesn't have that book (yet)
     ALTERNATIVE_VERSION = 'WEBBE' # Should be a version with all books present
@@ -199,7 +198,7 @@ class State:
     PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not necessarily natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not necessarily natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
 
-    JAMES_NAME_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
+    JAMES_NAME_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Ya’akov’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
     JAMES_NAME_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NAME_NOTE_HTML_TEXT}</p>'
 
     BLACK_LETTER_FONT_HTML_TEXT = 'Note that this page will look best (more authentic) if you’ve downloaded a black-letter font like <a href="https://fonts.google.com/specimen/UnifrakturCook">Google’s UnifrakturCook</a>.'
@@ -1142,14 +1141,14 @@ See the <a href="https://collections.museumofthebible.org/artifacts/57851-clemen
 <p class="copyright"><b>MARBLE index</b> (Modular Aggregation of Resources on the Bible), Copyright © United Bible Societies. <b>UBS Parallel Passage Database</b>, Copyright © 2023 United Bible Societies.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>',
-                'notes': '<p class="note">We have adapted the English dictionary and handbook entries to the OET, mainly by changing names to the forms used in the OET Readers’ Version, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>' },
+                'notes': '<p class="note">We have adapted the English dictionary and handbook entries to the <em>OET</em>, mainly by changing names to the forms used in the <em>OET Readers’ Version</em>, e.g., ‘Yeshua (Jesus; Grk. Yesus)’. The adapted files and a list of the changes are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>' },
         'HOTTP': {'about': '<p class="about">The Preliminary and Interim Report of the Hebrew Old Testament Text Project (HOTTP): a concise textual analysis of about 4,500 Old Testament passages with text-critical issues. For each passage, the committee of Hebrew scholars gives the alternative readings, rates the one they preferred (A to D), and lists the factors which influenced their decision. This report formed the foundation of Barthélemy’s <i>Critique Textuelle de l’Ancien Testament</i>.</p>',
                 'copyright': '<p class="copyright">Copyright © United Bible Societies 1973–1980, 2003–2023.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to the <a href="https://github.com/ubsicap/ubs-open-license">United Bible Societies</a> for making this available.</p>',
                 'notes': '''<p class="note">The ratings mean: A — This form of the text has a very high probability of representing the earliest attested text; B — it probably does, but there is some doubt; C — it possibly does, but there is considerable doubt; D — there is a possibility that it does, but this is highly uncertain.</p>
 <p class="note">The ‘base translations’ quoted are the RSV (Revised Standard Version), NEB (New English Bible), BJ (Bible de Jérusalem), LUT (Luther Bible), and TOB (Traduction œcuménique de la Bible).</p>
-<p class="note">We have adapted the English remarks, suggestions, and literal translations to the OET, mainly by changing names to the forms used in the OET Readers’ Version. The adapted files are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>''' },
+<p class="note">We have adapted the English remarks, suggestions, and literal translations to the <em>OET</em>, mainly by changing names to the forms used in the <em>OET Readers’ Version</em>. The adapted files are available <a href="https://github.com/Freely-Given-org/OET_ubs-open-license">here</a>.</p>''' },
         'THBD': {'about': '<p class="about"><a href="https://devpost.com/software/theographic">Theographic Bible Database</a>.</p>',
                 'copyright': '''<p class="copyright">Developed by Robert Rouse and others, but no copyright statement discovered.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> according to <a href="https://github.com/robertrouse/theographic-bible-metadata#license">this</a>.</p>',

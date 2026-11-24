@@ -52,6 +52,8 @@ CHANGELOG:
     2026-11-02 Open chapters at verse 1 except Psalms with verse-zero text; retain access to headings.
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify simple verse list pages and their book indexes in search metadata.
+    2026-11-20 Show Ya’akov/(James) in chapter lists now that the OET abbreviation is Yak.
+    2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
 """
 from pathlib import Path
 import os
@@ -79,7 +81,7 @@ from bibleNavigation import addReferenceNavigation, preferredReadingHref
 from createSectionPages import findSectionNumber
 from versification import navigationVersification, parallelVersePassage, versePortionHtml
 from pageMetadata import studyIndexMetadata, verseStudyMetadata
-from navigation import navigationBookList, verseNavigationFirstVerses
+from navigation import navigationBookList, verseNavigationFirstVerses, bookName
 from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_DICT
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
@@ -88,10 +90,10 @@ from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSH
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-30'
+LAST_MODIFIED_DATE = '2026-11-22'
 SHORT_PROGRAM_NAME = "createVerseListPages"
 PROGRAM_NAME = "OpenBibleData createVerseListPages functions"
-PROGRAM_VERSION = '0.2.3'
+PROGRAM_VERSION = '0.2.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -132,8 +134,8 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
     for BBB in navigationBBBs:
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-        BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-        BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{'../'*level}{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBNextLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="{'../'*level}{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"Have lst {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
@@ -275,7 +277,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 
             chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
+                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yak' else 'Ya’akov/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
 
             firstVerse = firstVerses.get(c, 0)
             introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter heading" href="C{c}V0.htm#__ID__">I</a> ' if c>0 and firstVerse==0 else ''}'''
@@ -976,7 +978,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
     # Indexes have no current chapter, so offer every chapter.
     chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
-            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
+            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yak' else 'Ya’akov/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
     # Create index page for this book
     filename1 = 'index.htm'

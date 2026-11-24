@@ -13,13 +13,15 @@
 #                HTML to the old two-step livenOETWordLinks/livenOETCompatibleBereanWordLinks
 #                then convert sequence.
 #   2026-10-23 Cover section lookup across replaced, short-lived section lists.
+#   2026-11-23 Check the OET-RV '⇔' (reordered) marker only shows on parallel and interlinear verse pages.
+#   2026-11-23 Check the shown '⇔' marker is in a span with its pop-up explanation, even after the OET-RV customisations.
 
 import unittest
 from BibleOrgSys.Internals.InternalBible import InternalBibleEntryList, InternalBibleEntry
 from settings import State
 from Bibles import preloadVersions
 from openbibledata_rust import (convertVerseEntryListToHtml, livenOETWordLinks,
-                                livenOETCompatibleBereanWordLinks)
+                                livenOETCompatibleBereanWordLinks, do_OET_RV_HTMLcustomisations)
 
 
 def make_entry( marker: str, original_text: str, clean_text: str | None = None ) -> InternalBibleEntry:
@@ -300,6 +302,24 @@ class TestFusedLiveningEquivalence(unittest.TestCase):
     def test_oet_lv_chapter(self):
         """OET-LV chapter segment."""
         self._assertEquivalence(1, self.lvBible, ('PSA', '23'), 'chapter', 'OET-LV')
+
+    def test_oet_rv_reordered_marker_only_on_parallel_and_interlinear_pages(self):
+        """OET-RV MRK 7:21-22 starts with the '⇔' (reordered) marker in the ESFM."""
+        refTuple = ('MRK', '7', '21')
+        entries, _contextList = self.rvBible.getContextVerseData(refTuple)
+        self.assertTrue(any(entry.getFullText().startswith('⇔') for entry in entries if entry.getMarker()=='v~'))
+        for segmentType in ('parallelVerse','interlinearVerse','simpleVerse','chapter','section','relatedPassage','topicalPassage','dictVerse'):
+            with self.subTest(segmentType=segmentType):
+                entries, contextList = self.rvBible.getContextVerseData(refTuple)
+                html = self._convert(2, refTuple, segmentType, 'OET-RV', entries, contextList, livenWordLinks=True)
+                self.assertIn('<a ', html) # Word links still work
+                if segmentType in ('parallelVerse','interlinearVerse'):
+                    markerSpan = '<span class="reordered" title="The RV translation reversed the text order from the original">⇔</span>'
+                    self.assertIn(f'_verseTextChunk">{markerSpan}', html)
+                    self.assertEqual(html.count('⇔'), 1)
+                    self.assertIn(markerSpan, do_OET_RV_HTMLcustomisations(f'Test {segmentType}', html))
+                else:
+                    self.assertNotIn('⇔', html)
 
     def test_berean_compatible_equiv(self):
         """The OET-compatible Berean path must also match (BSB/MSB use the same

@@ -38,6 +38,8 @@ CHANGELOG:
     2026-11-03 Generate static chapter/verse navigation before writing each page.
     2026-11-05 Identify whole-document pages and their edition indexes in search results.
     2026-11-13 Add a ⇔ link to the 2-column OET view after the next arrow on OET-RV and OET-LV document pages.
+    2026-11-23 Add RV and LV single-column links after the next arrow on OET side-by-side document pages.
+    2026-11-23 Repeat the book navigation bar (without the Top anchor) at the bottom of whole-document pages.
 """
 from pathlib import Path
 from parallel import runParallelPages
@@ -53,7 +55,7 @@ import bos_books_codes_py
 from settings import State, state, CNTR_BOOK_ID_MAP
 from pageMetadata import bookReadingMetadata, readingIndexMetadata
 from navigation import bookAbbreviation, oetBookNavigationLinks
-from oetPassages import renderOETSideBySideChunks
+from oetPassages import renderOETSideBySideChunks, oetSingleColumnLinks
 from bibleNavigation import addReferenceNavigation
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -72,6 +74,16 @@ BACKSLASH = '\\'
 NEWLINE = '\n'
 NARROW_NON_BREAK_SPACE = ' '
 
+
+
+def bottomBookNavBar( bkNavBar:str ) -> str:
+    """
+    Adapt the top book navigation bar for the bottom of the page
+        (there's only one id="Top" anchor on a page).
+    """
+    assert bkNavBar.count( ' id="Top"' ) == 1, f"Expected one Top anchor in {bkNavBar=}"
+    return bkNavBar.replace( ' id="Top"', '', 1 )
+# end of createBookPages.bottomBookNavBar
 
 
 def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:State, BBB:str ) -> tuple[bool,str,list[str]]:
@@ -133,7 +145,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
         bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, 'OET', bkPrevNav, bkNextNav)
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
+        bkNavBar = f'<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>'
+        bkHtml = f'''{bkNavBar}
 {state.JAMES_NAME_NOTE_HTML_PARAGRAPH}
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
         verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
@@ -153,6 +166,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         bkHtml = f'''{top}<!--book page-->
 {navBookListParagraph}
 {bkHtml}
+{bottomBookNavBar( bkNavBar )}
 {makeBottom( level, rvBible.abbreviation, 'book' )}'''
         bkHtml = addReferenceNavigation(bkHtml)
         assert checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
@@ -176,8 +190,10 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
     bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
     bkPrevNav, bkNextNav = oetBookNavigationLinks(iBkList, BBB, 'OET', bkPrevNav, bkNextNav)
+    bkNextNav = f'''{bkNextNav}{oetSingleColumnLinks( f"{'../'*level}OET-RV/byDoc/{BBB}.htm#Top", f"{'../'*level}OET-LV/byDoc/{BBB}.htm#Top" )}'''
 
-    bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
+    bkNavBar = f'<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>'
+    bkHtml = f'''{bkNavBar}
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byDoc/{BBB}.htm#Top">Readers’ Version</a></h2>
@@ -196,6 +212,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {bkHtml}
 {removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->
+{bottomBookNavBar( bkNavBar )}
 {makeBottom( level, 'OET', 'book' )}'''
     bkHtml = addReferenceNavigation(bkHtml)
     assert checkHtml( f'OET Book {BBB}', bkHtml )
@@ -351,7 +368,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         if thisBible.abbreviation in ('OET-RV','OET-LV'):
             bkNextNav = f'''{bkNextNav} <a title="2-column view" href="{'../'*level}OET/byDoc/{BBB}.htm#Top">⇔</a>'''
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else '' if bos_books_codes_py.is_single_chapter_book(BBB) else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
+        bkNavBar = f'<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>'
+        bkHtml = f'''{bkNavBar}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else '' if bos_books_codes_py.is_single_chapter_book(BBB) else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml )
@@ -385,6 +403,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''{top}<!--book page-->
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{selectedBookNavListParagraph}
 {bkHtml}
+{bottomBookNavBar( bkNavBar )}
 {makeBottom( level, thisBible.abbreviation, 'book' )}'''
         bkHtml = addReferenceNavigation(bkHtml)
         assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )

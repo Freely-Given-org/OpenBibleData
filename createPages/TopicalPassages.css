@@ -210,6 +210,7 @@ p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }
 span.xrText {}
+span.xt {}
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */

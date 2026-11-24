@@ -67,6 +67,8 @@ CHANGELOG:
 TODO:
     Add colour keys for LV and RV words
     2026-11-05 Identify oet interlinear pages and their book indexes in search metadata.
+    2026-11-20 Show Ya’akov/(James) in chapter lists now that the OET abbreviation is Yak.
+    2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
 """
 from pathlib import Path
 import os
@@ -85,7 +87,7 @@ from oetWords import passageWordRows
 from lexicalLinks import interlinearReferenceCells
 from studyReferences import passageReferenceMaterial
 from pageMetadata import studyIndexMetadata, verseStudyMetadata
-from navigation import navigationBookList, referenceHref, verseNavigationFirstVerses
+from navigation import navigationBookList, referenceHref, verseNavigationFirstVerses, bookName
 from alternateVersePages import createAlternateVersePages
 from oetPassages import _namespaceIds
 from BibleOrgSys.Reference.BibleVersificationMappings import VersificationMappingError
@@ -99,10 +101,10 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-11-19'
+LAST_MODIFIED_DATE = '2026-11-22'
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,8 +136,8 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     for BBB in navigationBBBs:
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-        BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-        BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
+        BBBNextLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
     if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have ilr {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
@@ -246,7 +248,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             C = str( c )
             chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
+                    f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yak' else 'Ya’akov/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1) if chp!=c] )}</p><!--chLst-->'''
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating interlinear pages for {BBB} {C}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
@@ -316,7 +318,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V{chapterStartVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
+f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yak' else 'Ya’akov/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p><!--vsLst-->'''
@@ -339,7 +341,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="PSA/C{ps}V{chapterStartVerses[ps]}.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="{BBB}/C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
+f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yak' else 'Ya’akov/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="{BBB}/C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks ).replace('href="', f'href="{BBB}/')}</p><!--vsLst-->'''

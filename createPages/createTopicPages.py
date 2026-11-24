@@ -45,6 +45,7 @@ CHANGELOG:
                 above the people, places and dictionary entries.
     2026-11-19 List the topics under each subject on the topic index page as bulleted lists.
     2026-11-19 Remove the dictionary links line from the kingdom index page.
+    2026-11-20 Use the OET-RV spelling Shmuel in the kingdom pages' Samuel link.
 """
 from pathlib import Path
 import os
@@ -410,9 +411,9 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
         kingdomInfo = KINGDOM_INFO_HTML_DICT[kingdomName]
         if '__SAMUEL_LINK__' in kingdomInfo:
             samuelLink = scriptureLink(level, ('SA1','7','2'), 'OET-RV', 'OET', 'byC',
-                'Shemuel (Samuel)', state, title='Read about Shemuel in context')
+                'Shmuel (Samuel)', state, title='Read about Shmuel in context')
             if state.TEST_MODE_FLAG and 'SA1' not in state.booksToLoad['OET']:
-                samuelLink = 'Shemuel (Samuel)'
+                samuelLink = 'Shmuel (Samuel)'
             kingdomInfo = kingdomInfo.replace('__SAMUEL_LINK__', samuelLink)
         intro = KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE if 'kingdom' in kingdomName else ''
         kingdomInfo = kingdomArticleLinks(intro+kingdomInfo,level,entities)

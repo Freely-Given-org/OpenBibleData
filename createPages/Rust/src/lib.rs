@@ -7,6 +7,7 @@
 //!     2026-10-31 Route explicitly tagged RV words in DC books to the DC table too.
 //!     2026-10-31 Honour the grammatical-colour setting for DC word links.
 //!     2026-11-05 Show the OET-LV source release on rendered book ID lines.
+//!     2026-11-20 Call `oet_handlers::oet_tidy_bbb` with the BBB itself so renames are per-book.
 
 /// Use a faster/scalable allocator for this cdylib's Rust allocations when the
 /// `allocator-mimalloc` cargo feature is enabled (default: off).
@@ -1152,9 +1153,7 @@ fn get_oet_tidy_bbb_py(
     addNotes: bool,
 ) -> String {
     // The binding maps None to '' before calling the pure function
-    let new_bbb =
-        bos_books_codes::tidy_bbb(BBB, titleCase, allowFourChars, insertChar.unwrap_or(""));
-    oet_handlers::apply_oet_tidy_renames(&new_bbb, insertChar.unwrap_or(""), addNotes)
+    oet_handlers::oet_tidy_bbb(BBB, titleCase, allowFourChars, insertChar.unwrap_or(""), addNotes)
 }
 
 /// Handle our different spelling of well-known book names

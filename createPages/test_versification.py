@@ -24,6 +24,7 @@ CHANGELOG:
     2026-11-03 Supply the static-navigation helper to isolated page loops.
     2026-11-05 Supply study metadata to the isolated verse and index writers.
     2026-11-19 Stub formatHOTTPNotes in the parallel verse page namespace.
+    2026-11-22 Supply bookName to the page builders now that book-link titles use it.
 """
 from pageMetadata import studyIndexMetadata, verseStudyMetadata
 import ast
@@ -399,7 +400,7 @@ class ParallelPageTests(unittest.TestCase):
             vPrint=lambda *args: None, dPrint=lambda *args: None, fnPrint=lambda *args: None,
             rreplace=BibleOrgSysGlobals.rreplace,
             getOETTidyBBB=lambda book, **kwargs: book,
-            getOETBookName=lambda book: book,
+            getOETBookName=lambda book: book, bookName=lambda book, version: book,
             makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
             makeTop=lambda *args, **kwargs: '<html><head><title>__TITLE__</title></head><body>',
             makeBottom=lambda *args: '</body></html>',
@@ -627,7 +628,7 @@ class NavigationBookSelectionTests(unittest.TestCase):
                     namespace = dict(globals(), state=state, DEBUGGING_THIS_MODULE=False,
                         navigationBookList=navigationBookList, runParallelPages=runParallelPages,
                         reorderBooksForOETVersions=lambda books: books,
-                        getOETTidyBBB=lambda book, **kwargs: book, getOETBookName=lambda book: book,
+                        getOETTidyBBB=lambda book, **kwargs: book, getOETBookName=lambda book: book, bookName=lambda book, version: book,
                         makeBookNavListParagraph=lambda links,*args,**kwargs: ''.join(links),
                         makeTop=lambda *args, **kwargs: '<html><head><title>__TITLE__</title></head><body>',
                         makeBottom=lambda *args: '</body></html>', checkHtml=lambda *args: True,

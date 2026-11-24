@@ -33,6 +33,7 @@ CHANGELOG:
     2026-11-05 Identify related-passage pages by section range and heading in the page head.
     2026-11-05 Identify related passages pages and their book indexes in search metadata.
     2026-11-19 List the UBS parallel passages and OT quotations on related-passage pages.
+    2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
 """
 from pathlib import Path
 import os
@@ -49,7 +50,7 @@ from settings import State, reorderBooksForOETVersions
 from oetPassages import renderOETLVPassage, _namespaceIds
 from referencePassages import passageContextHref, _externaliseExcerptJumps
 from pageMetadata import sectionMetadata, studyIndexMetadata
-from navigation import scriptureLink
+from navigation import scriptureLink, bookName
 from Bibles import getVerseDataListForReference
 from bibleNavigation import addReferenceNavigation
 from ubsStudyLinks import ubsSectionParallelsHtml
@@ -60,10 +61,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-11-19' # by RJH
+LAST_MODIFIED_DATE = '2026-11-22' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -110,12 +111,12 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
                 if entry.getMarker() == 'r':
                     availableRelatedBBBs.append( BBB )
                     ourTidyBBB = getOETTidyBBB( BBB )
-                    availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
+                    availableRelatedBBBLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="{BBB}/">{ourTidyBBB}</a>''' )
                     break
         else: # make pages for all books, even ones without section cross-references
             availableRelatedBBBs.append( BBB )
             ourTidyBBB = getOETTidyBBB( BBB )
-            availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
+            availableRelatedBBBLinks.append( f'''<a title="{bookName(BBB,'OET')}" href="{BBB}/">{ourTidyBBB}</a>''' )
     # Now create the actual section-reference pages
     for BBB in reorderBooksForOETVersions( state.OET_RV_BOOK_LIST ): #state.allBBBs ):
         if BBB in availableRelatedBBBs:
@@ -235,7 +236,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     ourTidyBBB = getOETTidyBBB( BBB )
 #     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
 #     adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'OET-RV', state ) \
-#             .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+#             .replace( f'''<a title="{bookName(BBB,'OET')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 #     numBBBSections = len( thisBible[BBB]._SectionIndex )
 #     navBookListParagraph = makeBookNavListParagraph( BBBLinks, f'Related {thisBible.abbreviation}', state ) \
 #                                 .replace( 'href="', 'href="../' ) # Because we use BBB sub-folders
@@ -532,7 +533,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     adjBBBLinksHtml = makeBookNavListParagraph( BBBLinks, 'OET-RV', state ) \
-            .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{bookName(BBB,'OET')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
     numBBBSections = len( thisBible[BBB]._SectionIndex )
     navBookListParagraph = makeBookNavListParagraph( BBBLinks, f'Related {thisBible.abbreviation}', state ) \
                                 .replace( 'href="', 'href="../' ) # Because we use BBB sub-folders

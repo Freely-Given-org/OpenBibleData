@@ -9,6 +9,7 @@ word links. Import it only when rendering, so the mapping can be tested offline.
 
 CHANGELOG:
     2026-10-16 Identify OET-RV when malformed source labels prevent passage mapping.
+    2026-11-23 Add oetSingleColumnLinks for the RV and LV links on side-by-side navigation bars.
 """
 import logging
 import re
@@ -152,3 +153,9 @@ def oetLVSourceLink(level, BBB, nativeRef):
     book, chapter, verse = nativeRef if nativeRef else (BBB,'-1','0')
     anchor = f'C{chapter}V{verse}' if chapter != '-1' else 'Top'
     return f'{"../"*level}OET-LV/byDoc/{book}.htm#{anchor}'
+
+
+def oetSingleColumnLinks(rvHref, lvHref):
+    """RV and LV navigation-bar links to the same single-column views as the column headings."""
+    return (f'\u2003<a title="View just the Readers’ Version by itself" href="{rvHref}">RV</a>'
+            f'\u2003<a title="View just the Literal Version by itself" href="{lvHref}">LV</a>')

@@ -227,7 +227,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 DEBUGGING_THIS_MODULE = False
 
 NEWLINE = '\n'
-TAB = '\t'
+# TAB = '\t'
 NARROW_NON_BREAK_SPACE = ' '
 
 
@@ -273,7 +273,7 @@ IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = (
     ('Levi (son of Jacob)', 'Levi', ('GEN_29:34','GEN_34:25-31')),
     ('Judah (son of Jacob)', 'Judah', ('GEN_29:35','GEN_44:18-34')),
     ('Dinah', 'Dinah', ('GEN_30:21','GEN_34:1-5')),
-    ('Yosef/Joseph (one of twelve)', 'Joseph', ('GEN_30:24','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Yosef/Joseph (one of twelve sons)', 'Joseph', ('GEN_30:24','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
     ('Benjamin', 'Benjamin', ('GEN_35:16-18','GEN_44:1-17')),
     ('Tamar (Judah’s daughter-in-law)', 'Tamar1', ('GEN_38:6','GEN_38:24-30')),
     ('Potiphar', 'Potiphar', ('GEN_39:1-6',)),
