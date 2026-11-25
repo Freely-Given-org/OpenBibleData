@@ -5,6 +5,7 @@
 
 CHANGELOG:
     2026-11-24 Created.
+    2026-11-25 Check repeated renderings are shown past the first limit.
 """
 import unittest
 
@@ -62,6 +63,14 @@ class SummaryTests(unittest.TestCase):
     def test_limit(self):
         html = rvRenderingsSummaryHtml( list(range(1,6)), {n:f'w{n}' for n in range(1,6)}, maxShown=3 )
         self.assertIn( '‘<b>w3</b>’(1), and 2 others.', html )
+
+    def test_repeated_renderings_shown_past_limit(self):
+        rows = list(range(1,13)) # w1..w4 occur twice, w5..w8 once
+        renderings = {n:f'w{(n+1)//2}' for n in range(1,9)} | {n:f'w{n-4}' for n in range(9,13)}
+        html = rvRenderingsSummaryHtml( rows, renderings, maxShown=2, maxRepeatedShown=3 )
+        self.assertIn( '‘<b>w3</b>’(2), and 5 others.', html ) # Extended to 3 because w3 occurs twice
+        html = rvRenderingsSummaryHtml( rows, renderings, maxShown=2, maxRepeatedShown=6 )
+        self.assertIn( '‘<b>w4</b>’(2), and 4 others.', html ) # Stops at the first single occurrence
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ CHANGELOG:
     2026-11-24 Created to show OET-RV renderings on word and lemma reference pages,
                 always saying how many (and what percentage) of the occurrences are linked.
     2026-11-25 Show up to 50 renderings (was 20) before summarising the rest as ‘and N others’.
+    2026-11-25 Then keep showing renderings up to 60 while they occur more than once.
 """
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -78,12 +79,13 @@ def loadRVRenderings( folderPath:str|Path ) -> dict[str,dict[int,str]]:
     return dict(renderings)
 
 
-def rvRenderingsSummaryHtml( rowNumbers:list[int], renderings:dict[int,str], subject:str='it', maxShown:int=50 ) -> str:
+def rvRenderingsSummaryHtml( rowNumbers:list[int], renderings:dict[int,str], subject:str='it', maxShown:int=50, maxRepeatedShown:int=60 ) -> str:
     """Return a summary paragraph saying how the OET-RV translates the given LV word rows.
 
     `subject` is the HTML for the word form or lemma, e.g., ‘the word form ‘X’’ or ‘it’.
     Renderings differing only by capitalisation (e.g., at sentence starts) are counted together,
         and shown in their most common lower-case form if they have one.
+    Up to `maxShown` renderings are listed, then up to `maxRepeatedShown` if they occur more than once.
     """
     total = len( rowNumbers )
     forms = defaultdict(Counter)
@@ -96,9 +98,12 @@ def rvRenderingsSummaryHtml( rowNumbers:list[int], renderings:dict[int,str], sub
     ranked = sorted( forms.values(), key=lambda counter: (-sum(counter.values()), min(counter)) )
     def displayForm( counter:Counter ) -> str:
         return max( counter, key=lambda form: (form[:1].islower(), counter[form]) ) # Prefer lower-case over sentence-initial capitals
-    renderingStrs = [f'‘<b>{displayForm(counter)}</b>’({sum(counter.values()):,})' for counter in ranked[:maxShown]]
-    if len(ranked) > maxShown:
-        renderingStrs.append( f'and {len(ranked)-maxShown:,} others' )
+    numShown = min( len(ranked), maxShown )
+    while numShown < min( len(ranked), maxRepeatedShown ) and sum( ranked[numShown].values() ) > 1:
+        numShown += 1 # ranked is in descending count order, so stop at the first single occurrence
+    renderingStrs = [f'‘<b>{displayForm(counter)}</b>’({sum(counter.values()):,})' for counter in ranked[:numShown]]
+    if len(ranked) > numShown:
+        renderingStrs.append( f'and {len(ranked)-numShown:,} others' )
     linkedStr = f' <small>({linkedCountStr(linked,total)})</small>'
     if len(ranked) == 1:
         return f'<p class="summary">In the <em>OET-RV</em>, {subject} is {"always " if linked==total and total>1 else ""}translated as ‘<b>{displayForm(ranked[0])}</b>’{linkedStr}.</p>'
