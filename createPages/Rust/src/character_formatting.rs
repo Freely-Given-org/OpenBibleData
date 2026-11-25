@@ -37,70 +37,48 @@ pub fn convert_usfm_character_formatting(
         assert!(!html.contains("<<"), "Unexpected << in usfm_field");
     }
 
-    // === Handle verse colouring in OET-RV Psalms/Songs ===
+    // === Handle structural colouring of OET-RV poetry (Songs/Psalms and other poems) ===
     // NOTE: `background_colour` is an in/out parameter (like Python's nonlocal
     // variable): once set by a \zN marker it persists for all following lines
-    // until a new chapter ('c' marker) resets it.
-    if version_abbrev == "OET-RV" && bos_book_code == "PSA" {
-        if basic_only {
-            if html.contains("\\z") {
-                html = html
-                    .replace("\\zr ", "")
-                    .replace("\\z1 ", "")
-                    .replace("\\z2 ", "")
-                    .replace("\\z3 ", "")
-                    .replace("\\z4 ", "")
-                    .replace("\\zrhilite ", "")
-                    .replace("\\z1hilite ", "")
-                    .replace("\\z2hilite ", "")
-                    .replace("\\z3hilite ", "")
-                    .replace("\\z4hilite ", "")
-                    .replace("\\zrhilite*", "")
-                    .replace("\\z1hilite*", "")
-                    .replace("\\z2hilite*", "")
-                    .replace("\\z3hilite*", "")
-                    .replace("\\z4hilite*", "");
+    // until a \z0 marker (end of a poem embedded in prose) or a new chapter
+    // ('c' marker) resets it.
+    if version_abbrev == "OET-RV" {
+        // Section codes in priority order (zr = refrain, z1..z5 = structural sections)
+        const Z_CODES: [&str; 6] = ["zr", "z1", "z2", "z3", "z4", "z5"];
+        let has_z = html.contains("\\z");
+        if !basic_only && has_z {
+            // \z0 ends the colouring (a following \zN on the same line still wins)
+            if html.contains("\\z0 ") {
+                *background_colour = None;
             }
-        } else {
-            // not basicOnly
-            if html.contains("\\z") {
-                // Only *change* the colour if this line carries a plain \zN marker
-                if html.contains("\\zr ") {
-                    *background_colour = Some("zr".to_string());
-                } else if html.contains("\\z1 ") {
-                    *background_colour = Some("z1".to_string());
-                } else if html.contains("\\z2 ") {
-                    *background_colour = Some("z2".to_string());
-                } else if html.contains("\\z3 ") {
-                    *background_colour = Some("z3".to_string());
-                } else if html.contains("\\z4 ") {
-                    *background_colour = Some("z4".to_string());
-                }
+            // Only *change* the colour if this line carries a plain \zN marker
+            if let Some(z) = Z_CODES.iter().find(|z| html.contains(&format!("\\{z} "))) {
+                *background_colour = Some(z.to_string());
             }
+        }
 
-            // No \z in this line, but we might still be coloured (persisted from before)
+        // No \z in this line, but we might still be coloured (persisted from before)
+        if !basic_only {
             if let Some(ref bg_color) = *background_colour {
                 html = format!("<span class=\"{}\">{}</span><!--{}-->", bg_color, html, bg_color);
             }
-
-            html = html
-                .replace("\\zr ", "")
-                .replace("\\z1 ", "")
-                .replace("\\z2 ", "")
-                .replace("\\z3 ", "")
-                .replace("\\z4 ", "")
-                .replace("\\zrhilite ", "<span class=\"zrhilite\">")
-                .replace("\\z1hilite ", "<span class=\"z1hilite\">")
-                .replace("\\z2hilite ", "<span class=\"z2hilite\">")
-                .replace("\\z3hilite ", "<span class=\"z3hilite\">")
-                .replace("\\z4hilite ", "<span class=\"z4hilite\">")
-                .replace("\\zrhilite*", "</span>")
-                .replace("\\z1hilite*", "</span>")
-                .replace("\\z2hilite*", "</span>")
-                .replace("\\z3hilite*", "</span>")
-                .replace("\\z4hilite*", "</span>");
         }
-        assert!(!html.contains("\\z"), "Backslash z still in html after processing");
+
+        if has_z {
+            html = html.replace("\\z0 ", "");
+            for z in Z_CODES {
+                let (hilite_open, hilite_close) = if basic_only {
+                    (String::new(), "")
+                } else {
+                    (format!("<span class=\"{z}hilite\">"), "</span>")
+                };
+                html = html
+                    .replace(&format!("\\{z} "), "")
+                    .replace(&format!("\\{z}hilite "), &hilite_open)
+                    .replace(&format!("\\{z}hilite*"), hilite_close);
+            }
+            assert!(!html.contains("\\z"), "Backslash z still in html after processing");
+        }
     }
 
     // === Handle \\fig entries (figure processing) ===
@@ -493,6 +471,43 @@ mod tests {
             1,
         )
         .html
+    }
+
+    /// Convert successive lines of one book, carrying the background colour between them
+    /// the way the verse-entry loop does.
+    fn convert_lines(book: &str, lines: &[&str]) -> Vec<(String, Option<String>)> {
+        let mut background_colour = None;
+        lines
+            .iter()
+            .map(|field| {
+                let html = convert_usfm_character_formatting(
+                    "OET-RV", book, "chapter", field, false, &mut background_colour,
+                    &["add".to_string()], &[], false, 1,
+                )
+                .html;
+                (html, background_colour.clone())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_z0_ends_embedded_poem_colouring() {
+        // A poem embedded in narrative (e.g. EXO 15): the section colour persists onto
+        // following lines until \z0 marks the return to prose.
+        let out = convert_lines("EXO", &["\\z1 I'll sing to Yahweh", "the horse and its rider", "\\z0 Then Miryam took a tambourine"]);
+        assert_eq!(out[1].1.as_deref(), Some("z1"));
+        assert!(out[1].0.starts_with("<span class=\"z1\">"));
+        assert_eq!(out[2].1, None);
+        assert_eq!(out[2].0, "Then Miryam took a tambourine");
+    }
+
+    #[test]
+    fn test_z_markers_processed_outside_psalms() {
+        // Psalm 151 (PS2) and other OET-RV books are coloured too, not just PSA.
+        let out = convert_lines("PS2", &["\\z2 I went out \\z2hilite to meet\\z2hilite* him"]);
+        assert_eq!(out[0].1.as_deref(), Some("z2"));
+        assert!(out[0].0.contains("<span class=\"z2hilite\">to meet</span>"));
+        assert!(!out[0].0.contains("\\z"));
     }
 
     #[test]

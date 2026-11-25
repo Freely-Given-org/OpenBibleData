@@ -581,6 +581,7 @@ html[data-theme="dark"] span.z1, html[data-theme="dark"] span.z1hilite,
 html[data-theme="dark"] span.z2, html[data-theme="dark"] span.z2hilite,
 html[data-theme="dark"] span.z3, html[data-theme="dark"] span.z3hilite,
 html[data-theme="dark"] span.z4, html[data-theme="dark"] span.z4hilite,
+html[data-theme="dark"] span.z5, html[data-theme="dark"] span.z5hilite,
 html[data-theme="dark"] span.wrkNameDiffAccents,
 html[data-theme="dark"] span.wrkNameDiffText,
 html[data-theme="dark"] span.diffGrkWord { color:#1a1a1a; }

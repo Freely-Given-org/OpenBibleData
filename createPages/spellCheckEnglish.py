@@ -808,7 +808,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'wh', # in DAG/DNG
                         'ul',
                         'noLinkYet',
-                        'zr','z1','z2','z3','z4', 'zrhilite','z1hilite','z2hilite','z3hilite','z4hilite'
+                        'zr','z0','z1','z2','z3','z4','z5', 'zrhilite','z1hilite','z2hilite','z3hilite','z4hilite','z5hilite'
                         ):
         cleanedTextToCheck =  cleanedTextToCheck.replace( f'<span class="{spanMarker}">', '' )
     cleanedTextToCheck =  cleanedTextToCheck.replace( f'<span class="{versionAbbreviation}_chapterIntro">', '' )

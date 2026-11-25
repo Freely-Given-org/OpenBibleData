@@ -53,15 +53,34 @@ class TestCharacterFormattingPsalms(unittest.TestCase):
         assert "</span>" in result["html"]
         assert "\\z" not in result["html"]
 
-    def test_non_psa_no_z_processing(self):
-        """Test that \\z markers are ignored for non-PSA books."""
-        usfm = "Text \\zr marker here"
-        result = convert_usfm_character_formatting(
-            "OET-RV", "MAT", "book", usfm, False, [], [], False
-        )
-        # Non-PSA books should keep \\z markers as-is or fail assertion
-        # The Rust code asserts that \\z is not in html after processing for OET-RV
+    def test_psalms_z5(self):
+        """Test the extra \\z5 section colour and its hilite."""
+        for z in ("z5",):
+            usfm = f"Text \\{z} verse \\{z}hilite key\\{z}hilite* end"
+            result = convert_usfm_character_formatting(
+                "OET-RV", "PSA", "book", usfm, False, [], [], False
+            )
+            assert result["background_colour"] == z
+            assert f"<span class=\"{z}hilite\">key</span>" in result["html"]
+            assert "\\z" not in result["html"]
 
+    def test_z0_marker_removed(self):
+        """Test \\z0 (end of an embedded poem) is stripped and sets no colour.
+        (Colour persistence across lines is tested on the Rust side.)"""
+        result = convert_usfm_character_formatting(
+            "OET-RV", "EXO", "book", "\\z0 Then prose resumes", False, [], [], False
+        )
+        assert result["background_colour"] is None
+        assert result["html"] == "Then prose resumes"
+
+    def test_non_psa_z_processing(self):
+        """Test \\z markers are now processed in other OET-RV books (poems outside Songs)."""
+        result = convert_usfm_character_formatting(
+            "OET-RV", "EXO", "book", "Text \\z2 song \\z2hilite horse\\z2hilite* end", False, [], [], False
+        )
+        assert result["background_colour"] == "z2"
+        assert "<span class=\"z2hilite\">horse</span>" in result["html"]
+        assert "\\z" not in result["html"]
 
 class TestCharacterFormattingTableCells(unittest.TestCase):
     """Test table cell marker conversion."""

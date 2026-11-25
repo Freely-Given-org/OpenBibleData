@@ -436,7 +436,7 @@ const NO_LINK_YET_SKIP_SET: &[&str] = &[
     "=", "◙", "…", "◘", "\\add", "\\+add", "“\\add", "‘\\add", "—\\add", "(\\add", "≈\\add",
     "^\\add", "→\\add", "i.e.,\\add*", "\\qs", "\\bd", "\\em", "\\+em", "\\fig", "\\it", "\\nd",
     "\\+nd", "‘\\nd", "\\wj", "“\\wj", "\\+wj", "’\\wj*", "—\\wj*", "“\\+wj", "\\z1", "\\z2",
-    "\\z3", "\\z4", "\\zr",
+    "\\z3", "\\z4", "\\z5", "\\z0", "\\zr",
 ];
 
 /// References whose more complex spanning gets messed up when adding
@@ -492,7 +492,7 @@ const NO_LINK_YET_PREFIXES: &[&str] = &[
 const NO_LINK_YET_SUFFIXES: &[&str] = &[
     ",", ".", "?", "!", "”", "’", ":", ";", ")", "]", "\\add", "\\+add", "\\add*", "\\+add*",
     "\\x", "\\x*", "\\f", "\\f*", "\\bd*", "\\em*", "\\+em*", "\\it*", "\\nd*", "\\+nd*", "\\wj*",
-    "\\+wj*", "\\qs", "\\qs*", "\\z1", "\\z2", "\\z3", "\\z4", "\\zr", "☺",
+    "\\+wj*", "\\qs", "\\qs*", "\\z1", "\\z2", "\\z3", "\\z4", "\\z5", "\\z0", "\\zr", "☺",
 ];
 
 /// Exact-tuple-equality membership test (Python `refTuple not in (…)`)
