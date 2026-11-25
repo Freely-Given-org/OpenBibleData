@@ -90,6 +90,7 @@ CHANGELOG:
     2026-11-16 Copy Tyndale Open Bible Dictionary maps from state.BibleLocations['TOBD'].
     2026-11-19 Make the UBS HOTTP details page (and clean its folder).
     2026-11-22 Drop the parentheses around traditional names in OET book-link hover titles.
+    2026-11-25 Copy the OET wide logo and logo mark (linked from generated pages) from createPages/logos/.
 """
 from pathlib import Path
 import os
@@ -125,10 +126,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-11-22' # by RJH
+LAST_MODIFIED_DATE = '2026-11-25' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.10'
+PROGRAM_VERSION = '1.4.11'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -497,8 +498,11 @@ def _createSitePages() -> bool:
             shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'theme.js', state.DESTINATION_FOLDER )
             count += 7
+            for logoFilename in ('oet-logo-wide.png', 'OET-LogoMark-RGB-FullColor.png'): # Linked from the root of generated pages
+                shutil.copy2( f'logos/{logoFilename}', state.DESTINATION_FOLDER )
+                count += 1
             if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets, scripts and logos into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
