@@ -90,7 +90,7 @@ class State:
     OET_VERSION_NUMBER_STRING = 'v0.49.6' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
     OBD_PROGRAM_VERSION_NUMBER_STRING = 'v3.7.2' # Incremented after most updates to OBD web page generation code
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = ['TOB']
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
