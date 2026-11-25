@@ -48,6 +48,7 @@ CHANGELOG:
     2026-11-20 Read the renamed OET-RV names table 'Explanation' column and accept the names in it, e.g., 'Yakobos' in '\\add !(James; Grk. Yakobos)\\add*'
     2026-11-21 OET-RV names table: Segment (OT/NT/DC) column added (with one row per segment) and 'GrkName' renamed 'SimplifiedTransliteration'
     2026-11-22 OET-RV names table 'Explanation' column split into 'NotesExplanation' (without the \\add !(…)\\add* markup) and 'CanonicalExplanation' (the inserted text)
+    2026-11-26 Only count and mark possible misspellings in the displayed text, never inside a tag's attributes (e.g., a word link's title)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -57,14 +58,14 @@ import re
 import unicodedata
 
 from BibleOrgSys import BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
+from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-11-22' # by RJH
+LAST_MODIFIED_DATE = '2026-11-26' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -507,6 +508,33 @@ OET_FORMATTING_SPAN_REGEX = re.compile(
 FOOTNOTE_PARAGRAPHS_REGEX = re.compile( '<p class="fn" id="fn[1-9][0-9]?">' )
 FOOTNOTES_DIV_REGEX = re.compile( '<div id="footnotes" class="footnotes">.+?</div><!--footnotes-->' )
 CROSSREFS_DIV_REGEX = re.compile( '<div id="crossRefs" class="crossRefs">.+?</div><!--crossRefs-->' )
+DISPLAYED_TEXT_OR_TAG_RE = re.compile( r'[^<]+|<[^>]*>?' )
+
+def _displayedTextPositions( HTMLText:str, word:str ) -> list[int]:
+    """
+    Return the start indexes of word in the displayed text of HTMLText,
+        i.e., not inside a tag or its attributes (like a word link's title, e.g., 'Ἡρῴδης (Haʸrōᵢdaʸs, NMS)').
+    """
+    positions = []
+    for match in DISPLAYED_TEXT_OR_TAG_RE.finditer( HTMLText ):
+        if match.group(0).startswith( '<' ): continue
+        ix = match.group(0).find( word )
+        while ix != -1:
+            positions.append( match.start() + ix )
+            ix = match.group(0).find( word, ix + 1 )
+    return positions
+# end of spellCheckEnglish._displayedTextPositions
+
+
+def _markWordAt( HTMLText:str, word:str, position:int, title:str, className:str ) -> str:
+    """
+    Wrap the word that starts at position in a span with the given title and class.
+    """
+    assert HTMLText[position:position+len(word)] == word, f"{word=} {position=} {HTMLText[position:position+len(word)]=}"
+    return f'{HTMLText[:position]}<span title="{title}" class="{className}">{word}</span>{HTMLText[position+len(word):]}'
+# end of spellCheckEnglish._markWordAt
+
+
 def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck:str, originalHTMLTextForDebugging:str, state ) -> str:
     """
     Puts a span around suspected misspelt words
@@ -1073,17 +1101,17 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_GERMAN_WORD_LIST.append( (word,location) )
                 BAD_GERMAN_COUNTS[word] += 1
                 TOTAL_GERMAN_MISSPELLING_COUNT += 1
-                if checkedHTMLText.count( word ) == 1:
+                if len( textPositions := _displayedTextPositions( checkedHTMLText, word ) ) == 1:
                     # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
-                    checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt or untranslated word" class="spelling">{word}</span>', 1 )
+                    checkedHTMLText = _markWordAt( checkedHTMLText, word, textPositions[0], 'Possible misspelt or untranslated word', 'spelling' )
             elif versionAbbreviation == 'ClVg':
                 BAD_LATIN_WORD_SET.add( word )
                 BAD_LATIN_WORD_LIST.append( (word,location) )
                 BAD_LATIN_COUNTS[word] += 1
                 TOTAL_LATIN_MISSPELLING_COUNT += 1
-                if checkedHTMLText.count( word ) == 1:
+                if len( textPositions := _displayedTextPositions( checkedHTMLText, word ) ) == 1:
                     # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
-                    checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt or untranslated word" class="spelling">{word}</span>', 1 )
+                    checkedHTMLText = _markWordAt( checkedHTMLText, word, textPositions[0], 'Possible misspelt or untranslated word', 'spelling' )
             else: # assume it's English
                 BAD_ENGLISH_WORD_SET.add( word )
                 BAD_ENGLISH_WORD_LIST.append( (word,location) )
@@ -1091,15 +1119,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 TOTAL_ENGLISH_MISSPELLING_COUNT += 1
                 if versionAbbreviation not in ('KJB-1611',) \
                 or bos_books_codes_py.is_deuterocanon_nr(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
-                    if checkedHTMLText.count( word ) == 1:
+                    textPositions = _displayedTextPositions( checkedHTMLText, word )
+                    if len(textPositions) == 1 \
+                    or (versionAbbreviation=='OET-RV' and len(textPositions)==2 and len(word)>4): # The OET-RV text has footnotes included
+                        # We want to be certain to replace the word in the actual footnote text, not in the caller popup (so take the last one)
                         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
                             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
-                        checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
-                    elif versionAbbreviation=='OET-RV' and checkedHTMLText.count( word )==2 and len(word)>4: # The OET-RV text has footnotes included
-                        # We want to be certain to replace the word in the actual footnote text, not in the caller popup
-                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
-                        checkedHTMLText = rreplace( checkedHTMLText, word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
+                        checkedHTMLText = _markWordAt( checkedHTMLText, word, textPositions[-1], 'Possible misspelt word', 'spelling' )
             MISPELLING_VERSION_REF_DICT[versionAbbreviation].append( (word,ref) ) # We can save these to disk later
     for word in repeatedWords:
         if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:

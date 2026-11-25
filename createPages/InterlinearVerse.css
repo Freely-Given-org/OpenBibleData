@@ -247,6 +247,7 @@ span.wj { color:saddlebrown; }
 span.sc { font-size:0.8em; } /* Small caps */
 span.sig { font-family:cursive; }
 span.ul { color:darkGrey; }
+span.reordered { color:darkGrey; cursor:help; } /* OET-RV ⇔ marker: the RV reversed the original text order */
 /* span.SR-GNT_trans {} */
 
 /* OT spans */

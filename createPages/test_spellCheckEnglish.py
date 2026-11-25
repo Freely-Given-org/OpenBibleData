@@ -18,6 +18,7 @@ CHANGELOG:
     2026-11-12 Check title-case compounds, dictionary compounds, and per-version compound exceptions.
     2026-11-13 Check ClVg/KJB-1611 J→Y name respellings and ClVg Roman numerals, without accepting unknown words.
     2026-11-23 Use Boaz/Oved, as the OET-RV names table no longer has Boes/Boos or Yobed/Yobel, and clear reports between subtests.
+    2026-11-26 Check possible misspellings are only marked in the displayed text, never inside a link's title.
 """
 from types import SimpleNamespace
 from collections import defaultdict
@@ -241,6 +242,17 @@ class TestTranslatedVocabulary(unittest.TestCase):
         for version, word in (('ClVg', 'Yzyzzy'), ('ClVg', 'IIX'), ('ClVg', 'VX'), ('OET-RV', 'Yapheth')):
             with self.subTest(version=version, word=word):
                 self.assertIn(f'class="spelling">{word}</span>', self.check_text(version, word))
+
+    def test_misspellings_are_only_marked_in_displayed_text(self):
+        # A word link's title holds the whole word, but the displayed word is split by the link
+        split = 'king Yzyzz<a title="Ἡρῴδης (Yzyzzyqx, NMS)" href="x.htm">yqx</a> came'
+        marked = self.check_text('Wycl', split)
+        self.assertNotIn('class="spelling"', marked) # Nothing to mark in the displayed text
+        self.assertIn('title="Ἡρῴδης (Yzyzzyqx, NMS)"', marked)
+        # When the word is displayed as well, the displayed one is marked
+        both = '<a title="Yzyzzyqx" href="x.htm">x</a> Yzyzzyqx came'
+        self.assertIn('<a title="Yzyzzyqx" href="x.htm">x</a> <span title="Possible misspelt word" class="spelling">Yzyzzyqx</span>',
+                      self.check_text('Wycl', both))
 
     def test_capitalised_words_use_lowercase_glosses(self):
         self.assertEqual(translateLatin('Columnas et columnas'), 'Columns/pillars and columns/pillars')

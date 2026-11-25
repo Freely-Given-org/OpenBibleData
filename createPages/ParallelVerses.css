@@ -223,6 +223,7 @@ span.qt { font-style:italic; }
 span.sig { font-family:cursive; }
 span.t4tFoS { color:seaGreen; } /* T4T Figure of Speech */
 span.ul { color:darkGrey; }
+span.reordered { color:darkGrey; cursor:help; } /* OET-RV ⇔ marker: the RV reversed the original text order */
 
 /* OT spans */
 span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
