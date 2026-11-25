@@ -169,6 +169,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-24 Say that word and lemma gloss summaries are from the OET-LV, and add how the OET-RV translates them (and how many occurrences are linked).
     2026-11-26 Head word-form occurrence lists 'All uses (n)' since they include the current word (was 'Other uses (n-1)').
     2026-11-26 List up to 150 (was 100) uses of an identical word form before truncating to the first 50.
+    2026-11-26 Likewise list up to 150 (was 100) uses of a Greek or Hebrew lemma before truncating to the first 50.
 """
 from pathlib import Path
 import os
@@ -2453,11 +2454,11 @@ def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:
             #     # usedRoleLetters.add( oRoleLetter )
             # # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
 
-            if len(thisLemmaRowsList) > 100: # too many to list
+            if len(thisLemmaRowsList) > 150: # too many to list
                 maxWordsToShow = 50
                 lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList):,} uses of Hebrew root <small>(lemma)</small> ‘{thisLemmaStr}’ ({transliterate_Hebrew(thisLemmaStr)}) in the Hebrew originals</h2>"
             else: # we can list all uses of the word
-                maxWordsToShow = 100
+                maxWordsToShow = 150
                 lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Hebrew root <small>(lemma)</small> ‘{thisLemmaStr}’ ({transliterate_Hebrew(thisLemmaStr)}) in the Hebrew originals</h2>"
             for displayCounter,oN in enumerate( thisLemmaRowsList, start=1 ):
                 oWordRef, oRowType, oMorphemeRowList, oLemmaRowList, oStrongs, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][HebrewWordFileName][oN].split( '\t' )
@@ -3069,11 +3070,11 @@ def _make_greek_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:i
                 # usedRoleLetters.add( oRoleLetter )
             # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
 
-            if len(thisLemmaRowsList) > 100: # too many to list
+            if len(thisLemmaRowsList) > 150: # too many to list
                 maxWordsToShow = 50
                 lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList):,} uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
             else: # we can list all uses of the word
-                maxWordsToShow = 100
+                maxWordsToShow = 150
                 lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
             for displayCounter,oN in enumerate( thisLemmaRowsList, start=1 ):
                 oWordRef, oGreekWord, _oSRLemma, _oGrkLemma, oVLTGlossWords, oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, oRoleLetter, oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
