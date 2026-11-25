@@ -11,6 +11,7 @@ CHANGELOG:
     2026-11-02 Exclude Greek/Hebrew editions before processing Latin Laodiceans.
     2026-11-02 Start chapter jumps at verse 1 without removing verse-zero destinations.
     2026-11-05 Distinguish chapter introductions from numbered verse zero in the page head.
+    2026-11-25 Use a temporary TEMP_BUILD_FOLDER so search supplements never reach a real build.
 """
 from collections import defaultdict
 from contextlib import ExitStack
@@ -28,6 +29,18 @@ import createParallelVersePages as parallelPages
 import createVerseListPages as listPages
 import createOETInterlinearPages as interlinearPages
 from settings import State
+
+
+def setUpModule():
+    """Keep build output (e.g., search supplements) out of the real ../buildingHtmlPages/.
+
+    A build running at the same time would otherwise index these fixtures.
+    """
+    temporary = TemporaryDirectory()
+    unittest.addModuleCleanup(temporary.cleanup)
+    patcher = patch.object(State, 'TEMP_BUILD_FOLDER', Path(temporary.name))
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
 
 
 class StudyViewPageTests(unittest.TestCase):

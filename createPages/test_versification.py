@@ -25,6 +25,7 @@ CHANGELOG:
     2026-11-05 Supply study metadata to the isolated verse and index writers.
     2026-11-19 Stub formatHOTTPNotes in the parallel verse page namespace.
     2026-11-22 Supply bookName to the page builders now that book-link titles use it.
+    2026-11-25 Use a temporary TEMP_BUILD_FOLDER so search supplements never reach a real build.
 """
 from pageMetadata import studyIndexMetadata, verseStudyMetadata
 import ast
@@ -59,6 +60,18 @@ from grammaticalColours import GREEK_CASE_CLASS_KEY_DICT, HEBREW_CASE_CLASS_KEY_
 from alternateVersePages import createAlternateVersePages
 from parallel import runParallelPages
 from substitutedVersions import prepareSubstitutedVersions, saveSubstitutedVersions
+
+
+def setUpModule():
+    """Keep build output (e.g., search supplements) out of the real ../buildingHtmlPages/.
+
+    A build running at the same time would otherwise index these fixtures.
+    """
+    temporary = TemporaryDirectory()
+    unittest.addModuleCleanup(temporary.cleanup)
+    patcher = patch.object(State, 'TEMP_BUILD_FOLDER', Path(temporary.name))
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
 
 
 class MappingTests(unittest.TestCase):
