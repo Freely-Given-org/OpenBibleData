@@ -10,6 +10,8 @@
 //!     2026-11-20 Make `oet_book_name` a per-book table matching the OET-RV `\h` names
 //!     2026-11-20 Replace `apply_oet_tidy_renames` with the per-book `oet_tidy_bbb` table
 //!                    following the OET-RV `\toc3` abbreviations
+//!     2026-11-26 Let OET-LV word links include the subscript vowels (ₐ ₑ ᵢ ₒ ᵤ), Ş Ţ Ⱪ Ī Ū, and '?'
+//!                    (as in 'Haʸrōᵢdaʸs', 'Şīḩōn' and 'Babulōn/(Bāⱱel?)'), which used to cut the link short
 //!
 //! The PyO3 wrappers that expose these functions to Python live in `lib.rs`
 //! (they pull rows out of `state.OETRefData` and build/inspect BOS
@@ -63,8 +65,11 @@ pub const NARROW_NON_BREAK_SPACE: char = '\u{202F}';
 
 /// Note that single words might include a \sup \sup* span as in
 /// 'Aʸsaias/(Yəshaˊə\sup yāh\sup*)¦21767' (handled by the SSsupP substitutions).
+/// The letters are listed explicitly (rather than using \p{L}) so that OET-LV markers
+/// like '˓…˒' and separators like '÷' and '=' stay outside the link.
+/// '?' only occurs inside an alternative form, e.g., 'Babulōn/(Bāⱱel?)¦150444'.
 pub static LINKED_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new("([-¬A-za-z0-9,'’ḨŌⱤḩⱪşţʦⱱĀĒāēéīōūəʸʼˊ/()]+)¦([1-9][0-9]{0,5})").unwrap()
+    Regex::new("([-¬A-za-z0-9,'’ḨŌⱤḩⱪşţʦⱱĀĒāēéīōūəʸʼˊ/()ₐₑᵢₒᵤŞŢⱩĪŪ?]+)¦([1-9][0-9]{0,5})").unwrap()
 });
 
 static DC_LINKED_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -1854,6 +1859,24 @@ mod tests {
             "<a title=\"καὶ (kai, ABCDGfghi)\" href=\"../ref/GrkWrd/MRKc1v1w1.htm#Top\" class=\"grkGen\">And</a>"
         );
         assert_eq!(colourisations_added, 1);
+    }
+
+    #[test]
+    fn test_linked_word_regex_keeps_whole_transliterated_words() {
+        // These letters used to cut the link short, e.g., 'Haʸrōᵢ' was left outside the link to 'daʸs'
+        for (text, word) in [("Haʸrōᵢdaʸs¦23517", "Haʸrōᵢdaʸs"), ("Maḩₐnāyim¦156759", "Maḩₐnāyim"),
+                             ("Tsₑrətān/(Zarethan)¦158306", "Tsₑrətān/(Zarethan)"), ("Noˊₒmī¦123805", "Noˊₒmī"),
+                             ("Şīḩōn¦158394", "Şīḩōn"), ("Ţāfat¦158285", "Ţāfat"), ("Ⱪorazin¦6771", "Ⱪorazin"),
+                             ("ʼĪzeⱱel/(Jezebel)¦167394", "ʼĪzeⱱel/(Jezebel)"), ("ʼŪfāz¦308868", "ʼŪfāz"),
+                             ("Babulōn/(Bāⱱel?)¦150444", "Babulōn/(Bāⱱel?)")] {
+            let captures = LINKED_WORD_REGEX.captures(text).unwrap();
+            assert_eq!(&captures[1], word, "in {text:?}");
+        }
+        // OET-LV markers and separators still stay outside the link
+        for (text, word) in [("˓Was¦148889", "Was"), ("And¦155591÷the¦155591", "the"), ("in¦1=days¦1", "days")] {
+            let last = LINKED_WORD_REGEX.captures_iter(text).last().unwrap();
+            assert_eq!(&last[1], word, "in {text:?}");
+        }
     }
 
     #[test]
