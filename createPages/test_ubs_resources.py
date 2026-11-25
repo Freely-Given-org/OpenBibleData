@@ -7,6 +7,7 @@ CHANGELOG:
     2026-11-19 First version
     2026-11-19 Check that handbook images are placed together at the top of the article.
     2026-11-19 Check the bulleted handbook list for the Reference contents page.
+    2026-11-26 Check HOTTP \\heb…\\heb* and \\grk…\\grk* markers become Hebrew and Greek spans.
 """
 import json
 from pathlib import Path
@@ -86,6 +87,18 @@ class HOTTPTests(unittest.TestCase):
         self.assertIn('<span class="hebrew">עוד</span> &amp; see.', html) # Keeps the source's Hebrew span but escapes the rest
         self.assertIn('title="Conjectural form of the text">14</span>', html)
         self.assertNotIn('See Remark', html)
+
+    def test_language_markers_become_spans(self):
+        entry = ubsHOTTP.HOTTPEntry('00011', ['03900302400010'], 'Not \\heb אור\\heb* but \\grk φῶς\\grk* & <i>so</i>.', '',
+                    [ubsHOTTP.HOTTPAlternative('[קֵן \\ קֵין]', 'A', [ubsHOTTP.HOTTPVersion('NEB','(underlying \\heb וישכם׃\\heb*)')],
+                                               ['12 (for/pour \\heb אל־תתעבר\\heb*)'], '(full stop after \\heb יעשה\\heb*) thus')])
+        html = ubsHOTTP.formatHOTTPEntry(entry, {'12':'Other factors'})
+        self.assertIn('Not <span class="hebrew">אור</span> but <span class="greek">φῶς</span> &amp; &lt;i&gt;so&lt;/i&gt;.', html) # Remark
+        self.assertIn('‘(full stop after <span class="hebrew">יעשה</span>) thus’', html) # Literal
+        self.assertIn('(underlying <span class="hebrew">וישכם׃</span>)', html) # Version content
+        self.assertIn('title="Other factors">12 (for/pour <span class="hebrew">אל־תתעבר</span>)</span>', html) # Factor (titled by its number)
+        self.assertIn('<span class="hebrew">[קֵן / קֵין]</span>', html) # Alternative readings
+        self.assertNotIn('\\', html)
 
     def test_notes_use_original_numbering(self):
         state = SimpleNamespace(navigationVersification='eng', UBS_HOTTP_ENTRIES={'00010':self.entry()},

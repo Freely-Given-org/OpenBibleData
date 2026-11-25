@@ -12,6 +12,9 @@ Each <HOTTP_Entry Id="00010"> has References (UBS word codes like '0010020190001
 
 CHANGELOG:
     2026-11-19 First version
+    2026-11-26 Show the source's USFM-style \\heb…\\heb* and \\grk…\\grk* markers as Hebrew and Greek spans (not as raw text),
+                including in the version renderings and factors; look up factor titles like '12 (for/pour …)' by their number;
+                show the backslash between alternative Hebrew readings, e.g., '[קֵן \\ קֵין]', as a slash.
 """
 from collections import defaultdict
 from dataclasses import dataclass
@@ -161,13 +164,28 @@ def loadHOTTP(folderpath) -> tuple[dict[str,HOTTPEntry],dict[tuple[str,str,str],
 # end of loadHOTTP
 
 
+HOTTP_LANGUAGE_MARKER_RE = re.compile(r'\\(heb|grk) (.*?)\\\1\*', re.DOTALL) # e.g., '\heb עוד\heb*'
+HOTTP_LANGUAGE_CLASSES = {'heb':'hebrew', 'grk':'greek'}
+
+
 def _hottpText(text:str) -> str:
     """
-    Escape HOTTP English text, but keep the source's <span class="hebrew">…</span> markup.
+    Escape HOTTP text, but keep the source's <span class="hebrew">…</span> markup,
+        and convert its USFM-style \\heb…\\heb* and \\grk…\\grk* markers to the same spans.
     """
     html = escape(text)
-    return re.sub(r'&lt;span class="hebrew"&gt;(.*?)&lt;/span&gt;', r'<span class="hebrew">\1</span>', html)
+    html = re.sub(r'&lt;span class="hebrew"&gt;(.*?)&lt;/span&gt;', r'<span class="hebrew">\1</span>', html)
+    return HOTTP_LANGUAGE_MARKER_RE.sub(lambda match: f'<span class="{HOTTP_LANGUAGE_CLASSES[match.group(1)]}">{match.group(2)}</span>', html)
 # end of _hottpText
+
+
+def _factorTitle(factor:str, factors:dict[str,str]) -> str:
+    """
+    Return the title for a factor like '14' or '12 (for/pour \\heb אל־תתעבר\\heb*)' (looked up by its number).
+    """
+    number = match.group(0) if (match:=re.match(r'\d+', factor)) else factor
+    return factors.get(number, f'Factor {number}')
+# end of _factorTitle
 
 
 def formatHOTTPEntry(entry:HOTTPEntry, factors:dict[str,str]) -> str:
@@ -179,11 +197,11 @@ def formatHOTTPEntry(entry:HOTTPEntry, factors:dict[str,str]) -> str:
         rating = alternative.rating[:1].upper()
         ratingHtml = f''' <span class="HOTTPrating" title="{escape(RATING_DESCRIPTIONS[rating], {'"':'&quot;'})}">{escape(alternative.rating)}</span>''' if rating in RATING_DESCRIPTIONS else ''
         literalHtml = f' ‘{_hottpText(alternative.literal)}’' if alternative.literal else ''
-        versionsHtml = '; '.join(f'''<span class="HOTTPversion" title="{escape(VERSION_NAMES.get(version.abbreviation, version.abbreviation), {'"':'&quot;'})}">{escape(version.abbreviation)}</span> {escape(version.content)}'''
+        versionsHtml = '; '.join(f'''<span class="HOTTPversion" title="{escape(VERSION_NAMES.get(version.abbreviation, version.abbreviation), {'"':'&quot;'})}">{escape(version.abbreviation)}</span> {_hottpText(version.content)}'''
                                     for version in alternative.versions)
-        factorsHtml = ', '.join(f'''<span class="HOTTPfactor" title="{escape(factors.get(factor, 'Factor '+factor), {'"':'&quot;'})}">{escape(factor)}</span>'''
+        factorsHtml = ', '.join(f'''<span class="HOTTPfactor" title="{escape(_factorTitle(factor, factors), {'"':'&quot;'})}">{_hottpText(factor)}</span>'''
                                     for factor in alternative.factors)
-        alternativesHtml.append( f'''<li><span class="hebrew">{escape(alternative.source)}</span>{literalHtml}{ratingHtml}'''
+        alternativesHtml.append( f'''<li><span class="hebrew">{escape(alternative.source).replace(' \\ ', ' / ')}</span>{literalHtml}{ratingHtml}'''
                                  f'''{f' <small>({versionsHtml})</small>' if versionsHtml else ''}{f' <small>Factors: {factorsHtml}</small>' if factorsHtml else ''}</li>''' )
     html = f'''<ul>{''.join(alternativesHtml)}</ul>''' # (Styled by div.HOTTPnote ul)
     if entry.suggestion and not entry.suggestion.startswith('See '):
