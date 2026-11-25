@@ -167,6 +167,8 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-11-19 Remove the dictionary (and handbook) links line from the top of the reference pages;
                 link the additional-book words index from the main reference index instead.
     2026-11-24 Say that word and lemma gloss summaries are from the OET-LV, and add how the OET-RV translates them (and how many occurrences are linked).
+    2026-11-26 Head word-form occurrence lists 'All uses (n)' since they include the current word (was 'Other uses (n-1)').
+    2026-11-26 List up to 150 (was 100) uses of an identical word form before truncating to the first 50.
 """
 from pathlib import Path
 import os
@@ -218,7 +220,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-11-24' # by RJH
+LAST_MODIFIED_DATE = '2026-11-26' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.10'
@@ -2193,7 +2195,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
         if numWordOETGlossesList > 1:
             wordGlossesStr = convert_Hebrew_word_gloss_spans( ', '.join(wordOETGlossesStrList) )
             assert '\\' not in wordGlossesStr
-        if len(thisWordNumberList) > 100: # too many to list
+        if len(thisWordNumberList) > 150: # too many to list
             maxWordsToShow = 50
             wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if numWordOETGlossesList > 1:
@@ -2207,7 +2209,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 # if VLTGlossWordsStr != gloss:
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{VLTGlossWordsStr}</b>’)</small>.</p>'
         else: # we can list all uses of the word
-            maxWordsToShow = 100
+            maxWordsToShow = 150
             if len(thisWordNumberList) == 1:
                 wordsHtml = f'{wordsHtml}\n<h2>Only use of identical word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
                 # hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]
@@ -2218,7 +2220,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 #     assert len(morphemeGlossesList) == 1
                 #     html = f'''{html.replace(morphemeLink, f'{morphemeLink}<sup>*</sup>')}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> '{lemma}' in the Hebrew originals.</p>'''
             elif len(thisWordNumberList) > 1:
-                wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
+                wordsHtml = f'{wordsHtml}\n<h2>All uses ({len(thisWordNumberList):,}) of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if numWordOETGlossesList > 1:
                 wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {numWordOETGlossesList:,} different glosses: {wordGlossesStr}.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
@@ -3440,7 +3442,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             if numWordOETGlossesList > 1:
                 wordOETGlossesStr = tidyGlossOfGreekWord( ', '.join( wordOETGlossesStrList ) )
             thisWordNumberList = state.OETRefData['NTFormUsageDict'][(greekWord,roleLetter,morphology)]
-            if len(thisWordNumberList) > 100: # too many to list
+            if len(thisWordNumberList) > 150: # too many to list
                 maxWordsToShow = 50
                 wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList):,} uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                 if numWordOETGlossesList > 1:
@@ -3453,7 +3455,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     if VLTGlossWordsStr != OETGlossWordsStr:
                         wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> was always and only glossed as ‘<b>{VLTGlossWordsStr}</b>’)</small>.</p>'
             else: # we can list all uses of the word
-                maxWordsToShow = 100
+                maxWordsToShow = 150
                 if len(thisWordNumberList) == 1:
                     wordsHtml = f'{wordsHtml}\n<h2>Only use of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                     # grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
@@ -3464,7 +3466,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     #     assert len(lemmaGlossesList) == 1
                     #     html = f'''{html.replace(lemmaLink, f'{lemmaLink}<sup>*</sup>')}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> '{lemma}' in the Greek originals.</p>'''
                 else:
-                    wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
+                    wordsHtml = f'{wordsHtml}\n<h2>All uses ({len(thisWordNumberList):,}) of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                 if numWordOETGlossesList > 1:
                     wordsHtml = f'''{wordsHtml}\n<p class="summary">In the <em>OET-LV</em>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {numWordOETGlossesList:,} different glosses: {wordOETGlossesStr}.</p>'''
                     if wordVLTGlossesList != wordOETGlossesList:
